@@ -1,0 +1,9 @@
+package-lock.json
+node_modules/
+assets/
+src-tauri/debug/
+src-tauri/target/
+src-tauri/Cargo.lock
+**/*.rs.bk
+# MSVC Windows builds of rustc generate these, which store debugging information
+*.pdb
