@@ -1,6 +1,7 @@
 package-lock.json
 node_modules/
 assets/
+src-tauri/libobs/
 src-tauri/debug/
 src-tauri/target/
 src-tauri/Cargo.lock

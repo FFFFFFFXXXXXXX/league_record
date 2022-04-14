@@ -3,47 +3,59 @@
     windows_subsystem = "windows"
 )]
 
-extern crate wgc_recorder;
-use std::{thread, time::Duration};
-use wgc_recorder::{
-    bitrate::Bitrate, framerate::Framerate, resolution::Resolution, Recorder, RecorderSettings,
-};
+extern crate libobs_recorder;
+use chrono::Local;
+use libobs_recorder::{framerate::Framerate, rate_control::Cqp, resolution::Resolution, *};
 
 use std::{
     cmp::min,
+    env,
+    fs::create_dir,
+    fs::File,
     io::{Read, Seek, SeekFrom},
     path::PathBuf,
+    thread,
+    time::Duration,
 };
 
 use tauri::{
+    api::path::video_dir,
     http::{HttpRange, ResponseBuilder},
-    CustomMenuItem, Manager, RunEvent, Runtime, SystemTray, SystemTrayEvent, SystemTrayMenu,
+    CustomMenuItem, Manager, RunEvent, SystemTray, SystemTrayEvent, SystemTrayMenu, WindowEvent,
 };
 
+// use the mutex to let only one recording be active at a time.
+// the bool in the mutex is unused.
+#[derive(Default)]
+struct RecordState {
+    recording: std::sync::Mutex<bool>,
+}
 #[tauri::command]
-async fn record<R: Runtime>(
-    _app: tauri::AppHandle<R>,
-    _window: tauri::Window<R>,
-) -> Result<(), String> {
-    let settings = RecorderSettings {
-        window_title: String::from("Mozilla Firefox"),
-        output_resolution: Resolution::_1080p,
-        framerate: Framerate::new(30),
-        bitrate: Bitrate::mbit(8),
-        capture_cursor: true,
+async fn record(state: tauri::State<'_, RecordState>) -> Result<(), String> {
+    // get mutex and store it in _recording_lock which is only dropped when the function returns
+    // _recording_lock gets dropped after recorder (dropped in reverse order of declaration)
+    // => the lock is always released after the recorder has completely shutdown
+    let _recording_lock = match state.recording.try_lock() {
+        Ok(lock) => lock,
+        _ => return Err("Already recording!".into()),
     };
-    match Recorder::new(settings) {
-        Ok(mut recorder) => {
-            let duration = Duration::from_secs(10);
-            match recorder.start(Some(duration)) {
-                Ok(_) => (),
-                Err(e) => {
-                    println!("{}", e);
-                }
-            }
-        }
-        Err(e) => println!("{}", e),
-    };
+
+    let mut settings = RecorderSettings::new();
+    settings
+        .set_window_title("League of Legends (TM) Client:RiotWindowClass:League of Legends.exe");
+    settings.set_input_resolution(Resolution::_1440p);
+    settings.set_output_resolution(Resolution::_1080p);
+    settings.set_framerate(Framerate::new(30));
+    settings.set_cqp(Cqp::new(16));
+    settings.record_audio(true);
+    settings.set_output_path(get_new_filepath());
+
+    let mut recorder = Recorder::get(settings);
+    if recorder.start_recording() {
+        thread::sleep(Duration::from_secs(60));
+        recorder.stop_recording();
+    }
+
     Ok(())
 }
 
@@ -63,6 +75,7 @@ fn main() {
                     window.set_focus().unwrap();
                 }
                 "quit" => {
+                    Recorder::shutdown();
                     app.exit(0);
                 }
                 _ => {}
@@ -92,7 +105,7 @@ fn main() {
             let mut path = PathBuf::from("../");
             path.push(path_str);
 
-            let content = std::fs::File::open(path);
+            let content = File::open(path);
             let mut content = match content {
                 Ok(c) => c,
                 Err(_) => return response.mimetype("text/plain").status(404).body(Vec::new()),
@@ -136,12 +149,20 @@ fn main() {
 
             response.mimetype("video/mp4").status(status_code).body(buf)
         })
+        .manage(RecordState::default())
+        .setup(|_app| {
+            Recorder::init().unwrap();
+            Ok(())
+        })
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
 
     app.run(|app_handle, e| match e {
-        RunEvent::CloseRequested { label, api, .. } => {
-            let app_handle = app_handle.clone();
+        RunEvent::WindowEvent {
+            label,
+            event: WindowEvent::CloseRequested { api, .. },
+            ..
+        } => {
             api.prevent_close();
             app_handle.get_window(&label).unwrap().hide().unwrap();
         }
@@ -150,4 +171,15 @@ fn main() {
         }
         _ => {}
     });
+}
+
+fn get_new_filepath() -> String {
+    let filename = format!("{}", Local::now().format("%Y-%m-%d_%H-%M-%S.mp4"));
+    let mut vid_dir = video_dir().unwrap();
+    vid_dir.push(PathBuf::from("league_recordings"));
+    if !vid_dir.exists() {
+        let _ = create_dir(vid_dir.as_path());
+    }
+    vid_dir.push(PathBuf::from(filename));
+    vid_dir.to_str().unwrap().into()
 }
