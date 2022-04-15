@@ -9,11 +9,17 @@
     <link href="./videojs-markers-plugin/videojs.markers.plugin.min.css" rel="stylesheet">
     <script src="./video-js/video.min.js"></script>
     <script src="./videojs-markers-plugin/videojs-markers-plugin.min.js"></script>
+    <style>
+        html {
+            background-color: #6d7a93;
+        }
+    </style>
 </head>
 
 <body>
     <div>
-        <video id="video_player" class="video-js" style="max-width: 1000px; margin-left: auto; margin-right: auto;">
+        <video id="video_player" class="video-js vjs-big-play-centered"
+            style="max-width: 1000px; margin-left: auto; margin-right: auto;">
             <p class="vjs-no-js">
                 To view this video please enable JavaScript, and consider upgrading to a
                 web browser that
@@ -26,6 +32,7 @@
 
     <script>
         const invoke = window.__TAURI__.invoke
+        const event = window.__TAURI__.event;
         const { convertFileSrc } = window.__TAURI__.tauri;
 
         const player = videojs('video_player', {
@@ -43,13 +50,16 @@
             markers: []
         });
 
-        function setVideo(vname) {
-            player.src({ type: 'video/mp4', src: convertFileSrc(vname, 'stream') });
+        event.listen('close_pause', () => player.pause());
+
+        function setVideo(name) {
+            player.src({ type: 'video/mp4', src: convertFileSrc(name, 'video') });
         }
 
-        setVideo('../assets/output.mp4');
+        //setVideo('C:\\Users\\Felix\\Videos\\league_recordings\\2022-04-15_19-54-57.mp4');
 
         // invoke('record').then(m => console.log(m))
+
     </script>
 </body>
 
