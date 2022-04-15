@@ -2,199 +2,55 @@
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8" />
-	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<style>
-		*,
-		::before,
-		::after {
-			box-sizing: border-box;
-		}
-
-		html,
-		body {
-			padding: 0;
-			margin: 0;
-		}
-
-		#appbar {
-			font-size: 35px;
-			width: 100vw;
-			display: inline-grid;
-			height: 50px;
-			background-color: lightseagreen;
-			grid-template-columns: 1fr 10fr 1fr;
-			justify-items: center;
-			align-items: center;
-		}
-
-		video {
-			width: 100vw;
-			height: calc(90vh - 50px);
-			margin-bottom: -4px;
-		}
-
-		#timeline {
-			width: 100vw;
-			height: 10vh;
-			background-color: darkorchid;
-			padding-top: 10px;
-			font-size: 25px;
-		}
-
-		#timeline-slider {
-			width: 95vw;
-			display: block;
-			margin: auto;
-		}
-
-		.left-corner {
-			float: left;
-			padding: 0 15px;
-		}
-
-		.right-corner {
-			float: right;
-			padding: 0 15px;
-		}
-
-		#settings {
-			display: none;
-			position: absolute;
-			margin: 5vh 5vw;
-			width: 90vw;
-			height: 90vh;
-			background: white;
-			border-radius: 1%;
-			box-shadow: 5px 5px 5px black;
-			z-index: 123;
-		}
-
-		.switch {
-			position: relative;
-			display: inline-block;
-			width: 60px;
-			height: 34px;
-			margin: 8px 0;
-		}
-
-		.switch input {
-			opacity: 0;
-			width: 0;
-			height: 0;
-		}
-
-		.slider {
-			position: absolute;
-			cursor: pointer;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background-color: #ccc;
-			-webkit-transition: .4s;
-			transition: .4s;
-		}
-
-		.slider:before {
-			position: absolute;
-			content: "";
-			height: 26px;
-			width: 26px;
-			left: 4px;
-			bottom: 4px;
-			background-color: white;
-			-webkit-transition: .4s;
-			transition: .4s;
-		}
-
-		input:checked+.slider {
-			background-color: #2196F3;
-		}
-
-		input:focus+.slider {
-			box-shadow: 0 0 1px #2196F3;
-		}
-
-		input:checked+.slider:before {
-			-webkit-transform: translateX(26px);
-			-ms-transform: translateX(26px);
-			transform: translateX(26px);
-		}
-
-		.slider.round {
-			border-radius: 34px;
-		}
-
-		.slider.round:before {
-			border-radius: 50%;
-		}
-	</style>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="./video-js/video-js.min.css" rel="stylesheet">
+    <link href="./videojs-markers-plugin/videojs.markers.plugin.min.css" rel="stylesheet">
+    <script src="./video-js/video.min.js"></script>
+    <script src="./videojs-markers-plugin/videojs-markers-plugin.min.js"></script>
 </head>
 
 <body>
-	<div id="settings">
+    <div>
+        <video id="video_player" class="video-js" style="max-width: 1000px; margin-left: auto; margin-right: auto;">
+            <p class="vjs-no-js">
+                To view this video please enable JavaScript, and consider upgrading to a
+                web browser that
+                <a href="https://videojs.com/html5-video-support/" target="_blank">
+                    supports HTML5 video
+                </a>
+            </p>
+        </video>
+    </div>
 
-	</div>
+    <script>
+        const invoke = window.__TAURI__.invoke
+        const { convertFileSrc } = window.__TAURI__.tauri;
 
-	<div id="appbar">
-		<span id="hmenu" style="cursor: pointer;">☰</span>
-		<div>
-			<span>Auto-Record:&nbsp;</span>
-			<label class="switch">
-				<input type="checkbox" id="record">
-				<span class="slider round"></span>
-			</label>
-		</div>
-		<span id="settingsBtn" style="cursor: pointer;">⚙</span>
-	</div>
-	<video id="video_source"></video>
-	<div id="timeline">
-		<input type="range" min="0" max="1000" value="0" id="timeline-slider">
-		<span id="current-time" class="left-corner">00:00</span>
-		<span id="max-time" class="right-corner">--:--</span>
-	</div>
+        const player = videojs('video_player', {
+            aspectRatio: '16:9',
+            autoplay: false,
+            controls: true,
+            preload: 'auto'
+        });
 
-	<script>
-		const invoke = window.__TAURI__.invoke
-		const { convertFileSrc } = window.__TAURI__.tauri;
+        player.markers({
+            markerStyle: {
+                'width': '10px',
+                'background-color': 'red'
+            },
+            markers: []
+        });
 
-		const menu = document.getElementById('hmenu');
-		const record = document.getElementById('record');
-		const settingsBtn = document.getElementById('settingsBtn');
-		const video = document.getElementById('video_source');
-		const timeline = document.getElementById('timeline-slider');
-		const currentTime = document.getElementById('current-time');
-		const maxTime = document.getElementById('max-time');
+        function setVideo(vname) {
+            player.src({ type: 'video/mp4', src: convertFileSrc(vname, 'stream') });
+        }
 
-		function formatTime(time) {
-			if (time < 10) return '0' + time.toString().slice(0, 4);
-			else return time.toString().slice(0, 5);
-		}
+        setVideo('../assets/output.mp4');
 
-		menu.addEventListener('click', () => { console.log('menu'); });
-		record.addEventListener('change', () => { console.log('record: ' + record.checked); });
-		settingsBtn.addEventListener('click', () => { console.log('settingsBtn'); });
-
-		video.addEventListener('loadedmetadata', () => { maxTime.innerHTML = formatTime(video.duration); });
-
-		function setVideo(vname) {
-			const source = document.createElement('source');
-			source.type = 'video/mp4';
-			source.src = convertFileSrc(vname, 'stream');
-			video.replaceChildren(source);
-			video.load();
-		}
-
-		timeline.addEventListener('input', () => {
-			let t = (video.duration / 1000) * timeline.value;
-			video.currentTime = t;
-			currentTime.innerHTML = formatTime(t);
-		});
-
-		setVideo('../assets/output.mp4');
-	</script>
+        // invoke('record').then(m => console.log(m))
+    </script>
 </body>
 
 </html>
