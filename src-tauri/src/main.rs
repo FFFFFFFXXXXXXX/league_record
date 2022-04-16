@@ -5,9 +5,10 @@
 
 mod handlers;
 mod helper;
-// mod window;
 
 extern crate libobs_recorder;
+
+use std::{sync::mpsc::channel, time::Duration};
 
 use handlers::*;
 use helper::{get_new_filepath, get_recordings};
@@ -21,9 +22,14 @@ async fn get_recordings_list() -> Vec<String> {
     let recordings = get_recordings();
     let mut ret = Vec::<String>::new();
     for path in recordings {
-        ret.push(path.into_os_string().into_string().unwrap());
+        if let Some(os_str_ref) = path.file_name() {
+            if let Ok(filename) = os_str_ref.to_os_string().into_string() {
+                println!("{}", filename);
+                ret.push(filename);
+            }
+        }
     }
-    ret
+    return ret;
 }
 
 // use the mutex to let only one recording be active at a time.
@@ -45,6 +51,9 @@ async fn record<R: Runtime>(
         _ => return Err("Already recording!".into()),
     };
 
+    let (sender, receiver) = channel::<_>();
+    window.once("stop_record", move |_| sender.send(()).unwrap());
+
     let mut settings = RecorderSettings::new();
     settings
         .set_window_title("League of Legends (TM) Client:RiotWindowClass:League of Legends.exe");
@@ -57,13 +66,11 @@ async fn record<R: Runtime>(
 
     let mut recorder = Recorder::get(settings);
     if recorder.start_recording() {
-        let (sender, receiver) = std::sync::mpsc::channel::<bool>();
-        let id = window.listen("stop_record", move |_| sender.send(true).unwrap());
-        let _ = receiver.recv();
-        window.unlisten(id);
+        let _ = receiver.recv_timeout(Duration::from_secs(5000));
         recorder.stop_recording();
     }
 
+    let _ = window.emit("new_recording", ());
     Ok(())
 }
 

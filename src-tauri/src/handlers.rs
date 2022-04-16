@@ -46,7 +46,8 @@ pub fn video_protocol_handler(
 ) -> core::result::Result<Response, Box<dyn Error>> {
     let mut response = ResponseBuilder::new();
     #[cfg(target_os = "windows")]
-    let path_str = request.uri().replace("video://localhost/", "");
+    let uri = urlencoding::decode(request.uri()).unwrap();
+    let path_str = uri.replace("video://localhost/", "");
     #[cfg(not(target_os = "windows"))]
     let path = request.uri().replace("video://", "");
 
@@ -62,10 +63,6 @@ pub fn video_protocol_handler(
         Ok(c) => c,
         Err(_) => return response.mimetype("text/plain").status(404).body(Vec::new()),
     };
-
-    let time = content.metadata().unwrap().created().unwrap();
-    let ch_time = chrono::DateTime::<chrono::Local>::from(time);
-    println!("{}", ch_time.format("%d/%m/%Y %T"));
 
     let mut buf = Vec::new();
     let mut status_code = 200;

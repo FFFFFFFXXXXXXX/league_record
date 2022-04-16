@@ -1,4 +1,4 @@
-use std::{fs::create_dir_all, path::PathBuf};
+use std::{cmp::Ordering, fs::create_dir_all, io, path::PathBuf};
 
 use chrono::Local;
 use tauri::api::path::video_dir;
@@ -21,18 +21,13 @@ pub fn get_recordings_folder() -> PathBuf {
 
 pub fn get_recordings() -> Vec<PathBuf> {
     let mut recordings = Vec::<PathBuf>::new();
+
+    // get all mp4 files in ~/Videos/league_recordings
     let rec_folder = get_recordings_folder();
     let rd_dir = rec_folder.read_dir().unwrap();
     for entry in rd_dir {
         if let Ok(entry) = entry {
             let path = entry.path();
-            if path.is_file() {
-                println!(
-                    "{} {}",
-                    path.file_name().unwrap().to_str().unwrap(),
-                    path.extension().unwrap().to_str().unwrap()
-                );
-            }
             if let Some(ext) = path.extension() {
                 if ext == "mp4" {
                     recordings.push(path);
@@ -40,5 +35,20 @@ pub fn get_recordings() -> Vec<PathBuf> {
             }
         }
     }
-    recordings
+
+    // sort by time created (index 0 is newest)
+    recordings.sort_by(|a, b| {
+        if let Ok(result) = compare_time(a, b) {
+            result
+        } else {
+            Ordering::Equal
+        }
+    });
+    return recordings;
+}
+
+fn compare_time(a: &PathBuf, b: &PathBuf) -> io::Result<Ordering> {
+    let a_time = a.metadata()?.created()?;
+    let b_time = b.metadata()?.created()?;
+    Ok(a_time.cmp(&b_time).reverse())
 }

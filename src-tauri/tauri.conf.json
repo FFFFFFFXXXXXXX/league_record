@@ -51,16 +51,17 @@
     "allowlist": {
       "protocol": {
         "all": true
+      },
+      "window": {
+        "all": true
       }
     },
     "windows": [
       {
         "title": "League Record",
-        "minWidth": 600,
-        "width": 800,
-        "minHeight": 600,
-        "height": 600,
-        "resizable": true,
+        "width": 1800,
+        "height": 900,
+        "resizable": false,
         "fullscreen": false,
         "center": true,
         "visible": false
