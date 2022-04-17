@@ -56,7 +56,7 @@
         "open": ""
       },
       "window": {
-        "all": true
+        "setFullscreen": true
       },
       "dialog": {
         "confirm": true
