@@ -52,15 +52,21 @@
       "protocol": {
         "all": true
       },
+      "shell": {
+        "open": ""
+      },
       "window": {
         "all": true
+      },
+      "dialog": {
+        "confirm": true
       }
     },
     "windows": [
       {
         "title": "League Record",
-        "width": 1800,
-        "height": 900,
+        "width": 1198,
+        "height": 702,
         "resizable": false,
         "fullscreen": false,
         "center": true,
