@@ -4,8 +4,8 @@
     "version": "0.1.0"
   },
   "build": {
-    "distDir": "../src",
-    "devPath": "../src",
+    "distDir": "../src-web",
+    "devPath": "../src-web",
     "beforeDevCommand": "",
     "beforeBuildCommand": "",
     "withGlobalTauri": true
@@ -25,15 +25,14 @@
       "resources": [],
       "externalBin": [],
       "copyright": "",
-      "category": "DeveloperTool",
-      "shortDescription": "",
-      "longDescription": "",
+      "category": "Utility",
+      "shortDescription": "Record and replay League of Legends",
+      "longDescription": "Record and replay League of Legends",
       "deb": {
         "depends": []
       },
       "macOS": {
         "frameworks": [],
-        "minimumSystemVersion": "",
         "exceptionDomain": "",
         "signingIdentity": null,
         "providerShortName": null,

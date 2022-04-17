@@ -9,18 +9,17 @@ default-run = "app"
 edition = "2021"
 rust-version = "1.57"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [build-dependencies]
-tauri-build = { version = "1.0.0-rc.4", features = [] }
+tauri-build = { version = "1.0.0-rc.5", features = [] }
 
 [dependencies]
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder" }
+reqwest = "0.11.10"
 urlencoding = "2.1.0"
 chrono = "0.4.19"
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.0.0-rc.4", features = ["dialog-confirm", "protocol-all", "shell-open", "system-tray", "window-all"] }
+# serde_json = "1.0"
+# serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.0.0-rc.5", features = ["dialog-confirm", "protocol-all", "shell-open", "system-tray", "window-set-fullscreen"] }
 
 [features]
 # by default Tauri runs in production mode
