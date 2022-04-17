@@ -22,6 +22,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_recordings_list,
             get_recordings_folder,
+            get_league_events,
             record
         ])
         .system_tray(system_tray)

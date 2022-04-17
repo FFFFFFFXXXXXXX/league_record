@@ -1,9 +1,10 @@
-use std::{path::PathBuf, sync::mpsc::channel, time::Duration};
+use std::{fs::File, io::Read, path::PathBuf, sync::mpsc::channel, time::Duration};
 
 use crate::helpers::{get_new_filepath, get_recordings, get_recordings_folder as get_rec_folder};
 use libobs_recorder::{
     framerate::Framerate, rate_control::Cqp, resolution::Resolution, Recorder, RecorderSettings,
 };
+use reqwest::header::ACCEPT;
 use tauri::Runtime;
 
 #[tauri::command]
@@ -28,6 +29,28 @@ pub async fn get_recordings_list() -> Vec<String> {
         }
     }
     return ret;
+}
+
+#[tauri::command]
+pub async fn get_league_events() -> Vec<String> {
+    let mut buf = Vec::new();
+    File::open("riotgames.pem")
+        .unwrap()
+        .read_to_end(&mut buf)
+        .unwrap();
+    let cert = reqwest::Certificate::from_pem(&buf).unwrap();
+    let client = reqwest::Client::builder()
+        .add_root_certificate(cert)
+        .build()
+        .unwrap();
+    let result = client
+        .get("https://127.0.0.1:2999/liveclientdata/eventdata")
+        .header(ACCEPT, "application/json")
+        .send()
+        .await
+        .unwrap();
+    println!("{}: {}", result.status(), result.text().await.unwrap());
+    vec!["".into()]
 }
 
 // use the mutex to let only one recording be active at a time.
