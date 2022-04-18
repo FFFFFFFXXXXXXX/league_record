@@ -1,10 +1,12 @@
 const invoke = window.__TAURI__.invoke
-const event = window.__TAURI__.event;
+const { emit, listen } = window.__TAURI__.event;
 const convertFileSrc = window.__TAURI__.tauri.convertFileSrc;
 const open = __TAURI__.shell.open;
 const wmng = new __TAURI__.window.WindowManager();
 let init = true;
 let fullscreen = false;
+
+let events = [];
 
 // init video player
 const player = videojs('video_player', {
@@ -24,7 +26,7 @@ player.markers({
 });
 
 // pause video on closing window to tray
-event.listen('close_pause', () => player.pause());
+listen('close_pause', () => player.pause());
 
 // listen to fullscreenchange and set window fullscreen
 addEventListener('fullscreenchange', e => {
@@ -38,11 +40,11 @@ function setVideo(name) {
 }
 
 function startRecording() {
-    invoke('record').then(m => console.log(m));
+    invoke('record').then(m => { if (m) console.error(m) });
 }
 
 function stopRecording() {
-    event.emit("stop_record", {});
+    emit("stop_record", {});
 }
 
 function openRecordingsFolder() {
@@ -70,26 +72,31 @@ function generateSidebarContent() {
                 setVideo(rec[0]);
                 init = false;
             }
-        })
-        .then(createContextMenus);
+        });
 }
 
-function createContextMenus() {
-    document.querySelectorAll('#sidebar-content a').forEach(el => {
-        new VanillaContextMenu({
-            scope: el,
-            menuItems: [
-                {
-                    label: 'Delete',
-                    callback: () => deleteVideo(el.innerHTML + '.mp4'),
-                }
-            ],
-            transitionDuration: 0
-        });
+function updateEvents() {
+    invoke('get_league_events').then(e => {
+        console.log(events, e);
+        if (events.length === 0 && e.length > 0) {
+            startRecording();
+        } else if ((events.length > 0 && e.length === 0) || e.includes('GameEnd')) {
+            stopRecording();
+            // todo save events
+        }
+        events = e;
     });
 }
 
+// disable right click menu
+addEventListener('contextmenu', event => event.preventDefault());
+
 // listen if a new video has been recorded
-event.listen('recordings_changed', () => generateSidebarContent());
+listen('recordings_changed', () => generateSidebarContent());
+
 // load the inital content
 generateSidebarContent();
+
+// check regularly if league game is started
+let interval = setInterval(updateEvents, 5000);
+// clearInterval(interval);
