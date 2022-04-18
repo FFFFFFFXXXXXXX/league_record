@@ -32,7 +32,6 @@ pub fn get_recordings_folder() -> PathBuf {
 
 pub fn get_recordings() -> Vec<PathBuf> {
     let mut recordings = Vec::<PathBuf>::new();
-
     // get all mp4 files in ~/Videos/league_recordings
     let rec_folder = get_recordings_folder();
     let rd_dir = rec_folder.read_dir().unwrap();
@@ -46,19 +45,10 @@ pub fn get_recordings() -> Vec<PathBuf> {
             }
         }
     }
-
-    // sort by time created (index 0 is newest)
-    recordings.sort_by(|a, b| {
-        if let Ok(result) = compare_time(a, b) {
-            result
-        } else {
-            Ordering::Equal
-        }
-    });
     return recordings;
 }
 
-fn compare_time(a: &PathBuf, b: &PathBuf) -> io::Result<Ordering> {
+pub fn compare_time(a: &PathBuf, b: &PathBuf) -> io::Result<Ordering> {
     let a_time = a.metadata()?.created()?;
     let b_time = b.metadata()?.created()?;
     Ok(a_time.cmp(&b_time).reverse())

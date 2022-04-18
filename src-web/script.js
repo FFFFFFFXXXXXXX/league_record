@@ -37,6 +37,9 @@ addEventListener('fullscreenchange', e => {
 function setVideo(name) {
     player.src({ type: 'video/mp4', src: convertFileSrc(name, 'video') });
     wmng.setTitle('League Record - ' + name);
+    invoke('get_metadata').then(metadata => {
+        document.getElementById('description').innerHTML = metadata;
+    });
 }
 
 function startRecording() {
@@ -51,15 +54,26 @@ function openRecordingsFolder() {
     invoke('get_recordings_folder').then(folder => open(folder));
 }
 
+function setRecordingsSize() {
+    invoke('get_recordings_size')
+        .then(size => document.getElementById('size').innerHTML = `Size: ${size.toString().substring(0, 4)} GB`);
+}
+
 function deleteVideo(video) {
-    if (window.confirm(`Do you really want to delete ${video}`)) {
-        invoke('delete_video', { video: video }).then(b => {
-            if (b)
-                generateSidebarContent();
-            else
-                window.alert('Error deleting video!');
+    window.confirm(`Do you really want to delete ${video}`)
+        .then(ok => {
+            if (ok) {
+                invoke('delete_video', { video: video }).then(b => {
+                    if (b) {
+                        setRecordingsSize();
+                        document.getElementById(video).remove();
+                        document.querySelector('#sidebar-content li').click();
+                    } else {
+                        window.alert('Error deleting video!');
+                    }
+                });
+            }
         });
-    }
 }
 
 function generateSidebarContent() {
@@ -67,17 +81,17 @@ function generateSidebarContent() {
     sidebar.innerHTML = '';
     invoke('get_recordings_list')
         .then(rec => {
-            rec.forEach(el => sidebar.innerHTML += `<a onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}</a><hr>`);
+            rec.forEach(el => sidebar.innerHTML += `<li id="${el}" onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}<span class="close" onclick="deleteVideo('${el}')">&times;</span></li>`);
             if (init) {
                 setVideo(rec[0]);
                 init = false;
             }
         });
+    setRecordingsSize();
 }
 
 function updateEvents() {
     invoke('get_league_events').then(e => {
-        console.log(events, e);
         if (events.length === 0 && e.length > 0) {
             startRecording();
         } else if ((events.length > 0 && e.length === 0) || e.includes('GameEnd')) {
