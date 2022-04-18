@@ -1,7 +1,14 @@
-use std::{path::PathBuf, sync::mpsc::channel, time::Duration};
+use std::{
+    cmp::Ordering,
+    fs::{metadata, remove_file},
+    path::PathBuf,
+    sync::mpsc::channel,
+    time::Duration,
+};
 
 use crate::helpers::{
-    create_client, get_new_filepath, get_recordings, get_recordings_folder as get_rec_folder,
+    compare_time, create_client, get_new_filepath, get_recordings,
+    get_recordings_folder as get_rec_folder,
 };
 use libobs_recorder::{
     framerate::Framerate, rate_control::Cqp, resolution::Resolution, Recorder, RecorderSettings,
@@ -9,6 +16,25 @@ use libobs_recorder::{
 use reqwest::header::ACCEPT;
 use serde::Deserialize;
 use tauri::Runtime;
+
+#[tauri::command]
+pub async fn get_recordings_size() -> f64 {
+    let mut size = 0;
+    for file in get_recordings() {
+        size += metadata(file).unwrap().len();
+    }
+    size as f64 / 1_000_000_000.0 // in Gigabyte
+}
+
+#[tauri::command]
+pub async fn delete_video(video: String) -> bool {
+    let mut path = get_rec_folder();
+    path.push(PathBuf::from(video));
+    match remove_file(path) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
 
 #[tauri::command]
 pub async fn get_recordings_folder() -> String {
@@ -22,7 +48,15 @@ pub async fn get_recordings_folder() -> String {
 
 #[tauri::command]
 pub async fn get_recordings_list() -> Vec<String> {
-    let recordings = get_recordings();
+    let mut recordings = get_recordings();
+    // sort by time created (index 0 is newest)
+    recordings.sort_by(|a, b| {
+        if let Ok(result) = compare_time(a, b) {
+            result
+        } else {
+            Ordering::Equal
+        }
+    });
     let mut ret = Vec::<String>::new();
     for path in recordings {
         if let Some(os_str_ref) = path.file_name() {

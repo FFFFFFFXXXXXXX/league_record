@@ -49,20 +49,48 @@ hr {
     border: 2px solid white;
 }
 
-#sidebar div a {
+#size {
+    text-align: center;
+    color: #a1b0d8;
+}
+
+#sidebar-content {
+    margin: 0;
+    padding: 0;
+}
+
+#sidebar-content li {
     padding: 10px;
     text-decoration: none;
     font-size: 21px;
     color: lightgray;
     display: block;
+    border-bottom: 1px solid lightgray;
 }
 
-#sidebar div a:hover {
+#sidebar-content li:hover {
     color: white;
     cursor: pointer;
     background-color: #445fa5;
 }
 
+.close {
+    position: absolute;
+    right: 3%;
+    padding: 0px 5px;
+    border-radius: 30px;
+}
+
+.close:hover {
+    background: red;
+}
+
 #main {
     margin-left: 275px;
+}
+
+#description {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
