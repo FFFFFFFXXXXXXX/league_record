@@ -1,10 +1,13 @@
-use std::{fs::File, io::Read, path::PathBuf, sync::mpsc::channel, time::Duration};
+use std::{path::PathBuf, sync::mpsc::channel, time::Duration};
 
-use crate::helpers::{get_new_filepath, get_recordings, get_recordings_folder as get_rec_folder};
+use crate::helpers::{
+    create_client, get_new_filepath, get_recordings, get_recordings_folder as get_rec_folder,
+};
 use libobs_recorder::{
     framerate::Framerate, rate_control::Cqp, resolution::Resolution, Recorder, RecorderSettings,
 };
 use reqwest::header::ACCEPT;
+use serde::Deserialize;
 use tauri::Runtime;
 
 #[tauri::command]
@@ -31,26 +34,64 @@ pub async fn get_recordings_list() -> Vec<String> {
     return ret;
 }
 
+#[derive(Deserialize, Debug)]
+struct Events {
+    #[serde(rename = "Events")]
+    events: Vec<Event>,
+}
+
+#[derive(Deserialize, Debug)]
+struct Event {
+    #[serde(rename = "EventID")]
+    id: u32,
+    #[serde(rename = "EventName")]
+    name: String,
+    #[serde(rename = "EventTime")]
+    time: f32,
+}
+
 #[tauri::command]
 pub async fn get_league_events() -> Vec<String> {
-    let mut buf = Vec::new();
-    File::open("riotgames.pem")
-        .unwrap()
-        .read_to_end(&mut buf)
-        .unwrap();
-    let cert = reqwest::Certificate::from_pem(&buf).unwrap();
-    let client = reqwest::Client::builder()
-        .add_root_certificate(cert)
-        .build()
-        .unwrap();
+    let client = create_client();
+
+    // let result = client
+    //     .get("https://127.0.0.1:2999/liveclientdata/activeplayername")
+    //     .header(ACCEPT, "application/json")
+    //     .timeout(Duration::from_secs(1))
+    //     .send()
+    //     .await;
+    // let player_name = if let Ok(result) = result {
+    //     result.text()
+    // } else {
+    //     return Vec::new();
+    // };
+
     let result = client
         .get("https://127.0.0.1:2999/liveclientdata/eventdata")
         .header(ACCEPT, "application/json")
+        .timeout(Duration::from_secs(1))
         .send()
-        .await
-        .unwrap();
-    println!("{}: {}", result.status(), result.text().await.unwrap());
-    vec!["".into()]
+        .await;
+    let events = if let Ok(result) = result {
+        // let text = result.text().await.unwrap();
+        // println!("before parse: {}", text);
+        result.json::<Events>().await
+    } else {
+        return Vec::new();
+    };
+    println!("after parse");
+    let events = if let Ok(e) = events {
+        e
+    } else {
+        return Vec::new();
+    };
+
+    let mut vec = Vec::<String>::new();
+    for event in events.events {
+        println!("{:?}", event);
+        vec.push(event.name);
+    }
+    return vec;
 }
 
 // use the mutex to let only one recording be active at a time.

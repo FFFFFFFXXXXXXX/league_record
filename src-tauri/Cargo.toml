@@ -14,12 +14,12 @@ tauri-build = { version = "1.0.0-rc.5", features = [] }
 
 [dependencies]
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder" }
-reqwest = "0.11.10"
+reqwest = { version = "0.11.10", features = ["json"] }
 urlencoding = "2.1.0"
 chrono = "0.4.19"
 # serde_json = "1.0"
-# serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.0.0-rc.5", features = ["dialog-confirm", "protocol-all", "shell-open", "system-tray", "window-set-fullscreen"] }
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.0.0-rc.5", features = ["dialog-confirm", "protocol-all", "shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
 
 [features]
 # by default Tauri runs in production mode

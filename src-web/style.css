@@ -1,0 +1,68 @@
+body {
+    margin: 0;
+    height: 100%;
+    font-family: sans-serif;
+    background: #2c2f3e;
+}
+
+hr {
+    margin: 0;
+}
+
+#sidebar {
+    height: 100%;
+    width: 274px;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    overflow-x: hidden;
+    border-right: 1px solid white;
+    /* Hide scrollbar for IE, Edge and Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+#sidebar::-webkit-scrollbar {
+    display: none;
+}
+
+#sidebar button {
+    margin: 10px auto 11px auto;
+    display: block;
+    border-radius: 5px;
+    padding: 5px 7px;
+    background: #2c2f3e;
+    color: #a1b0d8;
+    border: 2px solid #a1b0d8;
+    font-size: 16px;
+    width: 165px;
+    cursor: pointer;
+}
+
+#sidebar button:hover {
+    background: #445fa5;
+    color: white;
+    border: 2px solid white;
+}
+
+#sidebar div a {
+    padding: 10px;
+    text-decoration: none;
+    font-size: 21px;
+    color: lightgray;
+    display: block;
+}
+
+#sidebar div a:hover {
+    color: white;
+    cursor: pointer;
+    background-color: #445fa5;
+}
+
+#main {
+    margin-left: 275px;
+}
