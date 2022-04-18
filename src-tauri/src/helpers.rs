@@ -1,7 +1,18 @@
 use std::{cmp::Ordering, fs::create_dir_all, io, path::PathBuf};
 
 use chrono::Local;
+use reqwest::Client;
 use tauri::api::path::video_dir;
+
+pub fn create_client() -> Client {
+    let pem = include_bytes!("../riotgames.pem");
+    let cert = reqwest::Certificate::from_pem(pem).unwrap();
+    let client = Client::builder()
+        .add_root_certificate(cert)
+        .build()
+        .unwrap();
+    return client;
+}
 
 pub fn get_new_filepath() -> String {
     let filename = format!("{}", Local::now().format("%Y-%m-%d_%H-%M-%S.mp4"));

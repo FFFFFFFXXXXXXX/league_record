@@ -55,6 +55,7 @@
         "open": ""
       },
       "window": {
+        "setTitle": true,
         "setFullscreen": true
       },
       "dialog": {
@@ -64,9 +65,9 @@
     "windows": [
       {
         "title": "League Record",
-        "width": 1198,
+        "width": 1298,
         "height": 702,
-        "resizable": false,
+        "resizable": true,
         "fullscreen": false,
         "center": true,
         "visible": false
