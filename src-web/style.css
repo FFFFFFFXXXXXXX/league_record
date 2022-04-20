@@ -1,7 +1,16 @@
+@font-face {
+    font-family: "BeaufortW01-Bold";
+    src: url("BeaufortW01-Bold.ttf") format('truetype');
+}
+
+html {
+    font-family: 'BeaufortW01-Bold';
+}
+
 body {
+    /* font-family: 'Friz Quadrata Regular'; */
     margin: 0;
     height: 100%;
-    font-family: sans-serif;
     background: #2c2f3e;
 }
 
@@ -31,6 +40,7 @@ hr {
 }
 
 #sidebar button {
+    font-family: 'BeaufortW01-Bold';
     margin: 10px auto 11px auto;
     display: block;
     border-radius: 5px;
@@ -77,8 +87,8 @@ hr {
 .close {
     position: absolute;
     right: 3%;
-    padding: 0px 5px;
-    border-radius: 30px;
+    padding: 0px 5px 1px 5px;
+    border-radius: 50px;
 }
 
 .close:hover {
@@ -93,4 +103,8 @@ hr {
     display: flex;
     justify-content: center;
     align-items: center;
+    text-align: center;
+    color: lightgray;
+    font-size: 20px;
+    margin-top: 15px;
 }

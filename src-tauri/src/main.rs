@@ -24,8 +24,10 @@ fn main() {
             get_recordings_size,
             get_recordings_list,
             get_recordings_folder,
-            get_league_events,
-            record
+            get_league_data,
+            record,
+            save_metadata,
+            get_metadata
         ])
         .system_tray(system_tray)
         .on_system_tray_event(system_tray_event_handler)
