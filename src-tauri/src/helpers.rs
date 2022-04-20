@@ -14,7 +14,7 @@ pub fn create_client() -> Client {
     return client;
 }
 
-pub fn get_new_filepath() -> String {
+pub fn get_new_filename() -> String {
     let filename = format!("{}", Local::now().format("%Y-%m-%d_%H-%M-%S.mp4"));
     let mut vid_dir = get_recordings_folder();
     vid_dir.push(PathBuf::from(filename));

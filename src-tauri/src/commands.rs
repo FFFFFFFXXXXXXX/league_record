@@ -1,20 +1,21 @@
 use std::{
     cmp::Ordering,
-    fs::{metadata, remove_file},
+    fs::{metadata, remove_file, File},
+    io::BufReader,
     path::PathBuf,
     sync::mpsc::channel,
     time::Duration,
 };
 
 use crate::helpers::{
-    compare_time, create_client, get_new_filepath, get_recordings,
+    compare_time, create_client, get_new_filename, get_recordings,
     get_recordings_folder as get_rec_folder,
 };
 use libobs_recorder::{
     framerate::Framerate, rate_control::Cqp, resolution::Resolution, Recorder, RecorderSettings,
 };
-use reqwest::header::ACCEPT;
-use serde::Deserialize;
+use reqwest::{header::ACCEPT, StatusCode};
+use serde_json::{json, Value};
 use tauri::Runtime;
 
 #[tauri::command]
@@ -28,12 +29,23 @@ pub async fn get_recordings_size() -> f64 {
 
 #[tauri::command]
 pub async fn delete_video(video: String) -> bool {
+    // remove video
     let mut path = get_rec_folder();
-    path.push(PathBuf::from(video));
-    match remove_file(path) {
+    path.push(PathBuf::from(&video));
+    let ok1 = match remove_file(path) {
         Ok(_) => true,
         Err(_) => false,
-    }
+    };
+    // remove json file
+    let mut path = get_rec_folder();
+    let mut json = video.clone();
+    json.replace_range(json.len() - 4.., ".json");
+    path.push(PathBuf::from(json));
+    let ok2 = match remove_file(path) {
+        Ok(_) => true,
+        Err(_) => false,
+    };
+    return ok1 && ok2;
 }
 
 #[tauri::command]
@@ -68,64 +80,90 @@ pub async fn get_recordings_list() -> Vec<String> {
     return ret;
 }
 
-#[derive(Deserialize, Debug)]
-struct Events {
-    #[serde(rename = "Events")]
-    events: Vec<Event>,
-}
+#[tauri::command]
+pub async fn save_metadata(mut filename: String, mut json: Value) -> Result<(), String> {
+    let player_name = json["playerName"].clone();
+    if let Some(events) = json["events"].as_array_mut() {
+        events.retain(|event| match event["EventName"].as_str().unwrap() {
+            "HeraldKill" | "DragonKill" | "BaronKill" => true,
+            "TurretKilled" | "InhibKilled" | "ChampionKill" => {
+                let assisters = event["Assisters"].as_array().unwrap();
+                return event["VictimName"] == player_name
+                    || event["KillerName"] == player_name
+                    || assisters.contains(&player_name);
+            }
+            _ => false,
+        });
+    }
 
-#[derive(Deserialize, Debug)]
-struct Event {
-    #[serde(rename = "EventID")]
-    id: u32,
-    #[serde(rename = "EventName")]
-    name: String,
-    #[serde(rename = "EventTime")]
-    time: f32,
+    filename.replace_range(filename.len() - 4.., ".json");
+    if let Ok(file) = File::create(filename) {
+        let _ = serde_json::to_writer(file, &json);
+        Ok(())
+    } else {
+        Err("Could not create json file!".into())
+    }
 }
 
 #[tauri::command]
-pub async fn get_league_events() -> Vec<String> {
+pub async fn get_metadata(video: String) -> Option<Value> {
+    let mut filename = video.clone();
+    filename.replace_range(filename.len() - 4.., ".json");
+    let mut path = get_rec_folder();
+    path.push(PathBuf::from(filename));
+    let reader = if let Ok(file) = File::open(path) {
+        BufReader::new(file)
+    } else {
+        return None;
+    };
+
+    if let Ok(json) = serde_json::from_reader::<BufReader<File>, Value>(reader) {
+        Some(json)
+    } else {
+        None
+    }
+}
+
+#[tauri::command]
+pub async fn get_league_data() -> Option<Value> {
     let client = create_client();
 
-    // let result = client
-    //     .get("https://127.0.0.1:2999/liveclientdata/activeplayername")
-    //     .header(ACCEPT, "application/json")
-    //     .timeout(Duration::from_secs(1))
-    //     .send()
-    //     .await;
-    // let player_name = if let Ok(result) = result {
-    //     result.text()
-    // } else {
-    //     return Vec::new();
-    // };
-
     let result = client
-        .get("https://127.0.0.1:2999/liveclientdata/eventdata")
+        .get("https://127.0.0.1:2999/liveclientdata/allgamedata")
         .header(ACCEPT, "application/json")
         .timeout(Duration::from_secs(1))
         .send()
         .await;
-    let events = if let Ok(result) = result {
-        // let text = result.text().await.unwrap();
-        // println!("before parse: {}", text);
-        result.json::<Events>().await
+    let data = if let Ok(result) = result {
+        if result.status() != StatusCode::OK {
+            return None;
+        }
+        if let Ok(json) = result.json::<Value>().await {
+            json
+        } else {
+            return None;
+        }
     } else {
-        return Vec::new();
+        return None;
     };
-    println!("after parse");
-    let events = if let Ok(e) = events {
-        e
-    } else {
-        return Vec::new();
-    };
-
-    let mut vec = Vec::<String>::new();
-    for event in events.events {
-        println!("{:?}", event);
-        vec.push(event.name);
+    let mut player_info: Option<&Value> = None;
+    for player in data["allPlayers"].as_array().unwrap() {
+        if player["summonerName"] == data["activePlayer"]["summonerName"] {
+            player_info = Some(player);
+            break;
+        }
     }
-    return vec;
+    if let Some(info) = player_info {
+        Some(json!({
+            "playerName": data["activePlayer"]["summonerName"],
+            "championName": info["championName"],
+            "stats": info["scores"],
+            "events": data["events"]["Events"],
+            "gameMode": data["gameData"]["gameMode"]
+        }))
+    } else {
+        return None;
+    }
 }
 
 // use the mutex to let only one recording be active at a time.
@@ -138,7 +176,7 @@ pub struct RecordState {
 pub async fn record<R: Runtime>(
     state: tauri::State<'_, RecordState>,
     window: tauri::Window<R>,
-) -> Result<(), String> {
+) -> Result<String, String> {
     // get mutex and store it in _recording_lock which is only dropped when the function returns
     // _recording_lock gets dropped after recorder (dropped in reverse order of declaration)
     // => the lock is always released after the recorder has completely shutdown
@@ -150,6 +188,7 @@ pub async fn record<R: Runtime>(
     let (sender, receiver) = channel::<_>();
     window.once("stop_record", move |_| sender.send(()).unwrap());
 
+    let filename = get_new_filename();
     let mut settings = RecorderSettings::new();
     settings
         .set_window_title("League of Legends (TM) Client:RiotWindowClass:League of Legends.exe");
@@ -158,7 +197,7 @@ pub async fn record<R: Runtime>(
     settings.set_framerate(Framerate::new(30));
     settings.set_cqp(Cqp::new(16));
     settings.record_audio(true);
-    settings.set_output_path(get_new_filepath());
+    settings.set_output_path(&filename);
 
     let mut recorder = Recorder::get(settings);
     if recorder.start_recording() {
@@ -167,5 +206,5 @@ pub async fn record<R: Runtime>(
     }
 
     let _ = window.emit("recordings_changed", ());
-    Ok(())
+    Ok(filename)
 }

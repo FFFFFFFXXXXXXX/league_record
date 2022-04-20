@@ -1,3 +1,4 @@
+// CONSTANTS AND GLOBAL VARIABLES
 const invoke = window.__TAURI__.invoke
 const { emit, listen } = window.__TAURI__.event;
 const convertFileSrc = window.__TAURI__.tauri.convertFileSrc;
@@ -6,8 +7,12 @@ const wmng = new __TAURI__.window.WindowManager();
 let init = true;
 let fullscreen = false;
 
-let events = [];
+let recording = false;
+let game_data = null;
+// ------------------------------
 
+
+// SETUP ------------------------
 // init video player
 const player = videojs('video_player', {
     aspectRatio: '16:9',
@@ -34,31 +39,59 @@ addEventListener('fullscreenchange', e => {
     wmng.setFullscreen(fullscreen);
 });
 
-function setVideo(name) {
-    player.src({ type: 'video/mp4', src: convertFileSrc(name, 'video') });
-    wmng.setTitle('League Record - ' + name);
-    invoke('get_metadata').then(metadata => {
-        document.getElementById('description').innerHTML = metadata;
-    });
-}
+// disable right click menu
+addEventListener('contextmenu', event => event.preventDefault());
+// ------------------------------
 
+
+// RUST COMMUNICATION WRAPPERS --
 function startRecording() {
-    invoke('record').then(m => { if (m) console.error(m) });
+    return invoke('record');
 }
-
 function stopRecording() {
-    emit("stop_record", {});
+    emit("stop_record");
 }
-
 function openRecordingsFolder() {
     invoke('get_recordings_folder').then(folder => open(folder));
 }
-
+function getRecordingsNames() {
+    return invoke('get_recordings_list');
+}
 function setRecordingsSize() {
     invoke('get_recordings_size')
         .then(size => document.getElementById('size').innerHTML = `Size: ${size.toString().substring(0, 4)} GB`);
 }
+function getIngameData() {
+    return invoke('get_league_data');
+}
+function saveMetadata(filename) {
+    invoke('save_metadata', { "filename": filename, "json": game_data });
+}
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+async function setVideo(name) {
+    player.src({ type: 'video/mp4', src: convertFileSrc(name, 'video') });
+    wmng.setTitle('League Record - ' + name);
+    invoke('get_metadata', { video: name }).then(md => {
+        document.getElementById('description').innerHTML = "No Data";
+        player.markers.removeAll();
+        if (md) {
+            let desc = `${md['playerName']}<br>`;
+            desc += `${md['gameMode']}<br>`;
+            desc += `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
+            desc += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
+            document.getElementById('description').innerHTML = desc;
 
+            // delay to wait for video src change to finish
+            sleep(100).then(() => {
+                let arr = [];
+                md['events'].forEach(e => arr.push({ time: e['EventTime'] - 5, text: e['EventName'] }));
+                player.markers.add(arr);
+            });
+        }
+    });
+}
 function deleteVideo(video) {
     window.confirm(`Do you really want to delete ${video}`)
         .then(ok => {
@@ -75,42 +108,40 @@ function deleteVideo(video) {
             }
         });
 }
+// ------------------------------
 
+// MAIN FUNCTIONS ---------------
 function generateSidebarContent() {
     let sidebar = document.getElementById('sidebar-content');
     sidebar.innerHTML = '';
-    invoke('get_recordings_list')
-        .then(rec => {
-            rec.forEach(el => sidebar.innerHTML += `<li id="${el}" onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}<span class="close" onclick="deleteVideo('${el}')">&times;</span></li>`);
-            if (init) {
-                setVideo(rec[0]);
-                init = false;
-            }
-        });
+    getRecordingsNames().then(rec => {
+        rec.forEach(el => sidebar.innerHTML += `<li id="${el}" onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}<span class="close" onclick="deleteVideo('${el}')">&times;</span></li>`);
+        if (init) {
+            setVideo(rec[0]);
+            init = false;
+        }
+    });
     setRecordingsSize();
 }
 
 function updateEvents() {
-    invoke('get_league_events').then(e => {
-        if (events.length === 0 && e.length > 0) {
-            startRecording();
-        } else if ((events.length > 0 && e.length === 0) || e.includes('GameEnd')) {
+    getIngameData().then(data => {
+        if (!recording && data) {
+            recording = true;
+            startRecording().then(filename => saveMetadata(filename));
+        } else if (recording && !data) {
+            recording = false;
             stopRecording();
-            // todo save events
         }
-        events = e;
+        if (data) game_data = data;
     });
 }
 
-// disable right click menu
-addEventListener('contextmenu', event => event.preventDefault());
-
 // listen if a new video has been recorded
 listen('recordings_changed', () => generateSidebarContent());
-
 // load the inital content
 generateSidebarContent();
 
 // check regularly if league game is started
 let interval = setInterval(updateEvents, 5000);
-// clearInterval(interval);
+// ------------------------------
