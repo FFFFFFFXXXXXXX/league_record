@@ -194,7 +194,7 @@ pub async fn record<R: Runtime>(
         .set_window_title("League of Legends (TM) Client:RiotWindowClass:League of Legends.exe");
     settings.set_input_resolution(Resolution::_1440p);
     settings.set_output_resolution(Resolution::_1080p);
-    settings.set_framerate(Framerate::new(30));
+    settings.set_framerate(Framerate::new(30, 1));
     settings.set_cqp(Cqp::new(16));
     settings.record_audio(true);
     settings.set_output_path(&filename);
