@@ -12,7 +12,8 @@ use crate::helpers::{
     get_recordings_folder as get_rec_folder,
 };
 use libobs_recorder::{
-    framerate::Framerate, rate_control::Cqp, resolution::Resolution, Recorder, RecorderSettings,
+    framerate::Framerate, rate_control::Cqp, resolution::Resolution, window::Window, Recorder,
+    RecorderSettings,
 };
 use reqwest::{header::ACCEPT, StatusCode};
 use serde_json::{json, Value};
@@ -186,23 +187,28 @@ pub async fn record<R: Runtime>(
     };
 
     let (sender, receiver) = channel::<_>();
-    window.once("stop_record", move |_| sender.send(()).unwrap());
+    window.once("stop_record", move |_| {
+        let _ = sender.send(());
+    });
 
     let filename = get_new_filename();
     let mut settings = RecorderSettings::new();
-    settings
-        .set_window_title("League of Legends (TM) Client:RiotWindowClass:League of Legends.exe");
-    settings.set_input_resolution(Resolution::_1440p);
+    settings.set_window(Window::new(
+        "League of Legends (TM) Client",
+        Some("RiotWindowClass".into()),
+        Some("League of Legends.exe".into()),
+    ));
     settings.set_output_resolution(Resolution::_1080p);
     settings.set_framerate(Framerate::new(30, 1));
     settings.set_cqp(Cqp::new(16));
     settings.record_audio(true);
     settings.set_output_path(&filename);
 
-    let mut recorder = Recorder::get(settings);
-    if recorder.start_recording() {
-        let _ = receiver.recv_timeout(Duration::from_secs(5000));
-        recorder.stop_recording();
+    if let Ok(mut recorder) = Recorder::get(settings) {
+        if recorder.start_recording() {
+            let _ = receiver.recv_timeout(Duration::from_secs(5000));
+            recorder.stop_recording();
+        }
     }
 
     let _ = window.emit("recordings_changed", ());
