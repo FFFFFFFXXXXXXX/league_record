@@ -8,9 +8,9 @@ use std::{
 };
 
 use crate::helpers::{
-    compare_time, create_client, get_new_filename, get_recordings,
-    get_recordings_folder as get_rec_folder,
+    compare_time, create_client, get_recordings, get_recordings_folder as get_rec_folder,
 };
+use chrono::Local;
 use libobs_recorder::{
     framerate::Framerate,
     rate_control::{Cqp, Icq},
@@ -87,18 +87,56 @@ pub async fn get_recordings_list() -> Vec<String> {
 #[tauri::command]
 pub async fn save_metadata(mut filename: String, mut json: Value) -> Result<(), String> {
     let player_name = json["playerName"].clone();
-    if let Some(events) = json["events"].as_array_mut() {
-        events.retain(|event| match event["EventName"].as_str().unwrap() {
-            "HeraldKill" | "DragonKill" | "BaronKill" => true,
-            "TurretKilled" | "InhibKilled" | "ChampionKill" => {
+    let events = json.get_mut("events").unwrap();
+
+    let new_events: Vec<Value> = events
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|event| match event["EventName"].as_str().unwrap() {
+            "DragonKill" => Some(json!({
+                "eventName": "Dragon",
+                "eventTime": event["EventTime"]
+            })),
+            "HeraldKill" => Some(json!({
+                "eventName": "Herald",
+                "eventTime": event["EventTime"]
+            })),
+            "BaronKill" => Some(json!({
+                "eventName": "Baron",
+                "eventTime": event["EventTime"]
+            })),
+            "ChampionKill" => {
                 let assisters = event["Assisters"].as_array().unwrap();
-                return event["VictimName"] == player_name
-                    || event["KillerName"] == player_name
-                    || assisters.contains(&player_name);
+                if event["VictimName"] == player_name {
+                    Some(json!({
+                        "eventName": "Death",
+                        "eventTime": event["EventTime"]
+                    }))
+                } else if event["KillerName"] == player_name || assisters.contains(&player_name) {
+                    Some(json!({
+                        "eventName": "Kill",
+                        "eventTime": event["EventTime"]
+                    }))
+                } else {
+                    None
+                }
             }
-            _ => false,
-        });
-    }
+            "TurretKilled" => Some(json!({
+                "eventName": "Turret",
+                "eventTime": event["EventTime"]
+            })),
+            "InhibKilled" => Some(json!({
+                "eventName": "Inhibitor",
+                "eventTime": event["EventTime"]
+            })),
+            _ => None,
+        })
+        .collect();
+
+    println!("old events: {:?}\nnew events: {:?}", events, new_events);
+    // replace old events with new events
+    *events = Value::Array(new_events);
 
     filename.replace_range(filename.len() - 4.., ".json");
     if let Ok(file) = File::create(filename) {
@@ -139,11 +177,8 @@ pub async fn get_league_data() -> Option<Value> {
         .send()
         .await;
     let data = if let Ok(result) = result {
-        if result.status() != StatusCode::OK {
-            return None;
-        }
-        if let Ok(json) = result.json::<Value>().await {
-            json
+        if result.status() == StatusCode::OK {
+            result.json::<Value>().await.unwrap()
         } else {
             return None;
         }
@@ -194,7 +229,10 @@ pub async fn record<R: Runtime>(
         let _ = sender.send(());
     });
 
-    let filename = get_new_filename();
+    let filename = format!("{}", Local::now().format("%Y-%m-%d_%H:%M.mp4"));
+    let mut vid_dir = get_rec_folder();
+    vid_dir.push(PathBuf::from(&filename));
+
     let mut settings = RecorderSettings::new();
     settings.set_window(Window::new(
         "League of Legends (TM) Client",
@@ -206,7 +244,7 @@ pub async fn record<R: Runtime>(
     settings.set_cqp(Cqp::new(18)); // for amd/nvidia/software
     settings.set_icq(Icq::new(18)); // for intel quicksync
     settings.record_audio(true);
-    settings.set_output_path(&filename);
+    settings.set_output_path(vid_dir.to_str().unwrap());
 
     if let Ok(mut recorder) = Recorder::get(settings) {
         if recorder.start_recording() {
@@ -214,7 +252,5 @@ pub async fn record<R: Runtime>(
             recorder.stop_recording();
         }
     }
-
-    let _ = window.emit("recordings_changed", ());
     Ok(filename)
 }

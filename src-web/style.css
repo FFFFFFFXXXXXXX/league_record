@@ -8,7 +8,6 @@ html {
 }
 
 body {
-    /* font-family: 'Friz Quadrata Regular'; */
     margin: 0;
     height: 100%;
     background: #2c2f3e;
@@ -107,4 +106,33 @@ hr {
     color: lightgray;
     font-size: 20px;
     margin-top: 15px;
+}
+
+/* EVENT MARKER COLORS */
+.kill {
+    color: lawngreen !important;
+}
+
+.death {
+    background-color: red !important;
+}
+
+.turret {
+    background-color: brown !important;
+}
+
+.inhibitor {
+    background-color: mediumblue !important;
+}
+
+.dragon {
+    background-color: darkgoldenrod !important;
+}
+
+.herald {
+    background-color: deeppink !important;
+}
+
+.baron {
+    background-color: darkmagenta !important;
 }

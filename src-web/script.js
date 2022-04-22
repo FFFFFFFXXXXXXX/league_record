@@ -4,6 +4,8 @@ const { emit, listen } = window.__TAURI__.event;
 const convertFileSrc = window.__TAURI__.tauri.convertFileSrc;
 const open = __TAURI__.shell.open;
 const wmng = new __TAURI__.window.WindowManager();
+const POLLING_INTERVAL_SECS = 5;
+
 let init = true;
 let fullscreen = false;
 
@@ -15,19 +17,26 @@ let game_data = null;
 // SETUP ------------------------
 // init video player
 const player = videojs('video_player', {
-    aspectRatio: '16:9',
-    autoplay: false,
-    controls: true,
-    preload: 'auto'
+    'aspectRatio': '16:9',
+    'playbackRates': [0.5, 1, 1.5, 2],
+    'autoplay': false,
+    'controls': true,
+    'nativeControlsForTouch': true,
+    'preload': 'auto'
 });
 
 // set marker settings
 player.markers({
-    markerStyle: {
-        'width': '10px',
-        'background-color': 'red'
+    'markerStyle': {
+        'width': '8px',
+        'border-radius': '5%'
     },
-    markers: []
+    'markerTip': {
+        'display': true,
+        'text': (marker) => marker.text,
+        'time': (marker) => marker.time,
+    },
+    'markers': []
 });
 
 // pause video on closing window to tray
@@ -39,8 +48,53 @@ addEventListener('fullscreenchange', e => {
     wmng.setFullscreen(fullscreen);
 });
 
+addEventListener('keydown', event => {
+    let preventDefault = true;
+    switch (event.key) {
+        case ' ':
+            player.paused() ? player.play() : player.pause();
+            break;
+        case 'ArrowRight':
+            event.shiftKey ? player.markers.next() : player.currentTime(player.currentTime() + 5);
+            break;
+        case 'ArrowLeft':
+            event.shiftKey ? player.markers.prev() : player.currentTime(player.currentTime() - 5);
+            break;
+        case 'ArrowUp':
+            player.volume(player.volume() + 0.1)
+            break;
+        case 'ArrowDown':
+            player.volume(player.volume() - 0.1)
+            break;
+        case 'f':
+            player.isFullscreen() ? player.exitFullscreen() : player.requestFullscreen();
+            break;
+        case 'm':
+            player.muted(!player.muted());
+            break;
+        case '<':
+            if (player.playbackRate() > 0.25)
+                player.playbackRate(player.playbackRate() - 0.25);
+            break;
+        case '>':
+            if (player.playbackRate() < 3)
+                player.playbackRate(player.playbackRate() + 0.25);
+            break;
+        default:
+            preventDefault = false;
+            break;
+    }
+    if (preventDefault)
+        event.preventDefault();
+});
+
 // disable right click menu
 addEventListener('contextmenu', event => event.preventDefault());
+// prevent player from losing focus which causes keyboard controls to stop working
+document.addEventListener('focusin', event => {
+    event.preventDefault();
+    player.focus();
+});
 // ------------------------------
 
 
@@ -65,10 +119,17 @@ function getIngameData() {
     return invoke('get_league_data');
 }
 function saveMetadata(filename) {
-    invoke('save_metadata', { "filename": filename, "json": game_data });
+    invoke('save_metadata', { 'filename': filename, 'json': game_data });
 }
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+function createMarker(event) {
+    return {
+        'time': event['eventTime'] - POLLING_INTERVAL_SECS,
+        'text': event['eventName'],
+        'class': event['eventName'].toLowerCase()
+    };
 }
 async function setVideo(name) {
     player.src({ type: 'video/mp4', src: convertFileSrc(name, 'video') });
@@ -86,7 +147,7 @@ async function setVideo(name) {
             // delay to wait for video src change to finish
             sleep(100).then(() => {
                 let arr = [];
-                md['events'].forEach(e => arr.push({ time: e['EventTime'] - 5, text: e['EventName'] }));
+                md['events'].forEach(e => arr.push(createMarker(e)));
                 player.markers.add(arr);
             });
         }
@@ -110,16 +171,17 @@ function deleteVideo(video) {
 }
 // ------------------------------
 
-// MAIN FUNCTIONS ---------------
-function generateSidebarContent() {
+// MAIN -------------------------
+function createSidebarElement(el) {
+    return `<li id="${el}" onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}<span class="close" onclick="deleteVideo('${el}')">&times;</span></li>`;
+}
+
+function generateSidebarContent(init) {
     let sidebar = document.getElementById('sidebar-content');
     sidebar.innerHTML = '';
     getRecordingsNames().then(rec => {
-        rec.forEach(el => sidebar.innerHTML += `<li id="${el}" onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}<span class="close" onclick="deleteVideo('${el}')">&times;</span></li>`);
-        if (init) {
-            setVideo(rec[0]);
-            init = false;
-        }
+        rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
+        if (init) setVideo(rec[0]);
     });
     setRecordingsSize();
 }
@@ -128,7 +190,11 @@ function updateEvents() {
     getIngameData().then(data => {
         if (!recording && data) {
             recording = true;
-            startRecording().then(filename => saveMetadata(filename));
+            startRecording().then(filename => {
+                let sidebar = document.getElementById('sidebar-content');
+                sidebar.innerHTML = createSidebarElement(filename) + sidebar.innerHTML;
+                saveMetadata(filename);
+            });
         } else if (recording && !data) {
             recording = false;
             stopRecording();
@@ -137,11 +203,11 @@ function updateEvents() {
     });
 }
 
-// listen if a new video has been recorded
-listen('recordings_changed', () => generateSidebarContent());
+// refresh sidebar on hide and reopen window
+listen('show_window', () => generateSidebarContent());
 // load the inital content
-generateSidebarContent();
+generateSidebarContent('init');
 
 // check regularly if league game is started
-let interval = setInterval(updateEvents, 5000);
+let interval = setInterval(updateEvents, POLLING_INTERVAL_SECS * 1000);
 // ------------------------------

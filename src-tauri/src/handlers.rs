@@ -11,16 +11,12 @@ use tauri::{
     App, AppHandle, Manager, RunEvent, SystemTrayEvent, WindowEvent, Wry,
 };
 
-use crate::helpers::get_recordings_folder;
+use crate::helpers::{get_recordings_folder, show_window};
 
 pub fn system_tray_event_handler(app: &AppHandle, event: SystemTrayEvent) {
     match event {
         SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-            "open" => {
-                let window = app.get_window("main").unwrap();
-                window.show().unwrap();
-                window.set_focus().unwrap();
-            }
+            "open" => show_window(app),
             "quit" => {
                 Recorder::shutdown();
                 app.exit(0);
@@ -31,11 +27,7 @@ pub fn system_tray_event_handler(app: &AppHandle, event: SystemTrayEvent) {
             position: _,
             size: _,
             ..
-        } => {
-            let window = app.get_window("main").unwrap();
-            window.show().unwrap();
-            window.set_focus().unwrap();
-        }
+        } => show_window(app),
         _ => {}
     }
 }
