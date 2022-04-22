@@ -1,8 +1,7 @@
 use std::{cmp::Ordering, fs::create_dir_all, io, path::PathBuf};
 
-use chrono::Local;
 use reqwest::Client;
-use tauri::api::path::video_dir;
+use tauri::{api::path::video_dir, AppHandle, Manager};
 
 pub fn create_client() -> Client {
     let pem = include_bytes!("../riotgames.pem");
@@ -12,13 +11,6 @@ pub fn create_client() -> Client {
         .build()
         .unwrap();
     return client;
-}
-
-pub fn get_new_filename() -> String {
-    let filename = format!("{}", Local::now().format("%Y-%m-%d_%H-%M-%S.mp4"));
-    let mut vid_dir = get_recordings_folder();
-    vid_dir.push(PathBuf::from(filename));
-    vid_dir.to_str().unwrap().into()
 }
 
 pub fn get_recordings_folder() -> PathBuf {
@@ -52,4 +44,11 @@ pub fn compare_time(a: &PathBuf, b: &PathBuf) -> io::Result<Ordering> {
     let a_time = a.metadata()?.created()?;
     let b_time = b.metadata()?.created()?;
     Ok(a_time.cmp(&b_time).reverse())
+}
+
+pub fn show_window(app: &AppHandle) {
+    let window = app.get_window("main").unwrap();
+    let _ = window.emit("show_window", ());
+    window.show().unwrap();
+    window.set_focus().unwrap();
 }

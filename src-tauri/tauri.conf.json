@@ -12,7 +12,7 @@
   },
   "tauri": {
     "bundle": {
-      "active": false,
+      "active": true,
       "targets": "all",
       "identifier": "fx.league_record",
       "icon": [
@@ -22,7 +22,9 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "resources": [],
+      "resources": [
+        "obs.dll"
+      ],
       "externalBin": [],
       "copyright": "",
       "category": "Utility",
