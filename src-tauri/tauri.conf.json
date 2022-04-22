@@ -1,6 +1,6 @@
 {
   "package": {
-    "productName": "league_record",
+    "productName": "LeagueRecord",
     "version": "0.1.0"
   },
   "build": {
@@ -12,7 +12,7 @@
   },
   "tauri": {
     "bundle": {
-      "active": true,
+      "active": false,
       "targets": "all",
       "identifier": "fx.league_record",
       "icon": [
