@@ -12,8 +12,11 @@ use crate::helpers::{
     get_recordings_folder as get_rec_folder,
 };
 use libobs_recorder::{
-    framerate::Framerate, rate_control::Cqp, resolution::Resolution, window::Window, Recorder,
-    RecorderSettings,
+    framerate::Framerate,
+    rate_control::{Cqp, Icq},
+    resolution::Resolution,
+    window::Window,
+    Recorder, RecorderSettings,
 };
 use reqwest::{header::ACCEPT, StatusCode};
 use serde_json::{json, Value};
@@ -200,13 +203,14 @@ pub async fn record<R: Runtime>(
     ));
     settings.set_output_resolution(Resolution::_1080p);
     settings.set_framerate(Framerate::new(30, 1));
-    settings.set_cqp(Cqp::new(16));
+    settings.set_cqp(Cqp::new(18)); // for amd/nvidia/software
+    settings.set_icq(Icq::new(18)); // for intel quicksync
     settings.record_audio(true);
     settings.set_output_path(&filename);
 
     if let Ok(mut recorder) = Recorder::get(settings) {
         if recorder.start_recording() {
-            let _ = receiver.recv_timeout(Duration::from_secs(5000));
+            let _ = receiver.recv_timeout(Duration::from_secs(5000)); // ~83.3 minutes
             recorder.stop_recording();
         }
     }
