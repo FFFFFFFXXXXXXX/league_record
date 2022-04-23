@@ -36,20 +36,15 @@ pub async fn delete_video(video: String) -> bool {
     // remove video
     let mut path = get_rec_folder();
     path.push(PathBuf::from(&video));
-    let ok1 = match remove_file(path) {
+    let ok = match remove_file(&path) {
         Ok(_) => true,
         Err(_) => false,
     };
-    // remove json file
-    let mut path = get_rec_folder();
-    let mut json = video.clone();
-    json.replace_range(json.len() - 4.., ".json");
-    path.push(PathBuf::from(json));
-    let ok2 = match remove_file(path) {
-        Ok(_) => true,
-        Err(_) => false,
-    };
-    return ok1 && ok2;
+
+    // remove json file if it exists
+    path.set_extension("json");
+    let _ = remove_file(path);
+    return ok;
 }
 
 #[tauri::command]
@@ -85,7 +80,7 @@ pub async fn get_recordings_list() -> Vec<String> {
 }
 
 #[tauri::command]
-pub async fn save_metadata(mut filename: String, mut json: Value) -> Result<(), String> {
+pub async fn save_metadata(filename: String, mut json: Value) -> Result<(), String> {
     let player_name = json["playerName"].clone();
     let events = json.get_mut("events").unwrap();
 
@@ -134,12 +129,13 @@ pub async fn save_metadata(mut filename: String, mut json: Value) -> Result<(), 
         })
         .collect();
 
-    println!("old events: {:?}\nnew events: {:?}", events, new_events);
     // replace old events with new events
     *events = Value::Array(new_events);
 
-    filename.replace_range(filename.len() - 4.., ".json");
-    if let Ok(file) = File::create(filename) {
+    let mut filepath = get_rec_folder();
+    filepath.push(PathBuf::from(filename));
+    filepath.set_extension("json");
+    if let Ok(file) = File::create(filepath) {
         let _ = serde_json::to_writer(file, &json);
         Ok(())
     } else {
@@ -149,10 +145,9 @@ pub async fn save_metadata(mut filename: String, mut json: Value) -> Result<(), 
 
 #[tauri::command]
 pub async fn get_metadata(video: String) -> Option<Value> {
-    let mut filename = video.clone();
-    filename.replace_range(filename.len() - 4.., ".json");
     let mut path = get_rec_folder();
-    path.push(PathBuf::from(filename));
+    path.push(PathBuf::from(video));
+    path.set_extension("json");
     let reader = if let Ok(file) = File::open(path) {
         BufReader::new(file)
     } else {
@@ -229,7 +224,7 @@ pub async fn record<R: Runtime>(
         let _ = sender.send(());
     });
 
-    let filename = format!("{}", Local::now().format("%Y-%m-%d_%H:%M.mp4"));
+    let filename = format!("{}", Local::now().format("%Y-%m-%d_%H-%M.mp4"));
     let mut vid_dir = get_rec_folder();
     vid_dir.push(PathBuf::from(&filename));
 

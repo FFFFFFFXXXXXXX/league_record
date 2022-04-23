@@ -22,8 +22,13 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "resources": [],
-      "externalBin": [],
+      "resources": [
+        "./libobs/data/",
+        "./libobs/obs-plugins/"
+      ],
+      "externalBin": [
+        "./libobs/obs-ffmpeg-mux"
+      ],
       "copyright": "",
       "category": "Utility",
       "shortDescription": "Record and replay League of Legends",
