@@ -48,7 +48,6 @@ pub fn compare_time(a: &PathBuf, b: &PathBuf) -> io::Result<Ordering> {
 
 pub fn show_window(app: &AppHandle) {
     let window = app.get_window("main").unwrap();
-    let _ = window.emit("show_window", ());
     window.show().unwrap();
     window.set_focus().unwrap();
 }
