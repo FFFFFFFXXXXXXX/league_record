@@ -22,9 +22,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "resources": [
-        "obs.dll"
-      ],
+      "resources": [],
       "externalBin": [],
       "copyright": "",
       "category": "Utility",

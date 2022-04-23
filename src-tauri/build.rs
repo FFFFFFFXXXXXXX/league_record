@@ -1,3 +1,6 @@
 fn main() {
-  tauri_build::build()
+    // specify libobs dependency folder
+    println!("cargo:rustc-link-search=native=./libobs/");
+
+    tauri_build::build()
 }
