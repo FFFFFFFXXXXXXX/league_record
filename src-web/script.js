@@ -21,7 +21,6 @@ const player = videojs('video_player', {
     'playbackRates': [0.5, 1, 1.5, 2],
     'autoplay': false,
     'controls': true,
-    'nativeControlsForTouch': true,
     'preload': 'auto'
 });
 
@@ -132,6 +131,10 @@ function createMarker(event) {
     };
 }
 async function setVideo(name) {
+    if (!name) {
+        wmng.setTitle('League Record');
+        return;
+    }
     player.src({ type: 'video/mp4', src: convertFileSrc(name, 'video') });
     wmng.setTitle('League Record - ' + name);
     invoke('get_metadata', { video: name }).then(md => {
@@ -161,7 +164,8 @@ function deleteVideo(video) {
                     if (b) {
                         setRecordingsSize();
                         document.getElementById(video).remove();
-                        document.querySelector('#sidebar-content li').click();
+                        let video = document.querySelector('#sidebar-content li')?.id;
+                        setVideo(video);
                     } else {
                         window.alert('Error deleting video!');
                     }
@@ -203,8 +207,6 @@ function updateEvents() {
     });
 }
 
-// refresh sidebar on hide and reopen window
-listen('show_window', () => generateSidebarContent());
 // load the inital content
 generateSidebarContent('init');
 
