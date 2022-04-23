@@ -120,13 +120,13 @@ pub fn video_protocol_handler(
 }
 
 pub fn setup_handler(_app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
-    // let libobs_data_path = Some(String::from("./libobs/data/libobs/"));
+    // let libobs_data_path = Some(String::from("./data/libobs/"));
     // let plugin_bin_path = Some(String::from("./obs-plugins/64bit/"));
-    // let plugin_data_path = Some(String::from("./libobs/data/obs-plugins/%module%/"));
+    // let plugin_data_path = Some(String::from("./data/obs-plugins/%module%/"));
 
-    let libobs_data_path = Some(String::from("./data/libobs/"));
-    let plugin_bin_path = Some(String::from("./obs-plugins/64bit/"));
-    let plugin_data_path = Some(String::from("./data/obs-plugins/%module%/"));
+    let libobs_data_path = Some(String::from("./libobs/data/libobs/"));
+    let plugin_bin_path = Some(String::from("./libobs/obs-plugins/64bit/"));
+    let plugin_data_path = Some(String::from("./libobs/data/obs-plugins/%module%/"));
 
     Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path)?;
     Ok(())
