@@ -4,13 +4,15 @@ const { emit, listen } = window.__TAURI__.event;
 const convertFileSrc = window.__TAURI__.tauri.convertFileSrc;
 const open = __TAURI__.shell.open;
 const wmng = new __TAURI__.window.WindowManager();
-const POLLING_INTERVAL_SECS = 5;
+
+const POLLING_INTERVAL_MS = 5;
+
+let sidebar = document.getElementById('sidebar-content');
+let recordingsSize = document.getElementById('size');
+let description = document.getElementById('description');
 
 let init = true;
 let fullscreen = false;
-
-let recording = false;
-let game_data = null;
 // ------------------------------
 
 
@@ -90,20 +92,17 @@ addEventListener('keydown', event => {
 // disable right click menu
 addEventListener('contextmenu', event => event.preventDefault());
 // prevent player from losing focus which causes keyboard controls to stop working
-document.addEventListener('focusin', event => {
+addEventListener('focusin', event => {
     event.preventDefault();
     player.focus();
 });
+
+// listen for new recordings
+listen('new_recording', event => sidebar.innerHTML = createSidebarElement(event?.payload) + sidebar.innerHTML);
 // ------------------------------
 
 
-// RUST COMMUNICATION WRAPPERS --
-function startRecording() {
-    return invoke('record');
-}
-function stopRecording() {
-    emit("stop_record");
-}
+// FUNCTIONS --------------------
 function openRecordingsFolder() {
     invoke('get_recordings_folder').then(folder => open(folder));
 }
@@ -112,22 +111,16 @@ function getRecordingsNames() {
 }
 function setRecordingsSize() {
     invoke('get_recordings_size')
-        .then(size => document.getElementById('size').innerHTML = `Size: ${size.toString().substring(0, 4)} GB`);
-}
-function getIngameData() {
-    return invoke('get_league_data');
-}
-function saveMetadata(filename) {
-    invoke('save_metadata', { 'filename': filename, 'json': game_data });
+        .then(size => recordingsSize.innerHTML = `Size: ${size.toString().substring(0, 4)} GB`);
 }
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 function createMarker(event) {
     return {
-        'time': event['eventTime'] - POLLING_INTERVAL_SECS,
+        'time': event['eventTime'] - POLLING_INTERVAL_MS,
         'text': event['eventName'],
-        'class': event['eventName'].toLowerCase()
+        'class': event['eventName']?.toLowerCase()
     };
 }
 async function setVideo(name) {
@@ -138,14 +131,14 @@ async function setVideo(name) {
     player.src({ type: 'video/mp4', src: convertFileSrc(name, 'video') });
     wmng.setTitle('League Record - ' + name);
     invoke('get_metadata', { video: name }).then(md => {
-        document.getElementById('description').innerHTML = "No Data";
+        description.innerHTML = "No Data";
         player.markers.removeAll();
         if (md) {
             let desc = `${md['playerName']}<br>`;
             desc += `${md['gameMode']}<br>`;
             desc += `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
             desc += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
-            document.getElementById('description').innerHTML = desc;
+            description.innerHTML = desc;
 
             // delay to wait for video src change to finish
             sleep(100).then(() => {
@@ -164,8 +157,8 @@ function deleteVideo(video) {
                     if (b) {
                         setRecordingsSize();
                         document.getElementById(video).remove();
-                        let video = document.querySelector('#sidebar-content li')?.id;
-                        setVideo(video);
+                        let newVideo = document.querySelector('#sidebar-content li')?.id;
+                        setVideo(newVideo);
                     } else {
                         window.alert('Error deleting video!');
                     }
@@ -173,43 +166,18 @@ function deleteVideo(video) {
             }
         });
 }
-// ------------------------------
-
-// MAIN -------------------------
 function createSidebarElement(el) {
     return `<li id="${el}" onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}<span class="close" onclick="deleteVideo('${el}')">&times;</span></li>`;
 }
+// ------------------------------
 
-function generateSidebarContent(init) {
-    let sidebar = document.getElementById('sidebar-content');
-    sidebar.innerHTML = '';
-    getRecordingsNames().then(rec => {
-        rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
-        if (init) setVideo(rec[0]);
-    });
-    setRecordingsSize();
-}
 
-function updateEvents() {
-    getIngameData().then(data => {
-        if (!recording && data) {
-            recording = true;
-            startRecording().then(filename => {
-                let sidebar = document.getElementById('sidebar-content');
-                sidebar.innerHTML = createSidebarElement(filename) + sidebar.innerHTML;
-                saveMetadata(filename);
-            });
-        } else if (recording && !data) {
-            recording = false;
-            stopRecording();
-        }
-        if (data) game_data = data;
-    });
-}
-
+// MAIN -------------------------
 // load the inital content
-generateSidebarContent('init');
-
-// check regularly if league game is started
-let interval = setInterval(updateEvents, POLLING_INTERVAL_SECS * 1000);
+sidebar.innerHTML = '';
+getRecordingsNames().then(rec => {
+    rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
+    setVideo(rec[0]);
+});
+setRecordingsSize();
 // ------------------------------

@@ -8,6 +8,7 @@ extern crate libobs_recorder;
 mod commands;
 mod handlers;
 mod helpers;
+mod recorder;
 
 use commands::*;
 use handlers::*;
@@ -24,15 +25,11 @@ fn main() {
             get_recordings_size,
             get_recordings_list,
             get_recordings_folder,
-            get_league_data,
-            record,
-            save_metadata,
             get_metadata
         ])
         .system_tray(system_tray)
         .on_system_tray_event(system_tray_event_handler)
         .register_uri_scheme_protocol("video", video_protocol_handler)
-        .manage(RecordState::default())
         .setup(setup_handler)
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
