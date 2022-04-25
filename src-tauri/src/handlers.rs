@@ -7,19 +7,22 @@ use std::{
 
 use libobs_recorder::Recorder;
 use tauri::{
+    api::path::video_dir,
     http::{HttpRange, Request, Response, ResponseBuilder},
     App, AppHandle, Manager, RunEvent, SystemTrayEvent, WindowEvent, Wry,
 };
 
-use crate::helpers::{get_recordings_folder, show_window};
+use crate::{
+    helpers::{get_recordings_folder, show_window},
+    recorder,
+};
 
 pub fn system_tray_event_handler(app: &AppHandle, event: SystemTrayEvent) {
     match event {
         SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
             "open" => show_window(app),
             "quit" => {
-                Recorder::shutdown();
-                app.exit(0);
+                app.trigger_global("shutdown", Some("".into()));
             }
             _ => {}
         },
@@ -119,16 +122,28 @@ pub fn video_protocol_handler(
     response.mimetype("video/mp4").status(status_code).body(buf)
 }
 
-pub fn setup_handler(_app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
-    // let libobs_data_path = Some(String::from("./data/libobs/"));
-    // let plugin_bin_path = Some(String::from("./obs-plugins/64bit/"));
-    // let plugin_data_path = Some(String::from("./data/obs-plugins/%module%/"));
+pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
+    let app_handle = app.app_handle();
 
-    let libobs_data_path = Some(String::from("./libobs/data/libobs/"));
-    let plugin_bin_path = Some(String::from("./libobs/obs-plugins/64bit/"));
-    let plugin_data_path = Some(String::from("./libobs/data/obs-plugins/%module%/"));
+    // only start app if video directory exists
+    if video_dir().is_none() {
+        app_handle.exit(-1);
+    }
 
-    Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path)?;
+    std::thread::spawn(move || {
+        // let libobs_data_path = Some(String::from("./data/libobs/"));
+        // let plugin_bin_path = Some(String::from("./obs-plugins/64bit/"));
+        // let plugin_data_path = Some(String::from("./data/obs-plugins/%module%/"));
+
+        let libobs_data_path = Some(String::from("./libobs/data/libobs/"));
+        let plugin_bin_path = Some(String::from("./libobs/obs-plugins/64bit/"));
+        let plugin_data_path = Some(String::from("./libobs/data/obs-plugins/%module%/"));
+
+        if Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path).is_ok() {
+            recorder::start_polling(app_handle);
+        }
+    });
+
     Ok(())
 }
 
@@ -140,9 +155,10 @@ pub fn run_handler(app: &AppHandle, event: RunEvent) {
             ..
         } => {
             api.prevent_close();
-            let window = app.get_window(&label).unwrap();
-            window.hide().unwrap();
-            let _ = window.emit::<_>("close_pause", ());
+            if let Some(window) = app.get_window(&label) {
+                let _ = window.hide();
+                let _ = window.emit::<_>("close_pause", ());
+            }
         }
         RunEvent::ExitRequested { api, .. } => {
             api.prevent_exit();

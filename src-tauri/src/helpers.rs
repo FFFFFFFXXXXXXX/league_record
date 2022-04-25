@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, fs::create_dir_all, io, path::PathBuf};
 
-use reqwest::Client;
+use reqwest::blocking::Client;
 use tauri::{api::path::video_dir, AppHandle, Manager};
 
 pub fn create_client() -> Client {
@@ -26,7 +26,11 @@ pub fn get_recordings() -> Vec<PathBuf> {
     let mut recordings = Vec::<PathBuf>::new();
     // get all mp4 files in ~/Videos/league_recordings
     let rec_folder = get_recordings_folder();
-    let rd_dir = rec_folder.read_dir().unwrap();
+    let rd_dir = if let Ok(rd_dir) = rec_folder.read_dir() {
+        rd_dir
+    } else {
+        return vec![];
+    };
     for entry in rd_dir {
         if let Ok(entry) = entry {
             let path = entry.path();
@@ -47,7 +51,8 @@ pub fn compare_time(a: &PathBuf, b: &PathBuf) -> io::Result<Ordering> {
 }
 
 pub fn show_window(app: &AppHandle) {
-    let window = app.get_window("main").unwrap();
-    window.show().unwrap();
-    window.set_focus().unwrap();
+    if let Some(window) = app.get_window("main") {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
 }
