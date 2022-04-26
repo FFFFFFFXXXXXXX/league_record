@@ -1,7 +1,8 @@
 // CONSTANTS AND GLOBAL VARIABLES
-const invoke = window.__TAURI__.invoke
-const { emit, listen } = window.__TAURI__.event;
-const convertFileSrc = window.__TAURI__.tauri.convertFileSrc;
+const invoke = __TAURI__.invoke;
+const join = __TAURI__.path.join;
+const { emit, listen } = __TAURI__.event;
+const convertFileSrc = __TAURI__.tauri.convertFileSrc;
 const open = __TAURI__.shell.open;
 const wmng = new __TAURI__.window.WindowManager();
 
@@ -103,6 +104,10 @@ listen('new_recording', event => sidebar.innerHTML = createSidebarElement(event?
 
 
 // FUNCTIONS --------------------
+async function getVideoPath(video) {
+    let folder = await invoke('get_recordings_folder');
+    return await join(folder, video);
+}
 function openRecordingsFolder() {
     invoke('get_recordings_folder').then(folder => open(folder));
 }
@@ -123,12 +128,13 @@ function createMarker(event) {
         'class': event['eventName']?.toLowerCase()
     };
 }
-async function setVideo(name) {
+function setVideo(name) {
     if (!name) {
         wmng.setTitle('League Record');
         return;
     }
-    player.src({ type: 'video/mp4', src: convertFileSrc(name, 'video') });
+    getVideoPath(name)
+        .then(path => player.src({ type: 'video/mp4', src: convertFileSrc(path) }));
     wmng.setTitle('League Record - ' + name);
     invoke('get_metadata', { video: name }).then(md => {
         description.innerHTML = "No Data";

@@ -40,10 +40,14 @@ fn save_metadata(filename: String, mut json: Value) {
         .filter_map(|event| {
             if let Some(event_name) = event["EventName"].as_str() {
                 match event_name {
-                    "DragonKill" => Some(json!({
-                        "eventName": "Dragon",
-                        "eventTime": event["EventTime"]
-                    })),
+                    "DragonKill" => {
+                        let mut dragon = String::from(event["DragonType"].as_str().unwrap());
+                        dragon.push_str(" Dragon");
+                        Some(json!({
+                            "eventName": dragon,
+                            "eventTime": event["EventTime"]
+                        }))
+                    }
                     "HeraldKill" => Some(json!({
                         "eventName": "Herald",
                         "eventTime": event["EventTime"]
@@ -182,7 +186,6 @@ pub fn start_polling<R: Runtime>(app: tauri::AppHandle<R>) {
         let mut recording = false;
 
         loop {
-            println!("{:?}", filename);
             // if we are not recording and we get data from the API => start recording
             if let Some(data) = poll_league_data() {
                 if !recording {

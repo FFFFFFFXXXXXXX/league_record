@@ -29,7 +29,6 @@ fn main() {
         ])
         .system_tray(system_tray)
         .on_system_tray_event(system_tray_event_handler)
-        .register_uri_scheme_protocol("video", video_protocol_handler)
         .setup(setup_handler)
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
