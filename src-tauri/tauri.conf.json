@@ -53,8 +53,14 @@
       "active": false
     },
     "allowlist": {
-      "protocol": {
+      "path": {
         "all": true
+      },
+      "protocol": {
+        "asset": true,
+        "assetScope": [
+          "**/league_recordings/*.mp4"
+        ]
       },
       "shell": {
         "open": ""

@@ -1,21 +1,11 @@
-use std::{
-    cmp::min,
-    error::Error,
-    fs::File,
-    io::{Read, Seek, SeekFrom},
-};
+use std::error::Error;
 
 use libobs_recorder::Recorder;
 use tauri::{
-    api::path::video_dir,
-    http::{HttpRange, Request, Response, ResponseBuilder},
-    App, AppHandle, Manager, RunEvent, SystemTrayEvent, WindowEvent, Wry,
+    api::path::video_dir, App, AppHandle, Manager, RunEvent, SystemTrayEvent, WindowEvent, Wry,
 };
 
-use crate::{
-    helpers::{get_recordings_folder, show_window},
-    recorder,
-};
+use crate::{helpers::show_window, recorder};
 
 pub fn system_tray_event_handler(app: &AppHandle, event: SystemTrayEvent) {
     match event {
@@ -33,93 +23,6 @@ pub fn system_tray_event_handler(app: &AppHandle, event: SystemTrayEvent) {
         } => show_window(app),
         _ => {}
     }
-}
-
-pub fn video_protocol_handler(
-    _: &AppHandle,
-    request: &Request,
-) -> core::result::Result<Response, Box<dyn Error>> {
-    let mut response = ResponseBuilder::new();
-    #[cfg(target_os = "windows")]
-    let uri = if let Ok(uri) = urlencoding::decode(request.uri()) {
-        uri
-    } else {
-        return response.mimetype("text/plain").status(400).body(Vec::new());
-    };
-    let path_str = uri.replace("video://localhost/", "");
-    #[cfg(not(target_os = "windows"))]
-    let path = request.uri().replace("video://", "");
-
-    if !path_str.ends_with(".mp4") {
-        return response.mimetype("text/plain").status(403).body(Vec::new());
-    }
-
-    let mut path = get_recordings_folder();
-    path.push(path_str);
-
-    let content = File::open(path);
-    let mut content = match content {
-        Ok(c) => c,
-        Err(_) => return response.mimetype("text/plain").status(404).body(Vec::new()),
-    };
-
-    let mut buf = Vec::new();
-    let mut status_code = 200;
-
-    // if the webview sent a range header, we need to send a 206 in return
-    // Actually only macOS and Windows are supported. Linux will ALWAYS return empty headers.
-    if let Some(range) = request.headers().get("range") {
-        let file_size = if let Ok(metadata) = content.metadata() {
-            metadata.len()
-        } else {
-            return response.mimetype("text/plain").status(404).body(Vec::new());
-        };
-
-        let range_as_str = if let Ok(string) = range.to_str() {
-            string
-        } else {
-            return response.mimetype("text/plain").status(400).body(Vec::new());
-        };
-        let range = if let Ok(range) = HttpRange::parse(range_as_str, file_size) {
-            range
-        } else {
-            return response.mimetype("text/plain").status(400).body(Vec::new());
-        };
-        let first_range = range.first();
-        if let Some(range) = first_range {
-            let mut real_length = range.length;
-
-            if range.length > file_size / 3 {
-                real_length = min(file_size - range.start, 1024 * 400);
-            }
-
-            let last_byte = range.start + real_length - 1;
-            status_code = 206;
-
-            // Only macOS and Windows are supported, if you set headers in linux they are ignored
-            response = response
-                .header("Connection", "Keep-Alive")
-                .header("Accept-Ranges", "bytes")
-                .header("Content-Length", real_length)
-                .header(
-                    "Content-Range",
-                    format!("bytes {}-{}/{}", range.start, last_byte, file_size),
-                );
-
-            if content.seek(SeekFrom::Start(range.start)).is_err() {
-                return response.mimetype("text/plain").status(500).body(Vec::new());
-            }
-            if content.take(real_length).read_to_end(&mut buf).is_err() {
-                return response.mimetype("text/plain").status(500).body(Vec::new());
-            }
-        } else {
-            if content.read_to_end(&mut buf).is_err() {
-                return response.mimetype("text/plain").status(500).body(Vec::new());
-            }
-        }
-    }
-
-    response.mimetype("video/mp4").status(status_code).body(buf)
 }
 
 pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
