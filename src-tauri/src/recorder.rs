@@ -28,7 +28,6 @@ fn save_metadata(filename: String, mut json: Value) {
     } else {
         return;
     };
-
     let events_array = if let Some(arr) = events.as_array() {
         arr
     } else {
@@ -126,6 +125,11 @@ fn poll_league_data() -> Option<Value> {
     } else {
         return None;
     };
+
+    if data["events"]["Events"][0]["EventName"] != "GameStart" {
+        return None;
+    }
+
     let mut player_info: Option<&Value> = None;
     let player_array = if let Some(arr) = data["allPlayers"].as_array() {
         arr
