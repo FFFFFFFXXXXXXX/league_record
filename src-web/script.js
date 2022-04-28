@@ -89,6 +89,8 @@ addEventListener('keydown', event => {
         event.preventDefault();
 });
 
+document.getElementById('vid-folder-btn').onclick = openRecordingsFolder;
+
 // disable right click menu
 addEventListener('contextmenu', event => event.preventDefault());
 // prevent player from losing focus which causes keyboard controls to stop working
