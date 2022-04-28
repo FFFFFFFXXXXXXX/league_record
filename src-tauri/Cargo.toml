@@ -10,13 +10,12 @@ edition = "2021"
 rust-version = "1.57"
 
 [build-dependencies]
-tauri-build = { version = "1.0.0-rc.5", features = [] }
+tauri-build = { version = "1.0.0-rc.7", features = [] }
 
 [dependencies]
-tauri = { version = "1.0.0-rc.5", features = ["dialog-confirm", "path-all", "process-command-api", "shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
+tauri = { version = "1.0.0-rc.8", features = ["dialog-confirm", "path-all", "process-command-api", "shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder" }
 reqwest = { version = "0.11.10", features = ["json", "blocking"] }
-urlencoding = "2.1.0"
 port_check = "0.1.5"
 chrono = "0.4.19"
 serde_json = "1.0"
