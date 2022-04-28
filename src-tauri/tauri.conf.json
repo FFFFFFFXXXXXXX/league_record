@@ -24,10 +24,12 @@
       ],
       "resources": [
         "./libobs/data/",
-        "./libobs/obs-plugins/"
+        "./libobs/obs-plugins/",
+        "./MIT_LICENSE"
       ],
       "externalBin": [
-        "./libobs/obs-ffmpeg-mux"
+        "./libobs/obs-ffmpeg-mux",
+        "./static-file-server"
       ],
       "copyright": "",
       "category": "Utility",
@@ -55,12 +57,6 @@
     "allowlist": {
       "path": {
         "all": true
-      },
-      "protocol": {
-        "asset": true,
-        "assetScope": [
-          "**/league_recordings/*.mp4"
-        ]
       },
       "shell": {
         "open": ""
