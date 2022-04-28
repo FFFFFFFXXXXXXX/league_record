@@ -3,17 +3,27 @@ use std::{collections::HashMap, error::Error};
 use libobs_recorder::Recorder;
 use tauri::{
     api::{path::video_dir, process::Command},
-    App, AppHandle, Manager, RunEvent, SystemTrayEvent, WindowEvent, Wry,
+    App, AppHandle, CustomMenuItem, Manager, RunEvent, SystemTray, SystemTrayEvent, SystemTrayMenu,
+    SystemTrayMenuItem, WindowEvent, Wry,
 };
 
-use crate::{helpers::show_window, recorder};
+use crate::{helpers::show_window, recorder, state::RecordingsFolder, AssetPort};
 
-pub fn system_tray_event_handler(app: &AppHandle, event: SystemTrayEvent) {
+pub fn create_system_tray() -> SystemTray {
+    let tray_menu = SystemTrayMenu::new()
+        .add_item(CustomMenuItem::new("rec", "Recording").disabled())
+        .add_native_item(SystemTrayMenuItem::from(SystemTrayMenuItem::Separator))
+        .add_item(CustomMenuItem::new("open", "Open"))
+        .add_item(CustomMenuItem::new("quit", "Quit"));
+    SystemTray::new().with_menu(tray_menu)
+}
+
+pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent) {
     match event {
         SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-            "open" => show_window(app),
+            "open" => show_window(app_handle),
             "quit" => {
-                app.trigger_global("shutdown", Some("".into()));
+                app_handle.trigger_global("shutdown", Some("".into()));
             }
             _ => {}
         },
@@ -21,7 +31,7 @@ pub fn system_tray_event_handler(app: &AppHandle, event: SystemTrayEvent) {
             position: _,
             size: _,
             ..
-        } => show_window(app),
+        } => show_window(app_handle),
         _ => {}
     }
 }
@@ -34,20 +44,22 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
         app_handle.exit(-1);
     }
 
+    let port = app_handle.state::<AssetPort>().get();
+    let folder = app_handle.state::<RecordingsFolder>().get_as_string();
     let (_, child) = Command::new("static-file-server")
         .envs(HashMap::from([
-            ("PORT".into(), "1234".to_string()),
-            (
-                "FOLDER".into(),
-                crate::helpers::get_recordings_folder()
-                    .into_os_string()
-                    .into_string()
-                    .unwrap(),
-            ),
+            ("PORT".into(), port.to_string()),
+            ("FOLDER".into(), folder.clone().unwrap()),
         ]))
         .spawn()
         .unwrap();
 
+    println!(
+        "PID: {}, PORT: {}, FOLDER: {}",
+        child.pid(),
+        port,
+        folder.unwrap()
+    );
     app_handle.once_global("shutdown", move |_| {
         let _ = child.kill();
     });
@@ -69,7 +81,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_handler(app: &AppHandle, event: RunEvent) {
+pub fn run_handler(app_handle: &AppHandle, event: RunEvent) {
     match event {
         RunEvent::WindowEvent {
             label,
@@ -77,7 +89,7 @@ pub fn run_handler(app: &AppHandle, event: RunEvent) {
             ..
         } => {
             api.prevent_close();
-            if let Some(window) = app.get_window(&label) {
+            if let Some(window) = app_handle.get_window(&label) {
                 let _ = window.hide();
                 let _ = window.emit::<_>("close_pause", ());
             }

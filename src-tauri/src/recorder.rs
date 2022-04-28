@@ -15,13 +15,13 @@ use libobs_recorder::{
 };
 use reqwest::{header::ACCEPT, StatusCode};
 use serde_json::{json, Value};
-use tauri::{Manager, Runtime};
+use tauri::{AppHandle, Manager, Runtime};
 
 use crate::helpers::{create_client, get_recordings_folder};
 
 const SLEEP_SECS: u64 = 5;
 
-fn save_metadata(filename: String, mut json: Value) {
+fn save_metadata<R: Runtime>(filename: String, mut json: Value, app_handle: &AppHandle<R>) {
     let player_name = json["playerName"].clone();
     let events = if let Some(e) = json.get_mut("events") {
         e
@@ -96,12 +96,20 @@ fn save_metadata(filename: String, mut json: Value) {
     // replace old events with new events
     *events = Value::Array(new_events);
 
-    let mut filepath = get_recordings_folder();
+    let mut filepath = get_recordings_folder(&app_handle);
     filepath.push(PathBuf::from(filename));
     filepath.set_extension("json");
     if let Ok(file) = File::create(filepath) {
         let _ = serde_json::to_writer(file, &json);
     }
+}
+
+fn set_recording_tray_item<R: Runtime>(app_handle: &AppHandle<R>, recording: bool) {
+    let item = app_handle.tray_handle().get_item("rec");
+    // set selected only updates the tray menu when open if the menu item is enabled
+    let _ = item.set_enabled(true);
+    let _ = item.set_selected(recording);
+    let _ = item.set_enabled(false);
 }
 
 fn poll_league_data() -> Option<Value> {
@@ -173,11 +181,11 @@ fn get_recorder_settings(video_path: &PathBuf) -> RecorderSettings {
     return settings;
 }
 
-pub fn start_polling<R: Runtime>(app: tauri::AppHandle<R>) {
+pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
     let (sender, receiver) = channel::<_>();
 
     // send stop to channel on "shutdown" event
-    app.once_global("shutdown", move |_| {
+    app_handle.once_global("shutdown", move |_| {
         let _ = sender.send(());
     });
 
@@ -195,15 +203,20 @@ pub fn start_polling<R: Runtime>(app: tauri::AppHandle<R>) {
                 if !recording {
                     // create new unique filename from current time
                     let new_filename = format!("{}", Local::now().format("%Y-%m-%d_%H-%M.mp4"));
-                    let mut video_path = get_recordings_folder();
+                    let mut video_path = get_recordings_folder(&app_handle);
                     video_path.push(PathBuf::from(&new_filename));
 
                     // create and set recorder if successful
                     let settings = get_recorder_settings(&video_path);
                     recorder = if let Ok(mut rec) = Recorder::get(settings) {
                         recording = rec.start_recording();
-                        filename = new_filename;
-                        Some(rec)
+                        if recording {
+                            set_recording_tray_item(&app_handle, true);
+                            filename = new_filename;
+                            Some(rec)
+                        } else {
+                            None
+                        }
                     } else {
                         None
                     }
@@ -214,17 +227,17 @@ pub fn start_polling<R: Runtime>(app: tauri::AppHandle<R>) {
             // if we are recording and we cant get any data from the API anymore => stop recording
             } else if recording {
                 if let Some(mut rec) = recorder {
-                    rec.stop_recording();
+                    recording = rec.stop_recording();
                 };
-                recording = false;
+                set_recording_tray_item(&app_handle, true);
                 // drop recorder
                 recorder = None;
 
                 // tell frontend to update video list
-                let _ = app.emit_all("new_recording", &filename);
+                let _ = app_handle.emit_all("new_recording", &filename);
 
                 // pass output_path and league data to save_metadata() and replace with placeholders
-                save_metadata(filename, league_data);
+                save_metadata(filename, league_data, &app_handle);
                 filename = String::new();
                 league_data = Value::Null;
             }
@@ -246,5 +259,5 @@ pub fn start_polling<R: Runtime>(app: tauri::AppHandle<R>) {
     }
 
     Recorder::shutdown();
-    app.exit(0);
+    app_handle.exit(0);
 }

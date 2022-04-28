@@ -9,25 +9,26 @@ mod commands;
 mod handlers;
 mod helpers;
 mod recorder;
+mod state;
 
 use commands::*;
 use handlers::*;
-use tauri::{CustomMenuItem, SystemTray, SystemTrayMenu};
+use state::*;
+use tauri::{generate_handler, Builder};
 
 fn main() {
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(CustomMenuItem::new("open", "Open"))
-        .add_item(CustomMenuItem::new("quit", "Quit"));
-    let system_tray = SystemTray::new().with_menu(tray_menu);
-    let app = tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![
-            delete_video,
+    let app = Builder::default()
+        .manage(AssetPort::new())
+        .manage(RecordingsFolder::new())
+        .invoke_handler(generate_handler![
+            get_asset_port,
             get_recordings_size,
             get_recordings_list,
             get_recordings_folder,
+            delete_video,
             get_metadata
         ])
-        .system_tray(system_tray)
+        .system_tray(create_system_tray())
         .on_system_tray_event(system_tray_event_handler)
         .setup(setup_handler)
         .build(tauri::generate_context!())

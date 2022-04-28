@@ -1,7 +1,9 @@
-use std::{cmp::Ordering, fs::create_dir_all, io, path::PathBuf};
+use std::{cmp::Ordering, io, path::PathBuf};
 
 use reqwest::blocking::Client;
-use tauri::{api::path::video_dir, AppHandle, Manager};
+use tauri::{AppHandle, Manager, Runtime};
+
+use crate::state::RecordingsFolder;
 
 pub fn create_client() -> Client {
     let pem = include_bytes!("../riotgames.pem");
@@ -13,19 +15,14 @@ pub fn create_client() -> Client {
     return client;
 }
 
-pub fn get_recordings_folder() -> PathBuf {
-    let mut rec_dir = video_dir().unwrap();
-    rec_dir.push(PathBuf::from("league_recordings"));
-    if !rec_dir.exists() {
-        let _ = create_dir_all(rec_dir.as_path());
-    }
-    return rec_dir;
+pub fn get_recordings_folder<R: Runtime>(app_handle: &AppHandle<R>) -> PathBuf {
+    app_handle.state::<RecordingsFolder>().get()
 }
 
-pub fn get_recordings() -> Vec<PathBuf> {
+pub fn get_recordings<R: Runtime>(app_handle: &AppHandle<R>) -> Vec<PathBuf> {
     let mut recordings = Vec::<PathBuf>::new();
     // get all mp4 files in ~/Videos/league_recordings
-    let rec_folder = get_recordings_folder();
+    let rec_folder = get_recordings_folder(app_handle);
     let rd_dir = if let Ok(rd_dir) = rec_folder.read_dir() {
         rd_dir
     } else {
@@ -50,8 +47,8 @@ pub fn compare_time(a: &PathBuf, b: &PathBuf) -> io::Result<Ordering> {
     Ok(a_time.cmp(&b_time).reverse())
 }
 
-pub fn show_window(app: &AppHandle) {
-    if let Some(window) = app.get_window("main") {
+pub fn show_window(app_handle: &AppHandle) {
+    if let Some(window) = app_handle.get_window("main") {
         let _ = window.show();
         let _ = window.set_focus();
     }
