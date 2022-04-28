@@ -104,7 +104,8 @@ listen('new_recording', event => sidebar.innerHTML = createSidebarElement(event?
 
 // FUNCTIONS --------------------
 async function getVideoPath(video) {
-    return await join('http://localhost:1234/', video);
+    let port = await invoke('get_asset_port');
+    return await join(`http://localhost:${port}/`, video);
 }
 function openRecordingsFolder() {
     invoke('get_recordings_folder').then(folder => open(folder));

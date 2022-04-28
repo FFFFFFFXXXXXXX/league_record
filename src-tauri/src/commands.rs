@@ -5,13 +5,22 @@ use std::{
     path::PathBuf,
 };
 
-use crate::helpers::{compare_time, get_recordings, get_recordings_folder as get_rec_folder};
+use crate::{
+    helpers::{compare_time, get_recordings, get_recordings_folder as get_rec_folder},
+    state::{AssetPort, RecordingsFolder},
+};
 use serde_json::Value;
+use tauri::{AppHandle, Runtime};
 
 #[tauri::command]
-pub async fn get_recordings_size() -> f64 {
+pub fn get_asset_port(state: tauri::State<'_, AssetPort>) -> u16 {
+    state.get()
+}
+
+#[tauri::command]
+pub async fn get_recordings_size<R: Runtime>(app_handle: AppHandle<R>) -> f64 {
     let mut size = 0;
-    for file in get_recordings() {
+    for file in get_recordings(&app_handle) {
         if let Ok(metadata) = metadata(file) {
             size += metadata.len();
         }
@@ -20,34 +29,8 @@ pub async fn get_recordings_size() -> f64 {
 }
 
 #[tauri::command]
-pub async fn delete_video(video: String) -> bool {
-    // remove video
-    let mut path = get_rec_folder();
-    path.push(PathBuf::from(&video));
-    let ok = match remove_file(&path) {
-        Ok(_) => true,
-        Err(_) => false,
-    };
-
-    // remove json file if it exists
-    path.set_extension("json");
-    let _ = remove_file(path);
-    return ok;
-}
-
-#[tauri::command]
-pub async fn get_recordings_folder() -> String {
-    let folder: PathBuf = get_rec_folder();
-    if let Ok(string) = folder.into_os_string().into_string() {
-        string
-    } else {
-        String::new()
-    }
-}
-
-#[tauri::command]
-pub async fn get_recordings_list() -> Vec<String> {
-    let mut recordings = get_recordings();
+pub async fn get_recordings_list<R: Runtime>(app_handle: AppHandle<R>) -> Vec<String> {
+    let mut recordings = get_recordings(&app_handle);
     // sort by time created (index 0 is newest)
     recordings.sort_by(|a, b| {
         if let Ok(result) = compare_time(a, b) {
@@ -68,8 +51,34 @@ pub async fn get_recordings_list() -> Vec<String> {
 }
 
 #[tauri::command]
-pub async fn get_metadata(video: String) -> Option<Value> {
-    let mut path = get_rec_folder();
+pub fn get_recordings_folder(state: tauri::State<'_, RecordingsFolder>) -> String {
+    let folder = state.get_as_string();
+    if let Ok(string) = folder {
+        string
+    } else {
+        String::new()
+    }
+}
+
+#[tauri::command]
+pub async fn delete_video<R: Runtime>(video: String, app_handle: AppHandle<R>) -> bool {
+    // remove video
+    let mut path = get_rec_folder(&app_handle);
+    path.push(PathBuf::from(&video));
+    let ok = match remove_file(&path) {
+        Ok(_) => true,
+        Err(_) => false,
+    };
+
+    // remove json file if it exists
+    path.set_extension("json");
+    let _ = remove_file(path);
+    return ok;
+}
+
+#[tauri::command]
+pub async fn get_metadata<R: Runtime>(video: String, app_handle: AppHandle<R>) -> Option<Value> {
+    let mut path = get_rec_folder(&app_handle);
     path.push(PathBuf::from(video));
     path.set_extension("json");
     let reader = if let Ok(file) = File::open(path) {
