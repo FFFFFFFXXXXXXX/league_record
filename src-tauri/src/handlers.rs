@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error};
+use std::{collections::HashMap, error::Error, thread, time::Duration};
 
 use libobs_recorder::Recorder;
 use tauri::{
@@ -24,6 +24,10 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
             "open" => show_window(app_handle),
             "quit" => {
                 app_handle.trigger_global("shutdown", Some("".into()));
+                // normally recorder should call app_handle.exit() after shutting down
+                // if that doesn't happen within 3s force shutdown here
+                thread::sleep(Duration::from_secs(3));
+                app_handle.exit(0);
             }
             _ => {}
         },
