@@ -42,12 +42,12 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 
 pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     let app_handle = app.app_handle();
-
     // only start app if video directory exists
     if video_dir().is_none() {
         app_handle.exit(-1);
     }
 
+    // launch static-file-server as a replacement for the broken asset protocol
     let port = app_handle.state::<AssetPort>().get();
     let folder = app_handle.state::<RecordingsFolder>().get_as_string();
     let (_, child) = Command::new("static-file-server")
@@ -57,13 +57,6 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
         ]))
         .spawn()
         .unwrap();
-
-    println!(
-        "PID: {}, PORT: {}, FOLDER: {}",
-        child.pid(),
-        port,
-        folder.unwrap()
-    );
     app_handle.once_global("shutdown", move |_| {
         let _ = child.kill();
     });
