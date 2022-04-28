@@ -1,8 +1,9 @@
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
 use libobs_recorder::Recorder;
 use tauri::{
-    api::path::video_dir, App, AppHandle, Manager, RunEvent, SystemTrayEvent, WindowEvent, Wry,
+    api::{path::video_dir, process::Command},
+    App, AppHandle, Manager, RunEvent, SystemTrayEvent, WindowEvent, Wry,
 };
 
 use crate::{helpers::show_window, recorder};
@@ -32,6 +33,24 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     if video_dir().is_none() {
         app_handle.exit(-1);
     }
+
+    let (_, child) = Command::new("static-file-server")
+        .envs(HashMap::from([
+            ("PORT".into(), "1234".to_string()),
+            (
+                "FOLDER".into(),
+                crate::helpers::get_recordings_folder()
+                    .into_os_string()
+                    .into_string()
+                    .unwrap(),
+            ),
+        ]))
+        .spawn()
+        .unwrap();
+
+    app_handle.once_global("shutdown", move |_| {
+        let _ = child.kill();
+    });
 
     std::thread::spawn(move || {
         // let libobs_data_path = Some(String::from("./data/libobs/"));

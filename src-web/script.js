@@ -2,7 +2,6 @@
 const invoke = __TAURI__.invoke;
 const join = __TAURI__.path.join;
 const { emit, listen } = __TAURI__.event;
-const convertFileSrc = __TAURI__.tauri.convertFileSrc;
 const open = __TAURI__.shell.open;
 const wmng = new __TAURI__.window.WindowManager();
 
@@ -105,8 +104,7 @@ listen('new_recording', event => sidebar.innerHTML = createSidebarElement(event?
 
 // FUNCTIONS --------------------
 async function getVideoPath(video) {
-    let folder = await invoke('get_recordings_folder');
-    return await join(folder, video);
+    return await join('http://localhost:1234/', video);
 }
 function openRecordingsFolder() {
     invoke('get_recordings_folder').then(folder => open(folder));
@@ -134,7 +132,7 @@ function setVideo(name) {
         return;
     }
     getVideoPath(name)
-        .then(path => player.src({ type: 'video/mp4', src: convertFileSrc(path) }));
+        .then(path => player.src({ type: 'video/mp4', src: path }));
     wmng.setTitle('League Record - ' + name);
     invoke('get_metadata', { video: name }).then(md => {
         description.innerHTML = "No Data";
