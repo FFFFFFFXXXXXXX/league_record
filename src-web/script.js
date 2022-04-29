@@ -5,7 +5,7 @@ const { emit, listen } = __TAURI__.event;
 const open = __TAURI__.shell.open;
 const wmng = new __TAURI__.window.WindowManager();
 
-const POLLING_INTERVAL_MS = 5;
+const EVENT_DELAY = 3;
 
 let sidebar = document.getElementById('sidebar-content');
 let recordingsSize = document.getElementById('size');
@@ -29,7 +29,7 @@ const player = videojs('video_player', {
 // set marker settings
 player.markers({
     'markerStyle': {
-        'width': '8px',
+        'width': '15px',
         'border-radius': '5%'
     },
     'markerTip': {
@@ -122,39 +122,43 @@ function setRecordingsSize() {
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-function createMarker(event) {
+function createMarker(event, recordingDelay) {
+    let delay = recordingDelay ? recordingDelay : 0;
     return {
-        'time': event['eventTime'] - POLLING_INTERVAL_MS,
+        'time': event['eventTime'] - delay - EVENT_DELAY,
         'text': event['eventName'],
-        'class': event['eventName']?.toLowerCase()
+        'class': event['eventName']?.toLowerCase(),
+        'duration': 3
     };
 }
-function setVideo(name) {
+async function setVideo(name) {
     if (!name) {
         wmng.setTitle('League Record');
         return;
+    } else {
+        wmng.setTitle('League Record - ' + name);
     }
-    getVideoPath(name)
-        .then(path => player.src({ type: 'video/mp4', src: path }));
-    wmng.setTitle('League Record - ' + name);
-    invoke('get_metadata', { video: name }).then(md => {
-        description.innerHTML = "No Data";
-        player.markers.removeAll();
-        if (md) {
-            let desc = `${md['playerName']}<br>`;
-            desc += `${md['gameMode']}<br>`;
-            desc += `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
-            desc += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
-            description.innerHTML = desc;
+    let path = await getVideoPath(name);
+    player.src({ type: 'video/mp4', src: path });
 
-            // delay to wait for video src change to finish
-            sleep(100).then(() => {
-                let arr = [];
-                md['events'].forEach(e => arr.push(createMarker(e)));
-                player.markers.add(arr);
-            });
-        }
-    });
+    // wait for player src change to finish
+    await sleep(250);
+
+    player.markers.removeAll();
+    let md = await invoke('get_metadata', { video: name });
+    if (md) {
+        let desc = `${md['playerName']}<br>`;
+        desc += `${md['gameMode']}<br>`;
+        desc += `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
+        desc += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
+        description.innerHTML = desc;
+
+        let arr = [];
+        md['events'].forEach(e => arr.push(createMarker(e, md['recordingDelay'])));
+        player.markers.add(arr);
+    } else {
+        description.innerHTML = "No Data";
+    }
 }
 function deleteVideo(video) {
     window.confirm(`Do you really want to delete ${video}`)
@@ -181,8 +185,8 @@ function createSidebarElement(el) {
 
 // MAIN -------------------------
 // load the inital content
-sidebar.innerHTML = '';
 getRecordingsNames().then(rec => {
+    sidebar.innerHTML = '';
     rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
     setVideo(rec[0]);
 });

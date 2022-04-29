@@ -17,86 +17,74 @@ use reqwest::{header::ACCEPT, StatusCode};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, Runtime};
 
-use crate::helpers::{create_client, get_recordings_folder};
+use crate::{helpers::create_client, state::RecordingsFolder};
 
 const SLEEP_SECS: u64 = 5;
 
-fn save_metadata<R: Runtime>(filename: String, mut json: Value, app_handle: &AppHandle<R>) {
+fn save_metadata<R: Runtime>(
+    filename: String,
+    recording_delay: Value,
+    mut json: Value,
+    app_handle: &AppHandle<R>,
+) {
     let player_name = json["playerName"].clone();
-    let events = if let Some(e) = json.get_mut("events") {
-        e
-    } else {
-        return;
-    };
-    let events_array = if let Some(arr) = events.as_array() {
-        arr
-    } else {
-        return;
-    };
-
-    let new_events: Vec<Value> = events_array
+    let events = json.get_mut("events").unwrap().as_array().unwrap();
+    let new_events = events
         .iter()
-        .filter_map(|event| {
-            if let Some(event_name) = event["EventName"].as_str() {
-                match event_name {
-                    "DragonKill" => {
-                        let mut dragon = String::from(event["DragonType"].as_str().unwrap());
-                        dragon.push_str(" Dragon");
-                        Some(json!({
-                            "eventName": dragon,
-                            "eventTime": event["EventTime"]
-                        }))
-                    }
-                    "HeraldKill" => Some(json!({
-                        "eventName": "Herald",
-                        "eventTime": event["EventTime"]
-                    })),
-                    "BaronKill" => Some(json!({
-                        "eventName": "Baron",
-                        "eventTime": event["EventTime"]
-                    })),
-                    "ChampionKill" => {
-                        let assisters = if let Some(arr) = event["Assisters"].as_array() {
-                            arr
-                        } else {
-                            return None;
-                        };
-                        if event["VictimName"] == player_name {
-                            Some(json!({
-                                "eventName": "Death",
-                                "eventTime": event["EventTime"]
-                            }))
-                        } else if event["KillerName"] == player_name
-                            || assisters.contains(&player_name)
-                        {
-                            Some(json!({
-                                "eventName": "Kill",
-                                "eventTime": event["EventTime"]
-                            }))
-                        } else {
-                            None
-                        }
-                    }
-                    "TurretKilled" => Some(json!({
-                        "eventName": "Turret",
-                        "eventTime": event["EventTime"]
-                    })),
-                    "InhibKilled" => Some(json!({
-                        "eventName": "Inhibitor",
-                        "eventTime": event["EventTime"]
-                    })),
-                    _ => None,
-                }
-            } else {
-                None
+        .filter_map(|event| match event["EventName"].as_str()? {
+            "DragonKill" => {
+                let mut dragon = String::from(event["DragonType"].as_str().unwrap());
+                dragon.push_str(" Dragon");
+                Some(json!({
+                    "eventName": dragon,
+                    "eventTime": event["EventTime"]
+                }))
             }
-        })
-        .collect();
+            "HeraldKill" => Some(json!({
+                "eventName": "Herald",
+                "eventTime": event["EventTime"]
+            })),
+            "BaronKill" => Some(json!({
+                "eventName": "Baron",
+                "eventTime": event["EventTime"]
+            })),
+            "ChampionKill" => {
+                let assisters = event["Assisters"].as_array()?;
+                if event["VictimName"] == player_name {
+                    Some(json!({
+                        "eventName": "Death",
+                        "eventTime": event["EventTime"]
+                    }))
+                } else if event["KillerName"] == player_name {
+                    Some(json!({
+                        "eventName": "Kill",
+                        "eventTime": event["EventTime"]
+                    }))
+                } else if assisters.contains(&player_name) {
+                    Some(json!({
+                        "eventName": "Assist",
+                        "eventTime": event["EventTime"]
+                    }))
+                } else {
+                    None
+                }
+            }
+            "TurretKilled" => Some(json!({
+                "eventName": "Turret",
+                "eventTime": event["EventTime"]
+            })),
+            "InhibKilled" => Some(json!({
+                "eventName": "Inhibitor",
+                "eventTime": event["EventTime"]
+            })),
+            _ => None,
+        });
 
     // replace old events with new events
-    *events = Value::Array(new_events);
+    json["events"] = Value::Array(new_events.collect());
+    json["recordingDelay"] = recording_delay;
 
-    let mut filepath = get_recordings_folder(&app_handle);
+    let mut filepath = app_handle.state::<RecordingsFolder>().get();
     filepath.push(PathBuf::from(filename));
     filepath.set_extension("json");
     if let Ok(file) = File::create(filepath) {
@@ -119,17 +107,11 @@ fn poll_league_data() -> Option<Value> {
         .get("https://127.0.0.1:2999/liveclientdata/allgamedata")
         .header(ACCEPT, "application/json")
         .timeout(Duration::from_secs(1))
-        .send();
-    let data = if let Ok(result) = result {
-        if result.status() == StatusCode::OK {
-            if let Ok(res) = result.json::<Value>() {
-                res
-            } else {
-                return None;
-            }
-        } else {
-            return None;
-        }
+        .send()
+        .ok()?;
+
+    let data = if result.status() == StatusCode::OK {
+        result.json::<Value>().ok()?
     } else {
         return None;
     };
@@ -139,11 +121,7 @@ fn poll_league_data() -> Option<Value> {
     }
 
     let mut player_info: Option<&Value> = None;
-    let player_array = if let Some(arr) = data["allPlayers"].as_array() {
-        arr
-    } else {
-        return None;
-    };
+    let player_array = data["allPlayers"].as_array()?;
     for player in player_array {
         if player["summonerName"] == data["activePlayer"]["summonerName"] {
             player_info = Some(player);
@@ -156,7 +134,8 @@ fn poll_league_data() -> Option<Value> {
             "championName": info["championName"],
             "stats": info["scores"],
             "events": data["events"]["Events"],
-            "gameMode": data["gameData"]["gameMode"]
+            "gameMode": data["gameData"]["gameMode"],
+            "recordingDelay": data["gameData"]["gameTime"]
         }))
     } else {
         None
@@ -193,9 +172,10 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
         // stuff to persist over loops
         // there is a scope around these so recorder gets dropped before Recorder::shutdown() is called
         let mut recorder = None;
-        let mut filename = String::new();
-        let mut league_data = Value::Null;
         let mut recording = false;
+        let mut league_data = Value::Null;
+        let mut recording_delay = Value::Null;
+        let mut filename = String::new();
 
         loop {
             // if we are not recording and we get data from the API => start recording
@@ -203,7 +183,7 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
                 if !recording {
                     // create new unique filename from current time
                     let new_filename = format!("{}", Local::now().format("%Y-%m-%d_%H-%M.mp4"));
-                    let mut video_path = get_recordings_folder(&app_handle);
+                    let mut video_path = app_handle.state::<RecordingsFolder>().get();
                     video_path.push(PathBuf::from(&new_filename));
 
                     // create and set recorder if successful
@@ -212,6 +192,8 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
                         recording = rec.start_recording();
                         if recording {
                             set_recording_tray_item(&app_handle, true);
+                            // store the delay between ingame time and first poll time
+                            recording_delay = data["recordingDelay"].clone();
                             filename = new_filename;
                             Some(rec)
                         } else {
@@ -229,7 +211,7 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
                 if let Some(mut rec) = recorder {
                     recording = rec.stop_recording();
                 };
-                set_recording_tray_item(&app_handle, true);
+                set_recording_tray_item(&app_handle, false);
                 // drop recorder
                 recorder = None;
 
@@ -237,9 +219,10 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
                 let _ = app_handle.emit_all("new_recording", &filename);
 
                 // pass output_path and league data to save_metadata() and replace with placeholders
-                save_metadata(filename, league_data, &app_handle);
-                filename = String::new();
+                save_metadata(filename, recording_delay, league_data, &app_handle);
                 league_data = Value::Null;
+                recording_delay = Value::Null;
+                filename = String::new();
             }
 
             // if value received or disconnected => break

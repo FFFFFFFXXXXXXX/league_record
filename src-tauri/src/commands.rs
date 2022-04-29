@@ -6,11 +6,11 @@ use std::{
 };
 
 use crate::{
-    helpers::{compare_time, get_recordings, get_recordings_folder as get_rec_folder},
+    helpers::{compare_time, get_recordings},
     state::{AssetPort, RecordingsFolder},
 };
 use serde_json::Value;
-use tauri::{AppHandle, Runtime};
+use tauri::{AppHandle, Manager, Runtime};
 
 #[tauri::command]
 pub fn get_asset_port(state: tauri::State<'_, AssetPort>) -> u16 {
@@ -63,7 +63,7 @@ pub fn get_recordings_folder(state: tauri::State<'_, RecordingsFolder>) -> Strin
 #[tauri::command]
 pub async fn delete_video<R: Runtime>(video: String, app_handle: AppHandle<R>) -> bool {
     // remove video
-    let mut path = get_rec_folder(&app_handle);
+    let mut path = app_handle.state::<RecordingsFolder>().get();
     path.push(PathBuf::from(&video));
     let ok = match remove_file(&path) {
         Ok(_) => true,
@@ -77,19 +77,19 @@ pub async fn delete_video<R: Runtime>(video: String, app_handle: AppHandle<R>) -
 }
 
 #[tauri::command]
-pub async fn get_metadata<R: Runtime>(video: String, app_handle: AppHandle<R>) -> Option<Value> {
-    let mut path = get_rec_folder(&app_handle);
+pub async fn get_metadata<R: Runtime>(video: String, app_handle: AppHandle<R>) -> Value {
+    let mut path = app_handle.state::<RecordingsFolder>().get();
     path.push(PathBuf::from(video));
     path.set_extension("json");
     let reader = if let Ok(file) = File::open(path) {
         BufReader::new(file)
     } else {
-        return None;
+        return Value::Null;
     };
 
     if let Ok(json) = serde_json::from_reader::<BufReader<File>, Value>(reader) {
-        Some(json)
+        json
     } else {
-        None
+        Value::Null
     }
 }

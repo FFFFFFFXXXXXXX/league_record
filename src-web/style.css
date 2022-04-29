@@ -110,7 +110,11 @@ hr {
 
 /* EVENT MARKER COLORS */
 .kill {
-    color: lawngreen !important;
+    background-color: green !important;
+}
+
+.assist {
+    background-color: lawngreen !important;
 }
 
 .death {
@@ -135,4 +139,8 @@ hr {
 
 .baron {
     background-color: darkmagenta !important;
+}
+
+.vjs-marker:hover {
+    z-index: 101;
 }
