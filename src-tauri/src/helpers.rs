@@ -15,14 +15,10 @@ pub fn create_client() -> Client {
     return client;
 }
 
-pub fn get_recordings_folder<R: Runtime>(app_handle: &AppHandle<R>) -> PathBuf {
-    app_handle.state::<RecordingsFolder>().get()
-}
-
 pub fn get_recordings<R: Runtime>(app_handle: &AppHandle<R>) -> Vec<PathBuf> {
     let mut recordings = Vec::<PathBuf>::new();
     // get all mp4 files in ~/Videos/league_recordings
-    let rec_folder = get_recordings_folder(app_handle);
+    let rec_folder = app_handle.state::<RecordingsFolder>().get();
     let rd_dir = if let Ok(rd_dir) = rec_folder.read_dir() {
         rd_dir
     } else {
