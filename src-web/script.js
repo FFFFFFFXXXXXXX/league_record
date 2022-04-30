@@ -9,10 +9,22 @@ const EVENT_DELAY = 3;
 
 let sidebar = document.getElementById('sidebar-content');
 let recordingsSize = document.getElementById('size');
-let description = document.getElementById('description');
+let descriptionName = document.getElementById('description-name');
+let descriptionContent = document.getElementById('description-content');
+
+let checkboxKill = document.getElementById('kill');
+let checkboxDeath = document.getElementById('death');
+let checkboxAssist = document.getElementById('assist');
+let checkboxTurret = document.getElementById('turret');
+let checkboxInhibitor = document.getElementById('inhibitor');
+let checkboxDragon = document.getElementById('dragon');
+let checkboxHerald = document.getElementById('herald');
+let checkboxBaron = document.getElementById('baron');
 
 let init = true;
 let fullscreen = false;
+let currentEvents = [];
+let currentRecordingDelay = 0;
 // ------------------------------
 
 
@@ -28,10 +40,6 @@ const player = videojs('video_player', {
 
 // set marker settings
 player.markers({
-    'markerStyle': {
-        'width': '15px',
-        'border-radius': '5%'
-    },
     'markerTip': {
         'display': true,
         'text': (marker) => marker.text,
@@ -89,7 +97,16 @@ addEventListener('keydown', event => {
         event.preventDefault();
 });
 
+// add events to html elements
 document.getElementById('vid-folder-btn').onclick = openRecordingsFolder;
+checkboxKill.onclick = changeMarkers;
+checkboxDeath.onclick = changeMarkers;
+checkboxAssist.onclick = changeMarkers;
+checkboxTurret.onclick = changeMarkers;
+checkboxInhibitor.onclick = changeMarkers;
+checkboxDragon.onclick = changeMarkers;
+checkboxHerald.onclick = changeMarkers;
+checkboxBaron.onclick = changeMarkers;
 
 // disable right click menu
 addEventListener('contextmenu', event => event.preventDefault());
@@ -128,7 +145,7 @@ function createMarker(event, recordingDelay) {
         'time': event['eventTime'] - delay - EVENT_DELAY,
         'text': event['eventName'],
         'class': event['eventName']?.toLowerCase(),
-        'duration': 3
+        'duration': 4
     };
 }
 async function setVideo(name) {
@@ -141,22 +158,23 @@ async function setVideo(name) {
     let path = await getVideoPath(name);
     player.src({ type: 'video/mp4', src: path });
 
-    // wait for player src change to finish
-    await sleep(250);
-
-    player.markers.removeAll();
     let md = await invoke('get_metadata', { video: name });
     if (md) {
-        let desc = `${md['playerName']}<br>`;
-        desc += `${md['gameMode']}<br>`;
-        desc += `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
-        desc += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
-        description.innerHTML = desc;
+        currentEvents = md['events'];
+        currentRecordingDelay = md['recordingDelay'];
 
-        let arr = [];
-        md['events'].forEach(e => arr.push(createMarker(e, md['recordingDelay'])));
-        player.markers.add(arr);
+        let descName = `${md['playerName']}<br>`;
+        descName += `${md['gameMode']}<br>`;
+        descriptionName.innerHTML = descName;
+
+        let descContent = `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
+        descContent += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
+        descriptionContent.innerHTML = descContent;
+
+        // wait for player src change to finish before adding markers
+        setTimeout(changeMarkers, 250);
     } else {
+        player.markers.removeAll();
         description.innerHTML = "No Data";
     }
 }
@@ -179,6 +197,43 @@ function deleteVideo(video) {
 }
 function createSidebarElement(el) {
     return `<li id="${el}" onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}<span class="close" onclick="deleteVideo('${el}')">&times;</span></li>`;
+}
+function changeMarkers() {
+    player.markers.removeAll();
+    let arr = [];
+    currentEvents.forEach(e => {
+        let ok = false;
+        switch (e['eventName']) {
+            case 'Kill':
+                ok = checkboxKill.checked;
+                break;
+            case 'Death':
+                ok = checkboxDeath.checked;
+                break;
+            case 'Assist':
+                ok = checkboxAssist.checked;
+                break;
+            case 'Turret':
+                ok = checkboxTurret.checked;
+                break;
+            case 'Inhibitor':
+                ok = checkboxInhibitor.checked;
+                break;
+            case 'Dragon':
+                ok = checkboxDragon.checked;
+                break;
+            case 'Herald':
+                ok = checkboxHerald.checked;
+                break;
+            case 'Baron':
+                ok = checkboxBaron.checked;
+                break;
+            default:
+                break;
+        }
+        if (ok) arr.push(createMarker(e, currentRecordingDelay));
+    });
+    player.markers.add(arr);
 }
 // ------------------------------
 
