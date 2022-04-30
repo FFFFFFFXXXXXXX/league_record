@@ -34,4 +34,4 @@ The GPLv2 license of the Obs project applies to all the .dll files as well as th
 
 The static-file-server executable is licensed under the MIT License.
 
-This project is distributed under the GNU General Public License v2 (or any later version).
+This project is distributed under the GNU General Public License v2.
