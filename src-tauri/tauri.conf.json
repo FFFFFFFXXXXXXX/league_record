@@ -25,7 +25,7 @@
       "resources": [
         "./libobs/data/",
         "./libobs/obs-plugins/",
-        "./MIT_LICENSE"
+        "./licenses/*"
       ],
       "externalBin": [
         "./libobs/obs-ffmpeg-mux",
