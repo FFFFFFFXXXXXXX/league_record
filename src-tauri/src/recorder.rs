@@ -19,6 +19,7 @@ use tauri::{AppHandle, Manager, Runtime};
 
 use crate::{helpers::create_client, state::RecordingsFolder};
 
+const FILENAME_FORMAT: &str = "%Y-%m-%d_%H-%M.mp4";
 const SLEEP_SECS: u64 = 5;
 
 fn save_metadata<R: Runtime>(
@@ -182,7 +183,7 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
             if let Some(data) = poll_league_data() {
                 if !recording {
                     // create new unique filename from current time
-                    let new_filename = format!("{}", Local::now().format("%Y-%m-%d_%H-%M.mp4"));
+                    let new_filename = format!("{}", Local::now().format(FILENAME_FORMAT));
                     let mut video_path = app_handle.state::<RecordingsFolder>().get();
                     video_path.push(PathBuf::from(&new_filename));
 
