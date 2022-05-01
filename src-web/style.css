@@ -5,6 +5,7 @@
 
 html {
     font-family: 'BeaufortW01-Bold';
+    text-shadow: 1px 1px 3px black;
 }
 
 body {
@@ -40,6 +41,7 @@ hr {
 
 #sidebar button {
     font-family: 'BeaufortW01-Bold';
+    text-shadow: 1px 1px 3px black;
     margin: 10px auto 11px auto;
     display: block;
     border-radius: 5px;
@@ -71,7 +73,7 @@ hr {
 #sidebar-content li {
     padding: 12px 0 12px 20px;
     text-decoration: none;
-    font-size: 21px;
+    font-size: 20px;
     color: lightgray;
     display: block;
     border-bottom: 1px solid lightgray;
@@ -119,6 +121,21 @@ hr {
 #description-content {
     flex: 1 1 auto;
     text-align: center;
+}
+
+.summoner-name {
+    font-size: 24px;
+    color: #947f51;
+}
+
+.win {
+    font-size: 24px;
+    color: #0acbe6;
+}
+
+.loss {
+    font-size: 24px;
+    color: #ff2345;
 }
 
 .marker-list {
