@@ -135,11 +135,11 @@ hr {
 }
 
 .kill {
-    background-color: green !important;
+    background-color: lawngreen !important;
 }
 
 .assist {
-    background-color: lawngreen !important;
+    background-color: green !important;
 }
 
 .death {
@@ -164,4 +164,37 @@ hr {
 
 .baron {
     background-color: darkmagenta !important;
+}
+
+/* CHECKBOX LABELS */
+#kill {
+    accent-color: lawngreen;
+}
+
+#assist {
+    accent-color: green;
+}
+
+#death {
+    accent-color: red;
+}
+
+#turret {
+    accent-color: brown;
+}
+
+#inhibitor {
+    accent-color: mediumblue;
+}
+
+#dragon {
+    accent-color: darkgoldenrod;
+}
+
+#herald {
+    accent-color: deeppink;
+}
+
+#baron {
+    accent-color: darkmagenta;
 }
