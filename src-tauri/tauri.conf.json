@@ -31,7 +31,7 @@
         "./libobs/obs-ffmpeg-mux",
         "./static-file-server"
       ],
-      "copyright": "",
+      "copyright": "gpl-2.0",
       "category": "Utility",
       "shortDescription": "Record and replay League of Legends",
       "longDescription": "Record and replay League of Legends",
