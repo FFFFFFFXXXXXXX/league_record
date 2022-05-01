@@ -166,11 +166,23 @@ async function setVideo(name) {
         currentEvents = md['events'];
         currentRecordingDelay = md['recordingDelay'];
 
-        let descName = `${md['playerName']}<br>`;
+        let descName = `<span class="summoner-name">${md['playerName']}</span><br>`;
         descName += `${md['gameMode']}<br>`;
         descriptionName.innerHTML = descName;
 
-        let descContent = `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
+        let result = '';
+        switch (md['result']?.toLowerCase()) {
+            case 'win':
+                result = '<span class="win">Victory</span><br>';
+                break;
+            case 'loss':
+                result = '<span class="loss">Defeat</span><br>';
+                break;
+            default:
+                break;
+        }
+        let descContent = result;
+        descContent += `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
         descContent += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
         descriptionContent.innerHTML = descContent;
 

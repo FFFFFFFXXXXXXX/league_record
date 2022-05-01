@@ -20,7 +20,7 @@ use tauri::{AppHandle, Manager, Runtime};
 use crate::{helpers::create_client, state::RecordingsFolder};
 
 const FILENAME_FORMAT: &str = "%Y-%m-%d_%H-%M.mp4";
-const SLEEP_SECS: u64 = 5;
+const SLEEP_SECS: u64 = 3;
 
 fn save_metadata<R: Runtime>(
     filename: String,
@@ -28,6 +28,8 @@ fn save_metadata<R: Runtime>(
     mut json: Value,
     app_handle: &AppHandle<R>,
 ) {
+    let mut result = Value::Null;
+
     let player_name = json["playerName"].clone();
     let events = json.get_mut("events").unwrap().as_array().unwrap();
     let new_events = events
@@ -78,12 +80,17 @@ fn save_metadata<R: Runtime>(
                 "eventName": "Inhibitor",
                 "eventTime": event["EventTime"]
             })),
+            "GameEnd" => {
+                result = event["Result"].clone();
+                None
+            }
             _ => None,
         });
 
     // replace old events with new events
     json["events"] = Value::Array(new_events.collect());
     json["recordingDelay"] = recording_delay;
+    json["result"] = result;
 
     let mut filepath = app_handle.state::<RecordingsFolder>().get();
     filepath.push(PathBuf::from(filename));
