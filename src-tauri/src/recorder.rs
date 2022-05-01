@@ -152,7 +152,7 @@ fn get_recorder_settings(video_path: &PathBuf) -> RecorderSettings {
     ));
     settings.set_output_resolution(Resolution::_1080p);
     settings.set_framerate(Framerate::new(30, 1));
-    settings.set_cqp(Cqp::new(18)); // for amd/nvidia/software
+    settings.set_cqp(Cqp::new(20)); // for amd/nvidia/software
     settings.set_icq(Icq::new(18)); // for intel quicksync
     settings.record_audio(true);
     if let Some(path) = video_path.to_str() {
