@@ -7,11 +7,8 @@ use std::{
 
 use chrono::Local;
 use libobs_recorder::{
-    framerate::Framerate,
     rate_control::{Cqp, Icq},
-    resolution::Resolution,
-    window::Window,
-    Recorder, RecorderSettings,
+    Framerate, Recorder, RecorderSettings, Resolution, Window,
 };
 use reqwest::{header::ACCEPT, StatusCode};
 use serde_json::{json, Value};
