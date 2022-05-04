@@ -39,10 +39,6 @@ fn save_metadata<R: Runtime>(
     mut json: Value,
     app_handle: &AppHandle<R>,
 ) {
-    if json.is_null() {
-        return;
-    }
-
     let mut result = Value::Null;
 
     let player_name = json["playerName"].clone();
@@ -290,8 +286,10 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
                 // tell frontend to update video list
                 let _ = app_handle.emit_all("new_recording", &filename);
 
-                // pass output_path and league data to save_metadata() and replace with placeholders
-                save_metadata(filename, recording_delay, league_data, &app_handle);
+                // pass output_path and league data to save_metadata() and reset their values
+                if !league_data.is_null() {
+                    save_metadata(filename, recording_delay, league_data, &app_handle);
+                }
                 league_data = Value::Null;
                 recording_delay = Value::Null;
                 filename = String::new();
