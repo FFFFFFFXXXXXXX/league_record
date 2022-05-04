@@ -2,7 +2,7 @@ use std::{
     fs::File,
     path::PathBuf,
     sync::mpsc::{channel, TryRecvError},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use chrono::Local;
@@ -35,10 +35,12 @@ const SLEEP_SECS: u64 = 3;
 
 fn save_metadata<R: Runtime>(
     filename: String,
-    recording_delay: Value,
+    data_delay: f64,
     mut json: Value,
     app_handle: &AppHandle<R>,
 ) {
+    println!("{:?}", data_delay);
+
     let mut result = Value::Null;
 
     let player_name = json["playerName"].clone();
@@ -100,11 +102,7 @@ fn save_metadata<R: Runtime>(
 
     // replace old events with new events
     json["events"] = Value::Array(new_events.collect());
-    json["recordingDelay"] = if recording_delay.is_null() {
-        Value::from(0)
-    } else {
-        recording_delay
-    };
+    json["dataDelay"] = Value::from(data_delay);
     json["result"] = result;
 
     let mut filepath = app_handle.state::<RecordingsFolder>().get();
@@ -158,7 +156,7 @@ fn get_league_data() -> Option<Value> {
             "stats": info["scores"],
             "events": data["events"]["Events"],
             "gameMode": data["gameData"]["gameMode"],
-            "recordingDelay": data["gameData"]["gameTime"]
+            "timestamp": data["gameData"]["gameTime"]
         }))
     } else {
         None
@@ -234,15 +232,14 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
         // there is a scope around these so recorder gets dropped before Recorder::shutdown() is called
         let mut recorder = None;
         let mut recording = false;
-        let mut league_data = Value::Null;
-        let mut recording_delay = Value::Null;
+        let mut game_data = Value::Null;
+        let mut instant = Instant::now();
+        let mut data_delay = -1.0;
         let mut filename = String::new();
 
         loop {
             // if window exists && we get data from the API && we are not recording => start recording
             if let Ok(hwnd) = get_window() {
-                let data = get_league_data().unwrap_or_default();
-
                 if !recording {
                     // create new unique filename from current time
                     let new_filename = format!("{}", Local::now().format(FILENAME_FORMAT));
@@ -254,11 +251,8 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
                     recorder = if let Ok(mut rec) = Recorder::get(settings) {
                         recording = rec.start_recording();
                         if recording {
+                            instant = Instant::now();
                             set_recording_tray_item(&app_handle, true);
-                            // store the delay between ingame time and first poll time
-                            if !data.is_null() {
-                                recording_delay = data["recordingDelay"].clone();
-                            }
                             filename = new_filename;
                             Some(rec)
                         } else {
@@ -270,8 +264,16 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
                 }
 
                 // update data if recording
+                let data = get_league_data().unwrap_or_default();
                 if recording && !data.is_null() {
-                    league_data = data;
+                    // store the delay between event time and recording time
+                    // but only if recording delay is unset (<0.0)
+                    if data_delay < 0.0 {
+                        data_delay =
+                            instant.elapsed().as_secs_f64() - data["timestamp"].as_f64().unwrap();
+                        println!("{:?}:{:?}", data_delay, data["timestamp"]);
+                    }
+                    game_data = data;
                 }
 
             // if we are recording and we the window doesn't exist anymore => stop recording
@@ -287,11 +289,11 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
                 let _ = app_handle.emit_all("new_recording", &filename);
 
                 // pass output_path and league data to save_metadata() and reset their values
-                if !league_data.is_null() {
-                    save_metadata(filename, recording_delay, league_data, &app_handle);
+                if !game_data.is_null() {
+                    save_metadata(filename, data_delay, game_data, &app_handle);
                 }
-                league_data = Value::Null;
-                recording_delay = Value::Null;
+                game_data = Value::Null;
+                data_delay = -1.0;
                 filename = String::new();
             }
 

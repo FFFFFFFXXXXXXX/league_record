@@ -24,7 +24,7 @@ let checkboxBaron = document.getElementById('baron');
 let init = true;
 let fullscreen = false;
 let currentEvents = [];
-let currentRecordingDelay = 0;
+let currentDataDelay = 0;
 // ------------------------------
 
 
@@ -142,10 +142,10 @@ function setRecordingsSize() {
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-function createMarker(event, recordingDelay) {
-    let delay = recordingDelay ? recordingDelay : 0;
+function createMarker(event, dataDelay) {
+    let delay = dataDelay ? dataDelay : 0;
     return {
-        'time': event['eventTime'] - delay - EVENT_DELAY,
+        'time': event['eventTime'] + delay - EVENT_DELAY,
         'text': event['eventName'],
         'class': event['eventName']?.toLowerCase(),
         'duration': 4
@@ -164,7 +164,7 @@ async function setVideo(name) {
     let md = await invoke('get_metadata', { video: name });
     if (md) {
         currentEvents = md['events'];
-        currentRecordingDelay = md['recordingDelay'];
+        currentDataDelay = md['dataDelay'];
 
         let descName = `<span class="summoner-name">${md['playerName']}</span><br>`;
         descName += `${md['gameMode']}<br>`;
@@ -246,7 +246,7 @@ function changeMarkers() {
             default:
                 break;
         }
-        if (ok) arr.push(createMarker(e, currentRecordingDelay));
+        if (ok) arr.push(createMarker(e, currentDataDelay));
     });
     player.markers.add(arr);
 }
