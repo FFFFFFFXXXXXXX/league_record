@@ -8,13 +8,27 @@ use std::{
 use chrono::Local;
 use libobs_recorder::{
     rate_control::{Cqp, Icq},
-    Framerate, Recorder, RecorderSettings, Resolution, Window,
+    Framerate, Recorder, RecorderSettings, Resolution, Size, Window,
 };
 use reqwest::{header::ACCEPT, StatusCode};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, Runtime};
 
+#[cfg(target_os = "windows")]
+use windows::{
+    core::PCSTR,
+    Win32::{
+        Foundation::{HWND, RECT},
+        UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE},
+        UI::WindowsAndMessaging::{FindWindowA, GetClientRect},
+    },
+};
+
 use crate::{helpers::create_client, state::RecordingsFolder};
+
+const WINDOW_TITLE: &str = "League of Legends (TM) Client";
+const WINDOW_CLASS: &str = "RiotWindowClass";
+const WINDOW_PROCESS: &str = "League of Legends.exe";
 
 const FILENAME_FORMAT: &str = "%Y-%m-%d_%H-%M.mp4";
 const SLEEP_SECS: u64 = 3;
@@ -25,6 +39,10 @@ fn save_metadata<R: Runtime>(
     mut json: Value,
     app_handle: &AppHandle<R>,
 ) {
+    if json.is_null() {
+        return;
+    }
+
     let mut result = Value::Null;
 
     let player_name = json["playerName"].clone();
@@ -86,7 +104,11 @@ fn save_metadata<R: Runtime>(
 
     // replace old events with new events
     json["events"] = Value::Array(new_events.collect());
-    json["recordingDelay"] = recording_delay;
+    json["recordingDelay"] = if recording_delay.is_null() {
+        Value::from(0)
+    } else {
+        recording_delay
+    };
     json["result"] = result;
 
     let mut filepath = app_handle.state::<RecordingsFolder>().get();
@@ -105,7 +127,7 @@ fn set_recording_tray_item<R: Runtime>(app_handle: &AppHandle<R>, recording: boo
     let _ = item.set_enabled(false);
 }
 
-fn poll_league_data() -> Option<Value> {
+fn get_league_data() -> Option<Value> {
     let client = create_client();
 
     let result = client
@@ -147,13 +169,45 @@ fn poll_league_data() -> Option<Value> {
     }
 }
 
-fn get_recorder_settings(video_path: &PathBuf) -> RecorderSettings {
+#[cfg(target_os = "windows")]
+fn get_window() -> Result<HWND, ()> {
+    let mut window_title = WINDOW_TITLE.to_owned();
+    window_title.push('\0'); // null terminate
+    let mut window_class = WINDOW_CLASS.to_owned();
+    window_class.push('\0'); // null terminate
+
+    let title = PCSTR(window_title.as_ptr());
+    let class = PCSTR(window_class.as_ptr());
+
+    let hwnd = unsafe { FindWindowA(class, title) };
+    if hwnd.is_invalid() {
+        return Err(());
+    }
+    return Ok(hwnd);
+}
+
+#[cfg(target_os = "windows")]
+fn get_window_size(hwnd: HWND) -> Result<Size, ()> {
+    let mut rect = RECT::default();
+    let ok = unsafe { GetClientRect(hwnd, &mut rect as _).as_bool() };
+    if ok && rect.right > 0 && rect.bottom > 0 {
+        Ok(Size::new(rect.right as u32, rect.bottom as u32))
+    } else {
+        Err(())
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn get_recorder_settings(hwnd: HWND, video_path: &PathBuf) -> RecorderSettings {
     let mut settings = RecorderSettings::new();
     settings.set_window(Window::new(
-        "League of Legends (TM) Client",
-        Some("RiotWindowClass".into()),
-        Some("League of Legends.exe".into()),
+        WINDOW_TITLE,
+        Some(WINDOW_CLASS.into()),
+        Some(WINDOW_PROCESS.into()),
     ));
+    if let Ok(size) = get_window_size(hwnd) {
+        settings.set_input_size(size);
+    }
     settings.set_output_resolution(Resolution::_1080p);
     settings.set_framerate(Framerate::new(30, 1));
     settings.set_cqp(Cqp::new(20)); // for amd/nvidia/software
@@ -166,6 +220,12 @@ fn get_recorder_settings(video_path: &PathBuf) -> RecorderSettings {
 }
 
 pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
+    #[cfg(target_os = "windows")]
+    unsafe {
+        // Get correct window size from GetClientRect
+        SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
+    };
+
     let (sender, receiver) = channel::<_>();
 
     // send stop to channel on "shutdown" event
@@ -183,8 +243,10 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
         let mut filename = String::new();
 
         loop {
-            // if we are not recording and we get data from the API => start recording
-            if let Some(data) = poll_league_data() {
+            // if window exists && we get data from the API && we are not recording => start recording
+            if let Ok(hwnd) = get_window() {
+                let data = get_league_data().unwrap_or_default();
+
                 if !recording {
                     // create new unique filename from current time
                     let new_filename = format!("{}", Local::now().format(FILENAME_FORMAT));
@@ -192,13 +254,15 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
                     video_path.push(PathBuf::from(&new_filename));
 
                     // create and set recorder if successful
-                    let settings = get_recorder_settings(&video_path);
+                    let settings = get_recorder_settings(hwnd, &video_path);
                     recorder = if let Ok(mut rec) = Recorder::get(settings) {
                         recording = rec.start_recording();
                         if recording {
                             set_recording_tray_item(&app_handle, true);
                             // store the delay between ingame time and first poll time
-                            recording_delay = data["recordingDelay"].clone();
+                            if !data.is_null() {
+                                recording_delay = data["recordingDelay"].clone();
+                            }
                             filename = new_filename;
                             Some(rec)
                         } else {
@@ -208,10 +272,13 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
                         None
                     }
                 }
-                // update data to newest received version
-                league_data = data;
 
-            // if we are recording and we cant get any data from the API anymore => stop recording
+                // update data if recording
+                if recording && !data.is_null() {
+                    league_data = data;
+                }
+
+            // if we are recording and we the window doesn't exist anymore => stop recording
             } else if recording {
                 if let Some(mut rec) = recorder {
                     recording = rec.stop_recording();
