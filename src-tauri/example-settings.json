@@ -1,7 +1,7 @@
 {
     "recordingsFolder": "league_recordings",
     "filenameFormat": "%Y-%m-%d_%H-%M.mp4",
-    "recordingQuality": 20,
+    "encodingQuality": 20,
     "outputResolution": "_1080p",
     "outputFramerate": [
         30,
