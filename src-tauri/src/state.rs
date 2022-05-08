@@ -89,11 +89,8 @@ impl Settings {
         exe_dir.push("settings.json");
         if let Ok(file) = File::open(&exe_dir) {
             let reader = BufReader::new(file);
-            let ret = serde_json::from_reader::<_, Settings>(reader);
-            if let Ok(settings) = ret {
+            if let Ok(settings) = serde_json::from_reader::<_, Settings>(reader) {
                 return settings;
-            } else {
-                println!("{:?}", ret);
             }
         }
 
