@@ -7,7 +7,7 @@ use tauri::{
     SystemTrayMenuItem, WindowEvent, Wry,
 };
 
-use crate::{helpers::show_window, recorder, state::RecordingsFolder, AssetPort};
+use crate::{helpers::show_window, recorder, state::Settings, AssetPort};
 
 pub fn create_system_tray() -> SystemTray {
     let tray_menu = SystemTrayMenu::new()
@@ -49,11 +49,11 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
 
     // launch static-file-server as a replacement for the broken asset protocol
     let port = app_handle.state::<AssetPort>().get();
-    let folder = app_handle.state::<RecordingsFolder>().get_as_string();
+    let folder = app_handle.state::<Settings>().recordings_folder_as_string();
     let (_, child) = Command::new("static-file-server")
         .envs(HashMap::from([
             ("PORT".into(), port.to_string()),
-            ("FOLDER".into(), folder.clone().unwrap()),
+            ("FOLDER".into(), folder.unwrap()),
         ]))
         .spawn()
         .unwrap();

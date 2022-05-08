@@ -18,9 +18,10 @@ use tauri::{generate_handler, Builder};
 
 fn main() {
     let app = Builder::default()
-        .manage(AssetPort::new())
-        .manage(RecordingsFolder::new())
+        .manage(AssetPort::init())
+        .manage(Settings::init())
         .invoke_handler(generate_handler![
+            get_marker_flags,
             get_asset_port,
             get_recordings_size,
             get_recordings_list,
@@ -33,5 +34,7 @@ fn main() {
         .setup(setup_handler)
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
+
+    // println!("{:?}", tauri::Manager::state::<Settings>(&app.handle()));
     app.run(run_handler);
 }
