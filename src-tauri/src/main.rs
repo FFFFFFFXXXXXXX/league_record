@@ -35,6 +35,5 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
 
-    // println!("{:?}", tauri::Manager::state::<Settings>(&app.handle()));
     app.run(run_handler);
 }
