@@ -204,8 +204,8 @@ fn get_recorder_settings(hwnd: HWND, filename: &str, cfg: &Settings) -> Recorder
 
     settings.set_output_resolution(cfg.output_resolution());
     settings.set_framerate(cfg.framerate());
-    settings.set_cqp(Cqp::new(cfg.recording_quality())); // for amd/nvidia/software
-    settings.set_icq(Icq::new(cfg.recording_quality())); // for intel quicksync
+    settings.set_cqp(Cqp::new(cfg.encoding_quality())); // for amd/nvidia/software
+    settings.set_icq(Icq::new(cfg.encoding_quality())); // for intel quicksync
     settings.record_audio(cfg.record_audio());
 
     let mut video_path = cfg.recordings_folder();

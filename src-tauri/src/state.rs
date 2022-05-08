@@ -64,8 +64,8 @@ pub struct Settings {
     recordings_folder: PathBuf,
     #[serde(default = "default_filename_format")]
     filename_format: String,
-    #[serde(default = "default_recording_quality")]
-    recording_quality: u32,
+    #[serde(default = "default_encoding_quality")]
+    encoding_quality: u32,
     #[serde(deserialize_with = "deserialize_resolution")]
     #[serde(default = "default_output_resolution")]
     output_resolution: Resolution,
@@ -103,7 +103,7 @@ impl Settings {
         Self {
             recordings_folder,
             filename_format: String::from("%Y-%m-%d_%H-%M.mp4"),
-            recording_quality: 20,
+            encoding_quality: 20,
             output_resolution: Resolution::_1080p,
             framerate: Framerate::new(30, 1),
             record_audio: true,
@@ -124,8 +124,8 @@ impl Settings {
     pub fn filename_format(&self) -> &str {
         &self.filename_format
     }
-    pub fn recording_quality(&self) -> u32 {
-        self.recording_quality
+    pub fn encoding_quality(&self) -> u32 {
+        self.encoding_quality
     }
     pub fn output_resolution(&self) -> Resolution {
         self.output_resolution
@@ -167,12 +167,12 @@ fn deserialize_resolution<'de, D: serde::Deserializer<'de>>(
 ) -> Result<Resolution, D::Error> {
     let res: String = Deserialize::deserialize(deserializer)?;
     Ok(match res.as_str() {
-        "480p" | "_480p" => Resolution::_480p,
-        "720p" | "_720p" => Resolution::_720p,
-        "1080p" | "_1080p" => Resolution::_1080p,
-        "1440p" | "_1440p" => Resolution::_1440p,
-        "2160p" | "_2160p" => Resolution::_2160p,
-        "4320p" | "_4320p" => Resolution::_4320p,
+        "480p" => Resolution::_480p,
+        "720p" => Resolution::_720p,
+        "1080p" => Resolution::_1080p,
+        "1440p" => Resolution::_1440p,
+        "2160p" => Resolution::_2160p,
+        "4320p" => Resolution::_4320p,
         _ => Resolution::_1080p,
     })
 }
@@ -197,7 +197,7 @@ fn default_filename_format() -> String {
     String::from("%Y-%m-%d_%H-%M.mp4")
 }
 
-fn default_recording_quality() -> u32 {
+fn default_encoding_quality() -> u32 {
     20
 }
 
