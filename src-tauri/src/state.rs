@@ -86,6 +86,7 @@ impl Settings {
                 exe_dir = path;
             }
         }
+        exe_dir.push("settings");
         exe_dir.push("settings.json");
         if let Ok(file) = File::open(&exe_dir) {
             let reader = BufReader::new(file);
