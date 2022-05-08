@@ -1,7 +1,7 @@
 {
   "package": {
     "productName": "LeagueRecord",
-    "version": "1.3.1"
+    "version": "1.3.0"
   },
   "build": {
     "distDir": "../src-web",
