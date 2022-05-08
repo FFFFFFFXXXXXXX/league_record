@@ -26,8 +26,7 @@
         "./libobs/data/",
         "./libobs/obs-plugins/",
         "./licenses/*",
-        "./example-settings.json",
-        "../readme.md"
+        "./example-settings.json"
       ],
       "externalBin": [
         "./libobs/obs-ffmpeg-mux",
