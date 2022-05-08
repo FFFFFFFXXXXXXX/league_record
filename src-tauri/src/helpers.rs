@@ -1,9 +1,7 @@
 use std::{cmp::Ordering, io, path::PathBuf};
 
 use reqwest::blocking::Client;
-use tauri::{AppHandle, Manager, Runtime};
-
-use crate::state::RecordingsFolder;
+use tauri::{AppHandle, Manager};
 
 pub fn create_client() -> Client {
     let pem = include_bytes!("../riotgames.pem");
@@ -15,10 +13,9 @@ pub fn create_client() -> Client {
     return client;
 }
 
-pub fn get_recordings<R: Runtime>(app_handle: &AppHandle<R>) -> Vec<PathBuf> {
+pub fn get_recordings(rec_folder: PathBuf) -> Vec<PathBuf> {
+    // get all mp4 files in ~/Videos/%folder-name%
     let mut recordings = Vec::<PathBuf>::new();
-    // get all mp4 files in ~/Videos/league_recordings
-    let rec_folder = app_handle.state::<RecordingsFolder>().get();
     let rd_dir = if let Ok(rd_dir) = rec_folder.read_dir() {
         rd_dir
     } else {

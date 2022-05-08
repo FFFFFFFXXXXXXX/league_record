@@ -8,7 +8,7 @@ use std::{
 use chrono::Local;
 use libobs_recorder::{
     rate_control::{Cqp, Icq},
-    Framerate, Recorder, RecorderSettings, Resolution, Size, Window,
+    Recorder, RecorderSettings, Size, Window,
 };
 use reqwest::{header::ACCEPT, StatusCode};
 use serde_json::{json, Value};
@@ -24,13 +24,12 @@ use windows::{
     },
 };
 
-use crate::{helpers::create_client, state::RecordingsFolder};
+use crate::{helpers::create_client, state::Settings};
 
 const WINDOW_TITLE: &str = "League of Legends (TM) Client";
 const WINDOW_CLASS: &str = "RiotWindowClass";
 const WINDOW_PROCESS: &str = "League of Legends.exe";
 
-const FILENAME_FORMAT: &str = "%Y-%m-%d_%H-%M.mp4";
 const SLEEP_SECS: u64 = 3;
 
 fn save_metadata<R: Runtime>(
@@ -39,8 +38,6 @@ fn save_metadata<R: Runtime>(
     mut json: Value,
     app_handle: &AppHandle<R>,
 ) {
-    println!("{:?}", data_delay);
-
     let mut result = Value::Null;
 
     let player_name = json["playerName"].clone();
@@ -105,7 +102,7 @@ fn save_metadata<R: Runtime>(
     json["dataDelay"] = Value::from(data_delay);
     json["result"] = result;
 
-    let mut filepath = app_handle.state::<RecordingsFolder>().get();
+    let mut filepath = app_handle.state::<Settings>().recordings_folder();
     filepath.push(PathBuf::from(filename));
     filepath.set_extension("json");
     if let Ok(file) = File::create(filepath) {
@@ -192,24 +189,31 @@ fn get_window_size(hwnd: HWND) -> Result<Size, ()> {
 }
 
 #[cfg(target_os = "windows")]
-fn get_recorder_settings(hwnd: HWND, video_path: &PathBuf) -> RecorderSettings {
+fn get_recorder_settings(hwnd: HWND, filename: &str, cfg: &Settings) -> RecorderSettings {
     let mut settings = RecorderSettings::new();
+
     settings.set_window(Window::new(
         WINDOW_TITLE,
         Some(WINDOW_CLASS.into()),
         Some(WINDOW_PROCESS.into()),
     ));
+
     if let Ok(size) = get_window_size(hwnd) {
         settings.set_input_size(size);
     }
-    settings.set_output_resolution(Resolution::_1080p);
-    settings.set_framerate(Framerate::new(30, 1));
-    settings.set_cqp(Cqp::new(20)); // for amd/nvidia/software
-    settings.set_icq(Icq::new(18)); // for intel quicksync
-    settings.record_audio(true);
+
+    settings.set_output_resolution(cfg.output_resolution());
+    settings.set_framerate(cfg.framerate());
+    settings.set_cqp(Cqp::new(cfg.recording_quality())); // for amd/nvidia/software
+    settings.set_icq(Icq::new(cfg.recording_quality())); // for intel quicksync
+    settings.record_audio(cfg.record_audio());
+
+    let mut video_path = cfg.recordings_folder();
+    video_path.push(PathBuf::from(&filename));
     if let Some(path) = video_path.to_str() {
         settings.set_output_path(path);
     }
+
     return settings;
 }
 
@@ -230,6 +234,8 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
     {
         // stuff to persist over loops
         // there is a scope around these so recorder gets dropped before Recorder::shutdown() is called
+        let settings = app_handle.state::<Settings>();
+
         let mut recorder = None;
         let mut recording = false;
         let mut game_data = Value::Null;
@@ -242,12 +248,10 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
             if let Ok(hwnd) = get_window() {
                 if !recording {
                     // create new unique filename from current time
-                    let new_filename = format!("{}", Local::now().format(FILENAME_FORMAT));
-                    let mut video_path = app_handle.state::<RecordingsFolder>().get();
-                    video_path.push(PathBuf::from(&new_filename));
-
+                    let new_filename =
+                        format!("{}", Local::now().format(settings.filename_format()));
                     // create and set recorder if successful
-                    let settings = get_recorder_settings(hwnd, &video_path);
+                    let settings = get_recorder_settings(hwnd, &new_filename, &settings);
                     recorder = if let Ok(mut rec) = Recorder::get(settings) {
                         recording = rec.start_recording();
                         if recording {
@@ -271,7 +275,6 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
                     if data_delay < 0.0 {
                         data_delay =
                             instant.elapsed().as_secs_f64() - data["timestamp"].as_f64().unwrap();
-                        println!("{:?}:{:?}", data_delay, data["timestamp"]);
                     }
                     game_data = data;
                 }

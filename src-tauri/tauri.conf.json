@@ -25,7 +25,8 @@
       "resources": [
         "./libobs/data/",
         "./libobs/obs-plugins/",
-        "./licenses/*"
+        "./licenses/*",
+        "./example-settings.json"
       ],
       "externalBin": [
         "./libobs/obs-ffmpeg-mux",

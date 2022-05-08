@@ -142,6 +142,9 @@ function setRecordingsSize() {
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+async function getMarkerSettings() {
+    return await invoke('get_marker_flags');
+}
 function createMarker(event, dataDelay) {
     let delay = dataDelay ? dataDelay : 0;
     return {
@@ -259,6 +262,16 @@ getRecordingsNames().then(rec => {
     sidebar.innerHTML = '';
     rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
     setVideo(rec[0]);
+});
+getMarkerSettings().then(settings => {
+    checkboxKill.checked = settings.kill;
+    checkboxDeath.checked = settings.death;
+    checkboxAssist.checked = settings.assist;
+    checkboxTurret.checked = settings.turret;
+    checkboxInhibitor.checked = settings.inhibitor;
+    checkboxDragon.checked = settings.dragon;
+    checkboxHerald.checked = settings.herald;
+    checkboxBaron.checked = settings.baron;
 });
 setRecordingsSize();
 // ------------------------------
