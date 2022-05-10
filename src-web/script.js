@@ -193,7 +193,8 @@ async function setVideo(name) {
         setTimeout(changeMarkers, 250);
     } else {
         player.markers.removeAll();
-        description.innerHTML = "No Data";
+        descriptionName.innerHTML = ''
+        descriptionContent.innerHTML = 'No Data';
     }
 }
 function deleteVideo(video) {
