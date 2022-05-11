@@ -29,6 +29,7 @@
         "./settings/*"
       ],
       "externalBin": [
+        "./libobs/obs-ffmpeg-mux",
         "./static-file-server"
       ],
       "copyright": "gpl-2.0",
