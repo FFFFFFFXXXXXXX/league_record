@@ -1,7 +1,7 @@
 {
   "package": {
     "productName": "LeagueRecord",
-    "version": "1.3.2"
+    "version": "1.3.3"
   },
   "build": {
     "distDir": "../src-web",
@@ -29,7 +29,6 @@
         "./settings/*"
       ],
       "externalBin": [
-        "./libobs/obs-ffmpeg-mux",
         "./static-file-server"
       ],
       "copyright": "gpl-2.0",
