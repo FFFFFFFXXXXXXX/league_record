@@ -178,7 +178,7 @@ async function setVideo(name) {
             case 'win':
                 result = '<span class="win">Victory</span><br>';
                 break;
-            case 'loss':
+            case 'lose':
                 result = '<span class="loss">Defeat</span><br>';
                 break;
             default:
