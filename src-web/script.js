@@ -174,11 +174,11 @@ async function setVideo(name) {
         descriptionName.innerHTML = descName;
 
         let result = '';
-        switch (md['result']?.toLowerCase()) {
-            case 'win':
+        switch (md['result']) {
+            case 'Win':
                 result = '<span class="win">Victory</span><br>';
                 break;
-            case 'lose':
+            case 'Lose':
                 result = '<span class="loss">Defeat</span><br>';
                 break;
             default:
