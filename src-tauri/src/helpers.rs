@@ -40,9 +40,23 @@ pub fn compare_time(a: &PathBuf, b: &PathBuf) -> io::Result<Ordering> {
     Ok(a_time.cmp(&b_time).reverse())
 }
 
-pub fn show_window(app_handle: &AppHandle) {
-    if let Some(window) = app_handle.get_window("main") {
-        let _ = window.show();
-        let _ = window.set_focus();
+pub fn create_window(app_handle: &AppHandle) {
+    let windows = app_handle.windows();
+    if let Some(main) = windows.get("main") {
+        let _ = main.show();
+    } else {
+        let builder = tauri::Window::builder(
+            app_handle,
+            "main",
+            tauri::WindowUrl::App(PathBuf::from("/")),
+        );
+        builder
+            .title("LeagueRecord")
+            .inner_size(1298.0, 702.0)
+            .center()
+            .visible(false)
+            .theme(None)
+            .build()
+            .expect("error creating window");
     }
 }

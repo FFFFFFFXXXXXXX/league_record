@@ -1,6 +1,5 @@
 // CONSTANTS AND GLOBAL VARIABLES
 const invoke = __TAURI__.invoke;
-const join = __TAURI__.path.join;
 const { emit, listen } = __TAURI__.event;
 const open = __TAURI__.shell.open;
 const wmng = new __TAURI__.window.WindowManager();
@@ -21,7 +20,6 @@ let checkboxDragon = document.getElementById('dragon');
 let checkboxHerald = document.getElementById('herald');
 let checkboxBaron = document.getElementById('baron');
 
-let init = true;
 let fullscreen = false;
 let currentEvents = [];
 let currentDataDelay = 0;
@@ -127,7 +125,7 @@ listen('new_recording', event => {
 // FUNCTIONS --------------------
 async function getVideoPath(video) {
     let port = await invoke('get_asset_port');
-    return await join(`http://localhost:${port}/`, video);
+    return `http://localhost:${port}/${video}`;
 }
 function openRecordingsFolder() {
     invoke('get_recordings_folder').then(folder => open(folder));
@@ -135,9 +133,9 @@ function openRecordingsFolder() {
 function getRecordingsNames() {
     return invoke('get_recordings_list');
 }
-function setRecordingsSize() {
-    invoke('get_recordings_size')
-        .then(size => recordingsSize.innerHTML = `Size: ${size.toString().substring(0, 4)} GB`);
+async function setRecordingsSize() {
+    let size = await invoke('get_recordings_size');
+    recordingsSize.innerHTML = `Size: ${size.toString().substring(0, 4)} GB`;
 }
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -254,17 +252,14 @@ function changeMarkers() {
     });
     player.markers.add(arr);
 }
-// ------------------------------
 
-
-// MAIN -------------------------
-// load the inital content
-getRecordingsNames().then(rec => {
+async function init() {
+    let rec = await getRecordingsNames();
     sidebar.innerHTML = '';
     rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
     setVideo(rec[0]);
-});
-getMarkerSettings().then(settings => {
+
+    let settings = await getMarkerSettings();
     checkboxKill.checked = settings.kill;
     checkboxDeath.checked = settings.death;
     checkboxAssist.checked = settings.assist;
@@ -273,6 +268,16 @@ getMarkerSettings().then(settings => {
     checkboxDragon.checked = settings.dragon;
     checkboxHerald.checked = settings.herald;
     checkboxBaron.checked = settings.baron;
-});
-setRecordingsSize();
+
+    await setRecordingsSize();
+
+    await sleep(150); // delay so the initial blank screen when creating a window doesn't show
+    wmng.show();
+}
+// ------------------------------
+
+
+// MAIN -------------------------
+// load the inital content
+init();
 // ------------------------------
