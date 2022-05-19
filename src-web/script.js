@@ -46,9 +46,6 @@ player.markers({
     'markers': []
 });
 
-// pause video on closing window to tray
-listen('close_pause', () => player.pause());
-
 // listen to fullscreenchange and set window fullscreen
 addEventListener('fullscreenchange', e => {
     fullscreen = !fullscreen;
