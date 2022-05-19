@@ -56,15 +56,13 @@
       "active": false
     },
     "allowlist": {
-      "path": {
-        "all": true
-      },
       "shell": {
         "open": ""
       },
       "window": {
         "setTitle": true,
-        "setFullscreen": true
+        "setFullscreen": true,
+        "show": true
       },
       "dialog": {
         "confirm": true

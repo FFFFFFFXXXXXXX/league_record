@@ -4,10 +4,10 @@ use libobs_recorder::Recorder;
 use tauri::{
     api::{path::video_dir, process::Command},
     App, AppHandle, CustomMenuItem, Manager, RunEvent, SystemTray, SystemTrayEvent, SystemTrayMenu,
-    SystemTrayMenuItem, WindowEvent, Wry,
+    SystemTrayMenuItem, Wry,
 };
 
-use crate::{helpers::show_window, recorder, state::Settings, AssetPort};
+use crate::{helpers::create_window, recorder, state::Settings, AssetPort};
 
 pub fn create_system_tray() -> SystemTray {
     let tray_menu = SystemTrayMenu::new()
@@ -21,7 +21,7 @@ pub fn create_system_tray() -> SystemTray {
 pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent) {
     match event {
         SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-            "open" => show_window(app_handle),
+            "open" => create_window(app_handle),
             "quit" => {
                 app_handle.trigger_global("shutdown", Some("".into()));
                 // normally recorder should call app_handle.exit() after shutting down
@@ -35,7 +35,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
             position: _,
             size: _,
             ..
-        } => show_window(app_handle),
+        } => create_window(app_handle),
         _ => {}
     }
 }
@@ -78,19 +78,8 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_handler(app_handle: &AppHandle, event: RunEvent) {
+pub fn run_handler(_app_handle: &AppHandle, event: RunEvent) {
     match event {
-        RunEvent::WindowEvent {
-            label,
-            event: WindowEvent::CloseRequested { api, .. },
-            ..
-        } => {
-            api.prevent_close();
-            if let Some(window) = app_handle.get_window(&label) {
-                let _ = window.hide();
-                let _ = window.emit::<_>("close_pause", ());
-            }
-        }
         RunEvent::ExitRequested { api, .. } => {
             api.prevent_exit();
         }
