@@ -50,16 +50,14 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     // launch static-file-server as a replacement for the broken asset protocol
     let port = app_handle.state::<AssetPort>().get();
     let folder = app_handle.state::<Settings>().recordings_folder_as_string();
-    let (_, child) = Command::new("static-file-server")
+    let (_, child) = Command::new_sidecar("static-file-server")
+        .expect("missing static-file-server")
         .envs(HashMap::from([
             ("PORT".into(), port.to_string()),
             ("FOLDER".into(), folder.unwrap()),
         ]))
         .spawn()
-        .unwrap();
-    app_handle.once_global("shutdown", move |_| {
-        let _ = child.kill();
-    });
+        .expect("error spawing static-file-server");
 
     std::thread::spawn(move || {
         // let libobs_data_path = Some(String::from("./data/libobs/"));
@@ -71,7 +69,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
         let plugin_data_path = Some(String::from("./libobs/data/obs-plugins/%module%/"));
 
         if Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path).is_ok() {
-            recorder::start_polling(app_handle);
+            recorder::start_polling(app_handle, child);
         }
     });
 

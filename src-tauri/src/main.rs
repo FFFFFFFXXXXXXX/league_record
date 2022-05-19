@@ -3,8 +3,6 @@
     windows_subsystem = "windows"
 )]
 
-extern crate libobs_recorder;
-
 mod commands;
 mod handlers;
 mod helpers;
