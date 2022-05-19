@@ -82,7 +82,8 @@ hr {
     border-bottom: 1px solid lightgray;
 }
 
-#sidebar-content li:hover {
+#sidebar-content li:hover,
+#sidebar-content li.active {
     color: white;
     cursor: pointer;
     background-color: #445fa5;

@@ -153,6 +153,9 @@ function createMarker(event, dataDelay) {
     };
 }
 async function setVideo(name) {
+    document.querySelector('.active')?.classList.remove('active');
+    document.getElementById(name)?.classList.add('active');
+
     if (!name) {
         wmng.setTitle('League Record');
         return;
@@ -203,7 +206,7 @@ function deleteVideo(video) {
                     if (b) {
                         setRecordingsSize();
                         document.getElementById(video).remove();
-                        let newVideo = document.querySelector('#sidebar-content li')?.id;
+                        let newVideo = sidebar.querySelector('li')?.id;
                         setVideo(newVideo);
                     } else {
                         window.alert('Error deleting video!');
@@ -236,7 +239,12 @@ function changeMarkers() {
             case 'Inhibitor':
                 ok = checkboxInhibitor.checked;
                 break;
-            case 'Dragon':
+            case 'Fire Dragon':
+            case 'Water Dragon':
+            case 'Earth Dragon':
+            case 'Air Dragon':
+            case 'Hextech Dragon':
+            case 'Elder Dragon':
                 ok = checkboxDragon.checked;
                 break;
             case 'Herald':
