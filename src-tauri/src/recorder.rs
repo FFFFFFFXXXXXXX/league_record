@@ -12,7 +12,7 @@ use libobs_recorder::{
 };
 use reqwest::{header::ACCEPT, StatusCode};
 use serde_json::{json, Value};
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{api::process::CommandChild, AppHandle, Manager, Runtime};
 
 #[cfg(target_os = "windows")]
 use windows::{
@@ -217,7 +217,7 @@ fn get_recorder_settings(hwnd: HWND, filename: &str, cfg: &Settings) -> Recorder
     return settings;
 }
 
-pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
+pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
     #[cfg(target_os = "windows")]
     unsafe {
         // Get correct window size from GetClientRect
@@ -316,6 +316,7 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>) {
         }
     }
 
+    let _ = sfs.kill();
     Recorder::shutdown();
     app_handle.exit(0);
 }
