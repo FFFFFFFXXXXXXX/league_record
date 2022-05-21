@@ -36,15 +36,16 @@ To adjust the settings create/change the settings.json file in the installation 
 
 ## Performance
 
+On a system with a Ryzen 3600 CPU and RX5700 GPU these are the performance numbers measured with Windows Taskmanager.
+
 |                             | CPU | RAM    | GPU   |
 | --------------------------- |:---:|:------:|:-----:|
 | idle                        | ~0% | ~5MB   | 0%    |
 | background recording        | ~2% | ~140MB | ~2%   |
-| play recording     |        | ~3% | ~130MB | ~1%   |
-| recording and video playing | ~5% | ~280MB | ~3%   | 
+| watch recording             | ~3% | ~130MB | ~1%   |
+|recording and watch recording| ~5% | ~280MB | ~3%   |
 
-When nothing is happening - no league game is being recorded and the program is minimized to the taskbar - the app is idling and takes up minimal resources.
-During recording a subprocess "lol_rec" is started which records the game. This subprocess takes up most of the resources.
+This is just a rough estimate so you can get a sense for how much resources LeagueRecord uses.
 
 ## Release / Build
 

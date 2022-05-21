@@ -6,8 +6,8 @@
   "build": {
     "distDir": "../src-web",
     "devPath": "../src-web",
-    "beforeDevCommand": "powershell ./beforeBuild.ps1 %TAURI_PLATFORM%",
-    "beforeBuildCommand": "powershell ./beforeBuild.ps1 %TAURI_PLATFORM%",
+    "beforeDevCommand": "powershell ./beforeBuild.ps1 %TAURI_PLATFORM% debug",
+    "beforeBuildCommand": "powershell ./beforeBuild.ps1 %TAURI_PLATFORM% release",
     "withGlobalTauri": true
   },
   "tauri": {
