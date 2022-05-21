@@ -34,12 +34,24 @@ To adjust the settings create/change the settings.json file in the installation 
 |   recordAudio    |                                          true \| false                                          | Determines if audio gets recorded.                                                                                                                                                                                                                                                         |
 |   markerFlags    |{ 'kill', 'death', 'assist', 'turret', 'inhibitor', 'dragon', 'herald', 'baron' } : true \| false| Choose which events are shown by default in the timeline when playing a recording.                                                                                                                                                                                                         |
 
+## Performance
+
+|                             | CPU | RAM    | GPU   |
+| --------------------------- |:---:|:------:|:-----:|
+| idle                        | ~0% | ~5MB   | 0%    |
+| background recording        | ~2% | ~140MB | ~2%   |
+| play recording     |        | ~3% | ~130MB | ~1%   |
+| recording and video playing | ~5% | ~280MB | ~3%   | 
+
+When nothing is happening - no league game is being recorded and the program is minimized to the taskbar - the app is idling and takes up minimal resources.
+During recording a subprocess "lol_rec" is started which records the game. This subprocess takes up most of the resources.
+
 ## Release / Build
 
 **Currently [static-file-server](https://github.com/halverneus/static-file-server) is used as a replacement for the broken tauri asset protocol. This will be removed when the asset protocol is fixed**
 
 There is a release for Windows-x64, but you can build the project on your own.
-This project relies on libobs (the library Obs uses in the backrgound) to record the game.
+This project relies on libobs (27.2.4) to record the game.
 For build prerequisites look at [libobs-recorder](https://github.com/FFFFFFFXXXXXXX/libobs-recorder)
 Build with `cargo tauri build`.
 Package up with `tar -cvzf LeagueRecord.tar.gz -C src-tauri libobs/data libobs/obs-plugins -C libobs *.dll *.exe -C ../target/release LeagueRecord*` (assuming that you have all your obs .dll's and the data/plugin folders in src-tauri/libobs/)
