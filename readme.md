@@ -43,9 +43,9 @@ On a system with a Ryzen 3600 CPU and RX5700 GPU these are the performance numbe
 |                             | CPU | RAM    | GPU   |
 | --------------------------- |:---:|:------:|:-----:|
 | idle                        | ~0% | ~5MB   | 0%    |
-| background recording        | ~2% | ~140MB | ~2%   |
+| record                      | ~2% | ~140MB | ~2%   |
 | watch recording             | ~3% | ~130MB | ~1%   |
-|recording and watch recording| ~5% | ~280MB | ~3%   |
+| record and watch recording  | ~5% | ~280MB | ~3%   |
 
 This is just a rough estimate so you can get a sense for how much resources LeagueRecord uses.
 
