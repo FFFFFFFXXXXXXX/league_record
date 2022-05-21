@@ -6,8 +6,8 @@
   "build": {
     "distDir": "../src-web",
     "devPath": "../src-web",
-    "beforeDevCommand": "",
-    "beforeBuildCommand": "",
+    "beforeDevCommand": "powershell ./beforeBuild.ps1 %TAURI_PLATFORM%",
+    "beforeBuildCommand": "powershell ./beforeBuild.ps1 %TAURI_PLATFORM%",
     "withGlobalTauri": true
   },
   "tauri": {
@@ -30,7 +30,8 @@
       ],
       "externalBin": [
         "./libobs/obs-ffmpeg-mux",
-        "./static-file-server"
+        "./static-file-server",
+        "./target/release/lol_rec"
       ],
       "copyright": "gpl-2.0",
       "category": "Utility",

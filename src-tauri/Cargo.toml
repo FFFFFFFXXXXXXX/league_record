@@ -9,17 +9,17 @@ default-run = "app"
 edition = "2021"
 rust-version = "1.57"
 
+[workspace]
+members = [ "lol_rec" ]
+
 [build-dependencies]
 tauri-build = { version = "1.0.0-rc.7", features = [] }
 
 [dependencies]
-libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder" }
 tauri = { version = "1.0.0-rc.8", features = ["dialog-confirm", "process-command-api", "shell-open", "system-tray", "window-set-fullscreen", "window-set-title", "window-show"] }
-reqwest = { version = "0.11.10", features = ["json", "blocking"] }
-port_check = "0.1.5"
-chrono = "0.4.19"
 serde_json = "1.0"
 serde = "1.0.137"
+port_check = "0.1.5"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.34.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }
@@ -35,4 +35,3 @@ default = [ "custom-protocol" ]
 # this feature is used used for production builds where `devPath` points to the filesystem
 # DO NOT remove this
 custom-protocol = [ "tauri/custom-protocol" ]
-log = ["libobs-recorder/debug"]

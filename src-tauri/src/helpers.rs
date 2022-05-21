@@ -1,17 +1,6 @@
 use std::{cmp::Ordering, io, path::PathBuf};
 
-use reqwest::blocking::Client;
 use tauri::{AppHandle, Manager};
-
-pub fn create_client() -> Client {
-    let pem = include_bytes!("../riotgames.pem");
-    let cert = reqwest::Certificate::from_pem(pem).unwrap();
-    let client = Client::builder()
-        .add_root_certificate(cert)
-        .build()
-        .unwrap();
-    return client;
-}
 
 pub fn get_recordings(rec_folder: PathBuf) -> Vec<PathBuf> {
     // get all mp4 files in ~/Videos/%folder-name%

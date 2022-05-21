@@ -4,8 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use libobs_recorder::{Framerate, Resolution};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use serde_json::{json, Value};
 use tauri::api::path::video_dir;
@@ -13,7 +12,8 @@ use tauri::api::path::video_dir;
 pub struct AssetPort(u16);
 impl AssetPort {
     pub fn init() -> Self {
-        let port = port_check::free_local_port_in_range(1024, 65535).unwrap();
+        let port =
+            port_check::free_local_port_in_range(1024, 65535).expect("no free port available");
         AssetPort(port)
     }
     pub fn get(&self) -> u16 {
@@ -21,7 +21,7 @@ impl AssetPort {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct MarkerFlags {
     #[serde(default = "default_true")]
     kill: bool,
@@ -56,25 +56,27 @@ impl Default for MarkerFlags {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
-    #[serde(default = "recordings_folder")]
+    #[serde(default = "default_recordings_folder")]
     #[serde(deserialize_with = "deserialize_recordings_folder")]
     recordings_folder: PathBuf,
     #[serde(default = "default_filename_format")]
     filename_format: String,
     #[serde(default = "default_encoding_quality")]
     encoding_quality: u32,
-    #[serde(deserialize_with = "deserialize_resolution")]
     #[serde(default = "default_output_resolution")]
-    output_resolution: Resolution,
-    #[serde(deserialize_with = "deserialize_framerate")]
-    #[serde(default = "default_output_framerate")]
-    framerate: Framerate,
+    output_resolution: String,
+    #[serde(default = "default_framerate")]
+    framerate: (u32, u32),
     #[serde(default = "default_true")]
     record_audio: bool,
+    #[serde(skip_serializing)]
     marker_flags: MarkerFlags,
+    // for passing to lol_rec
+    #[serde(skip_deserializing)]
+    window_size: (u32, u32),
 }
 
 impl Settings {
@@ -95,20 +97,15 @@ impl Settings {
             }
         }
 
-        // return defaults if parsing error
-        let mut recordings_folder = video_dir().unwrap();
-        recordings_folder.push(PathBuf::from("league_recordings"));
-        if !recordings_folder.exists() {
-            let _ = create_dir_all(recordings_folder.as_path());
-        }
         Self {
-            recordings_folder,
-            filename_format: String::from("%Y-%m-%d_%H-%M.mp4"),
-            encoding_quality: 20,
-            output_resolution: Resolution::_1080p,
-            framerate: Framerate::new(30, 1),
+            recordings_folder: default_recordings_folder(),
+            filename_format: default_filename_format(),
+            encoding_quality: default_encoding_quality(),
+            output_resolution: default_output_resolution(),
+            framerate: default_framerate(),
             record_audio: true,
             marker_flags: MarkerFlags::default(),
+            window_size: (0, 0),
         }
     }
 
@@ -122,21 +119,6 @@ impl Settings {
             .into_string()
             .map_err(|_| ())
     }
-    pub fn filename_format(&self) -> &str {
-        &self.filename_format
-    }
-    pub fn encoding_quality(&self) -> u32 {
-        self.encoding_quality
-    }
-    pub fn output_resolution(&self) -> Resolution {
-        self.output_resolution
-    }
-    pub fn framerate(&self) -> Framerate {
-        self.framerate
-    }
-    pub fn record_audio(&self) -> bool {
-        self.record_audio
-    }
     pub fn marker_flags(&self) -> Value {
         json!({
             "kill": self.marker_flags.kill,
@@ -149,67 +131,49 @@ impl Settings {
             "baron": self.marker_flags.baron
         })
     }
+
+    pub fn to_lol_rec_cfg(&mut self, window_size: (u32, u32)) -> Result<String, ()> {
+        self.window_size = window_size;
+        let mut cfg = serde_json::to_string(&self).map_err(|_| ())?;
+        cfg.push('\n'); // add newline as something like a termination sequence
+        Ok(cfg)
+    }
 }
 
-// DESERIALIZERS //
+// (DE-)SERIALIZERS //
 fn deserialize_recordings_folder<'de, D: serde::Deserializer<'de>>(
     deserializer: D,
 ) -> Result<PathBuf, D::Error> {
     let folder_name: String = Deserialize::deserialize(deserializer)?;
-    let mut recordings_folder = video_dir().unwrap();
+    let mut recordings_folder = video_dir().expect("video_dir doesn't exist");
     recordings_folder.push(PathBuf::from(folder_name));
     if !recordings_folder.exists() {
         let _ = create_dir_all(recordings_folder.as_path());
     }
     Ok(recordings_folder)
 }
-fn deserialize_resolution<'de, D: serde::Deserializer<'de>>(
-    deserializer: D,
-) -> Result<Resolution, D::Error> {
-    let res: String = Deserialize::deserialize(deserializer)?;
-    Ok(match res.as_str() {
-        "480p" => Resolution::_480p,
-        "720p" => Resolution::_720p,
-        "1080p" => Resolution::_1080p,
-        "1440p" => Resolution::_1440p,
-        "2160p" => Resolution::_2160p,
-        "4320p" => Resolution::_4320p,
-        _ => Resolution::_1080p,
-    })
-}
-fn deserialize_framerate<'de, D: serde::Deserializer<'de>>(
-    deserializer: D,
-) -> Result<Framerate, D::Error> {
-    let fr: (u32, u32) = Deserialize::deserialize(deserializer)?;
-    Ok(Framerate::new(fr.0, fr.1))
-}
 
 // DEFAULTS //
-fn recordings_folder() -> PathBuf {
-    let mut recordings_folder = video_dir().unwrap();
+fn default_recordings_folder() -> PathBuf {
+    let mut recordings_folder = video_dir().expect("video_dir doesn't exist");
     recordings_folder.push(PathBuf::from("league_recordings"));
     if !recordings_folder.exists() {
         let _ = create_dir_all(recordings_folder.as_path());
     }
     return recordings_folder;
 }
-
 fn default_filename_format() -> String {
     String::from("%Y-%m-%d_%H-%M.mp4")
 }
-
 fn default_encoding_quality() -> u32 {
     20
 }
-
-fn default_output_resolution() -> Resolution {
-    Resolution::_1080p
+fn default_output_resolution() -> String {
+    String::from("1080p")
 }
-
-fn default_output_framerate() -> Framerate {
-    Framerate::new(30, 1)
+fn default_framerate() -> (u32, u32) {
+    (30, 1)
 }
-
 fn default_true() -> bool {
     true
 }

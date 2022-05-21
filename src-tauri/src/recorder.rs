@@ -1,18 +1,12 @@
 use std::{
-    fs::File,
-    path::PathBuf,
     sync::mpsc::{channel, TryRecvError},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
-use chrono::Local;
-use libobs_recorder::{
-    rate_control::{Cqp, Icq},
-    Recorder, RecorderSettings, Size, Window,
+use tauri::{
+    api::process::{Command, CommandChild, CommandEvent},
+    AppHandle, Manager, Runtime,
 };
-use reqwest::{header::ACCEPT, StatusCode};
-use serde_json::{json, Value};
-use tauri::{api::process::CommandChild, AppHandle, Manager, Runtime};
 
 #[cfg(target_os = "windows")]
 use windows::{
@@ -24,91 +18,14 @@ use windows::{
     },
 };
 
-use crate::{helpers::create_client, state::Settings};
+use crate::state::Settings;
 
 const WINDOW_TITLE: &str = "League of Legends (TM) Client";
 const WINDOW_CLASS: &str = "RiotWindowClass";
-const WINDOW_PROCESS: &str = "League of Legends.exe";
 
 const SLEEP_SECS: u64 = 3;
 
-fn save_metadata<R: Runtime>(
-    filename: String,
-    data_delay: f64,
-    mut json: Value,
-    app_handle: &AppHandle<R>,
-) {
-    let mut result = Value::Null;
-
-    let player_name = json["playerName"].clone();
-    let events = json.get_mut("events").unwrap().as_array().unwrap();
-    let new_events = events
-        .iter()
-        .filter_map(|event| match event["EventName"].as_str()? {
-            "DragonKill" => {
-                let mut dragon = String::from(event["DragonType"].as_str().unwrap());
-                dragon.push_str(" Dragon");
-                Some(json!({
-                    "eventName": dragon,
-                    "eventTime": event["EventTime"]
-                }))
-            }
-            "HeraldKill" => Some(json!({
-                "eventName": "Herald",
-                "eventTime": event["EventTime"]
-            })),
-            "BaronKill" => Some(json!({
-                "eventName": "Baron",
-                "eventTime": event["EventTime"]
-            })),
-            "ChampionKill" => {
-                let assisters = event["Assisters"].as_array()?;
-                if event["VictimName"] == player_name {
-                    Some(json!({
-                        "eventName": "Death",
-                        "eventTime": event["EventTime"]
-                    }))
-                } else if event["KillerName"] == player_name {
-                    Some(json!({
-                        "eventName": "Kill",
-                        "eventTime": event["EventTime"]
-                    }))
-                } else if assisters.contains(&player_name) {
-                    Some(json!({
-                        "eventName": "Assist",
-                        "eventTime": event["EventTime"]
-                    }))
-                } else {
-                    None
-                }
-            }
-            "TurretKilled" => Some(json!({
-                "eventName": "Turret",
-                "eventTime": event["EventTime"]
-            })),
-            "InhibKilled" => Some(json!({
-                "eventName": "Inhibitor",
-                "eventTime": event["EventTime"]
-            })),
-            "GameEnd" => {
-                result = event["Result"].clone();
-                None
-            }
-            _ => None,
-        });
-
-    // replace old events with new events
-    json["events"] = Value::Array(new_events.collect());
-    json["dataDelay"] = Value::from(data_delay);
-    json["result"] = result;
-
-    let mut filepath = app_handle.state::<Settings>().recordings_folder();
-    filepath.push(PathBuf::from(filename));
-    filepath.set_extension("json");
-    if let Ok(file) = File::create(filepath) {
-        let _ = serde_json::to_writer(file, &json);
-    }
-}
+const DEBUG: bool = false;
 
 fn set_recording_tray_item<R: Runtime>(app_handle: &AppHandle<R>, recording: bool) {
     let item = app_handle.tray_handle().get_item("rec");
@@ -116,48 +33,6 @@ fn set_recording_tray_item<R: Runtime>(app_handle: &AppHandle<R>, recording: boo
     let _ = item.set_enabled(true);
     let _ = item.set_selected(recording);
     let _ = item.set_enabled(false);
-}
-
-fn get_league_data() -> Option<Value> {
-    let client = create_client();
-
-    let result = client
-        .get("https://127.0.0.1:2999/liveclientdata/allgamedata")
-        .header(ACCEPT, "application/json")
-        .timeout(Duration::from_secs(1))
-        .send()
-        .ok()?;
-
-    let data = if result.status() == StatusCode::OK {
-        result.json::<Value>().ok()?
-    } else {
-        return None;
-    };
-
-    if data["events"]["Events"][0]["EventName"] != "GameStart" {
-        return None;
-    }
-
-    let mut player_info: Option<&Value> = None;
-    let player_array = data["allPlayers"].as_array()?;
-    for player in player_array {
-        if player["summonerName"] == data["activePlayer"]["summonerName"] {
-            player_info = Some(player);
-            break;
-        }
-    }
-    if let Some(info) = player_info {
-        Some(json!({
-            "playerName": data["activePlayer"]["summonerName"],
-            "championName": info["championName"],
-            "stats": info["scores"],
-            "events": data["events"]["Events"],
-            "gameMode": data["gameData"]["gameMode"],
-            "timestamp": data["gameData"]["gameTime"]
-        }))
-    } else {
-        None
-    }
 }
 
 #[cfg(target_os = "windows")]
@@ -178,43 +53,14 @@ fn get_window() -> Result<HWND, ()> {
 }
 
 #[cfg(target_os = "windows")]
-fn get_window_size(hwnd: HWND) -> Result<Size, ()> {
+fn get_window_size(hwnd: HWND) -> Result<(u32, u32), ()> {
     let mut rect = RECT::default();
     let ok = unsafe { GetClientRect(hwnd, &mut rect as _).as_bool() };
     if ok && rect.right > 0 && rect.bottom > 0 {
-        Ok(Size::new(rect.right as u32, rect.bottom as u32))
+        Ok((rect.right as u32, rect.bottom as u32))
     } else {
         Err(())
     }
-}
-
-#[cfg(target_os = "windows")]
-fn get_recorder_settings(hwnd: HWND, filename: &str, cfg: &Settings) -> RecorderSettings {
-    let mut settings = RecorderSettings::new();
-
-    settings.set_window(Window::new(
-        WINDOW_TITLE,
-        Some(WINDOW_CLASS.into()),
-        Some(WINDOW_PROCESS.into()),
-    ));
-
-    if let Ok(size) = get_window_size(hwnd) {
-        settings.set_input_size(size);
-    }
-
-    settings.set_output_resolution(cfg.output_resolution());
-    settings.set_framerate(cfg.framerate());
-    settings.set_cqp(Cqp::new(cfg.encoding_quality())); // for amd/nvidia/software
-    settings.set_icq(Icq::new(cfg.encoding_quality())); // for intel quicksync
-    settings.record_audio(cfg.record_audio());
-
-    let mut video_path = cfg.recordings_folder();
-    video_path.push(PathBuf::from(&filename));
-    if let Some(path) = video_path.to_str() {
-        settings.set_output_path(path);
-    }
-
-    return settings;
 }
 
 pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
@@ -224,99 +70,90 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
         SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     };
 
-    let (sender, receiver) = channel::<_>();
-
     // send stop to channel on "shutdown" event
+    let (sender, receiver) = channel::<_>();
     app_handle.once_global("shutdown", move |_| {
         let _ = sender.send(());
     });
 
-    {
-        // stuff to persist over loops
-        // there is a scope around these so recorder gets dropped before Recorder::shutdown() is called
-        let settings = app_handle.state::<Settings>();
+    // get owned copy of settings so we can change window_size
+    let mut settings = app_handle.state::<Settings>().inner().to_owned();
 
-        let mut recorder = None;
-        let mut recording = false;
-        let mut game_data = Value::Null;
-        let mut instant = Instant::now();
-        let mut data_delay = -1.0;
-        let mut filename = String::new();
+    let mut recording = false;
+    let mut lol_rec = None;
+    loop {
+        // if window exists && we get data from the API && we are not recording => start recording
+        if let Ok(hwnd) = get_window() {
+            if !recording {
+                let (mut rcv, mut child) = Command::new_sidecar("lol_rec")
+                    .expect("missing lol_rec")
+                    .spawn()
+                    .expect("error spawing lol_rec");
 
-        loop {
-            // if window exists && we get data from the API && we are not recording => start recording
-            if let Ok(hwnd) = get_window() {
-                if !recording {
-                    // create new unique filename from current time
-                    let new_filename =
-                        format!("{}", Local::now().format(settings.filename_format()));
-                    // create and set recorder if successful
-                    let settings = get_recorder_settings(hwnd, &new_filename, &settings);
-                    recorder = if let Ok(mut rec) = Recorder::get(settings) {
-                        recording = rec.start_recording();
-                        if recording {
-                            instant = Instant::now();
-                            set_recording_tray_item(&app_handle, true);
-                            filename = new_filename;
-                            Some(rec)
-                        } else {
-                            None
+                // log received messages
+                if DEBUG {
+                    std::thread::spawn(move || {
+                        while let Some(line) = rcv.blocking_recv() {
+                            println!(
+                                "{}",
+                                match line {
+                                    CommandEvent::Stderr(line) => line,
+                                    CommandEvent::Stdout(line) => line,
+                                    CommandEvent::Error(line) => line,
+                                    CommandEvent::Terminated(line) =>
+                                        line.code.unwrap_or_default().to_string(),
+                                    _ => String::from("unknown event"),
+                                }
+                            )
                         }
-                    } else {
-                        None
-                    }
+                    });
                 }
 
-                // update data if recording
-                let data = get_league_data().unwrap_or_default();
-                if recording && !data.is_null() {
-                    // store the delay between event time and recording time
-                    // but only if recording delay is unset (<0.0)
-                    if data_delay < 0.0 {
-                        data_delay =
-                            instant.elapsed().as_secs_f64() - data["timestamp"].as_f64().unwrap();
-                    }
-                    game_data = data;
+                // write serialized config to child
+                // let mut json = serde_json::to_value(settings).expect("error serializing settings");
+                let size = get_window_size(hwnd).unwrap_or_default();
+                if let Ok(cfg) = settings.to_lol_rec_cfg(size) {
+                    let _ = child.write(cfg.as_bytes());
+                    lol_rec = Some(child);
+
+                    set_recording_tray_item(&app_handle, true);
+                    recording = true;
                 }
+            }
 
-            // if we are recording and we the window doesn't exist anymore => stop recording
-            } else if recording {
-                if let Some(mut rec) = recorder {
-                    recording = rec.stop_recording();
-                };
-                set_recording_tray_item(&app_handle, false);
-                // drop recorder
-                recorder = None;
-
-                // tell frontend to update video list
-                let _ = app_handle.emit_all("new_recording", &filename);
-
-                // pass output_path and league data to save_metadata() and reset their values
-                if !game_data.is_null() {
-                    save_metadata(filename, data_delay, game_data, &app_handle);
+        // if we are recording and we the window doesn't exist anymore => stop recording
+        } else if recording {
+            if let Some(mut lol_rec) = lol_rec {
+                if lol_rec.write("stop".as_bytes()).is_err() {
+                    let _ = lol_rec.kill();
                 }
-                game_data = Value::Null;
-                data_delay = -1.0;
-                filename = String::new();
             }
+            lol_rec = None;
 
-            // if value received or disconnected => break
-            // checks for sender disconnect
-            match receiver.try_recv() {
-                Err(TryRecvError::Empty) => {}
-                _ => break,
-            }
-            // delay SLEEP_MS milliseconds waiting for stop event
-            // break if stop event received
-            // recv_timeout can't differentiate between timeout and disconnect
-            match receiver.recv_timeout(Duration::from_secs(SLEEP_SECS)) {
-                Ok(_) => break,
-                _ => {}
-            }
+            set_recording_tray_item(&app_handle, false);
+            let _ = app_handle.emit_all("new_recording", ());
+            recording = false;
+        }
+
+        // if value received or disconnected => break
+        // checks for sender disconnect
+        match receiver.try_recv() {
+            Err(TryRecvError::Empty) => {}
+            _ => break,
+        }
+        // delay SLEEP_MS milliseconds waiting for stop event
+        // break if stop event received
+        // recv_timeout can't differentiate between timeout and disconnect
+        match receiver.recv_timeout(Duration::from_secs(SLEEP_SECS)) {
+            Ok(_) => break,
+            _ => {}
         }
     }
 
+    if let Some(lol_rec) = lol_rec {
+        // just kill since we dont wait for "stop" to process anyways
+        let _ = lol_rec.kill();
+    }
     let _ = sfs.kill();
-    Recorder::shutdown();
     app_handle.exit(0);
 }

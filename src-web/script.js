@@ -112,10 +112,7 @@ addEventListener('focusin', event => {
 });
 
 // listen for new recordings
-listen('new_recording', event => {
-    setRecordingsSize();
-    sidebar.innerHTML = createSidebarElement(event?.payload) + sidebar.innerHTML;
-});
+listen('new_recording', init);
 // ------------------------------
 
 
