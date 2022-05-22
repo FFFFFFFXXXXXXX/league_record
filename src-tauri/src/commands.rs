@@ -1,3 +1,9 @@
+/*
+    Notice: Some commands return a Result even though it is not necessary,
+    because async tauri::commands have some kind of bug where they don't compile if they
+    return just a value
+*/
+
 use std::{
     cmp::Ordering,
     fs::{metadata, remove_file, File},
@@ -70,15 +76,15 @@ pub async fn delete_video(video: String, state: State<'_, Settings>) -> Result<b
     // remove video
     let mut path = state.recordings_folder();
     path.push(PathBuf::from(&video));
-    let ok = match remove_file(&path) {
-        Ok(_) => true,
-        Err(_) => false,
-    };
+    if remove_file(&path).is_err() {
+        // if video delete fails return and dont delete json file
+        return Ok(false);
+    }
 
     // remove json file if it exists
     path.set_extension("json");
     let _ = remove_file(path);
-    Ok(ok)
+    Ok(true)
 }
 
 #[tauri::command]
