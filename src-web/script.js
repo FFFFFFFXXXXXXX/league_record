@@ -94,9 +94,6 @@ addEventListener('keydown', event => {
         event.preventDefault();
 });
 
-// When the user clicks anywhere outside of the modal, close it
-window.onclick = hideModal;
-
 // add events to html elements
 document.getElementById('vid-folder-btn').onclick = openRecordingsFolder;
 checkboxKill.onclick = changeMarkers;
@@ -125,7 +122,7 @@ listen('new_recording', init);
 function showDeleteModal(video) {
     let html = `<p>Do you really want to delete ${video}?</p>`;
     html += '<p>';
-    html += `<button class="btn" onclick="deleteVideo('${video}');hideModal();">Yes</button>`;
+    html += `<button class="btn" onclick="hideModal();deleteVideo('${video}');">Yes</button>`;
     html += `<button class="btn" onclick="hideModal()">No</button>`;
     html += '</p>';
 
@@ -136,13 +133,7 @@ function showModal(content) {
     modal.style.display = 'block';
 }
 function hideModal(event) {
-    if (event !== undefined) {
-        if (event.target == modal) {
-            modal.style.display = "none";
-        }
-    } else {
-        modal.style.display = "none";
-    }
+    modal.style.display = 'none';
 }
 async function getVideoPath(video) {
     let port = await invoke('get_asset_port');
@@ -237,7 +228,9 @@ async function deleteVideo(video) {
             setVideo(newVideo);
         }
     } else {
-        showModal('<p>Error deleting video!</p>');
+        let content = '<p>Error deleting video!</p>';
+        content += '<p><button class="btn" onclick="hideModal();">Close</button></p>';
+        showModal(content);
     }
 }
 function test(e) {
