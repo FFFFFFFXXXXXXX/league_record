@@ -16,9 +16,11 @@ use tauri::{generate_handler, Builder};
 
 fn main() {
     let app = Builder::default()
+        .manage(WindowState::init())
         .manage(AssetPort::init())
         .manage(Settings::init())
         .invoke_handler(generate_handler![
+            get_polling_interval,
             get_marker_flags,
             get_asset_port,
             get_recordings_size,
