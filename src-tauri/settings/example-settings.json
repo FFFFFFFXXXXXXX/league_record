@@ -1,5 +1,6 @@
 {
     "recordingsFolder": "league_recordings",
+    "pollingInterval": 3,
     "filenameFormat": "%Y-%m-%d_%H-%M.mp4",
     "encodingQuality": 20,
     "outputResolution": "_1080p",

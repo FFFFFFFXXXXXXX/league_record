@@ -1,6 +1,8 @@
 use std::{cmp::Ordering, io, path::PathBuf};
 
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Window};
+
+use crate::state::WindowState;
 
 pub fn get_recordings(rec_folder: PathBuf) -> Vec<PathBuf> {
     // get all mp4 files in ~/Videos/%folder-name%
@@ -34,18 +36,41 @@ pub fn create_window(app_handle: &AppHandle) {
     if let Some(main) = windows.get("main") {
         let _ = main.show();
     } else {
+        let window_state = app_handle.state::<WindowState>();
+
         let builder = tauri::Window::builder(
             app_handle,
             "main",
             tauri::WindowUrl::App(PathBuf::from("/")),
         );
+
+        let size = *window_state.size.lock().unwrap();
+        let position = *window_state.position.lock().unwrap();
         builder
             .title("LeagueRecord")
-            .inner_size(1298.0, 702.0)
-            .center()
+            .inner_size(size.0, size.1)
+            .position(position.0, position.1)
+            .min_inner_size(800.0, 450.0)
             .visible(false)
-            .theme(None)
             .build()
             .expect("error creating window");
+    }
+}
+
+pub fn set_window_state(app_handle: &AppHandle, window: &Window) {
+    let scale_factor = window.scale_factor().unwrap();
+    let window_state = app_handle.state::<WindowState>();
+
+    if let Ok(size) = window.inner_size() {
+        *window_state.size.lock().unwrap() = (
+            (size.width as f64) / scale_factor,
+            (size.height as f64) / scale_factor,
+        );
+    }
+    if let Ok(position) = window.outer_position() {
+        *window_state.position.lock().unwrap() = (
+            (position.x as f64) / scale_factor,
+            (position.y as f64) / scale_factor,
+        );
     }
 }

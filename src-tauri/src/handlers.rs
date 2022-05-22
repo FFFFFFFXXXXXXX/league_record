@@ -3,10 +3,15 @@ use std::{collections::HashMap, error::Error, thread, time::Duration};
 use tauri::{
     api::{path::video_dir, process::Command},
     App, AppHandle, CustomMenuItem, Manager, RunEvent, SystemTray, SystemTrayEvent, SystemTrayMenu,
-    SystemTrayMenuItem, Wry,
+    SystemTrayMenuItem, WindowEvent, Wry,
 };
 
-use crate::{helpers::create_window, recorder, state::Settings, AssetPort};
+use crate::{
+    helpers::{create_window, set_window_state},
+    recorder,
+    state::Settings,
+    AssetPort,
+};
 
 pub fn create_system_tray() -> SystemTray {
     let tray_menu = SystemTrayMenu::new()
@@ -47,6 +52,12 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
         app_handle.exit(-1);
     }
 
+    // don't show window on startup and set initial window state
+    if let Some(window) = app_handle.get_window("main") {
+        set_window_state(&app_handle, &window);
+        let _ = window.close();
+    }
+
     // launch static-file-server as a replacement for the broken asset protocol
     let port = app_handle.state::<AssetPort>().get();
     let folder = app_handle.state::<Settings>().recordings_folder_as_string();
@@ -63,8 +74,17 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_handler(_app_handle: &AppHandle, event: RunEvent) {
+pub fn run_handler(app_handle: &AppHandle, event: RunEvent) {
     match event {
+        RunEvent::WindowEvent {
+            label: _,
+            event: WindowEvent::CloseRequested { api: _, .. },
+            ..
+        } => {
+            if let Some(window) = app_handle.get_window("main") {
+                set_window_state(&app_handle, &window);
+            }
+        }
         RunEvent::ExitRequested { api, .. } => {
             api.prevent_exit();
         }

@@ -4,8 +4,10 @@ const { emit, listen } = __TAURI__.event;
 const open = __TAURI__.shell.open;
 const wmng = new __TAURI__.window.WindowManager();
 
-const EVENT_DELAY = 3;
+let EVENT_DELAY = 3; // 3 is just a default
 
+let modal = document.getElementById('modal');
+let modalContent = document.getElementById('modal-content');
 let sidebar = document.getElementById('sidebar-content');
 let recordingsSize = document.getElementById('size');
 let descriptionName = document.getElementById('description-name');
@@ -92,6 +94,9 @@ addEventListener('keydown', event => {
         event.preventDefault();
 });
 
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = hideModal;
+
 // add events to html elements
 document.getElementById('vid-folder-btn').onclick = openRecordingsFolder;
 checkboxKill.onclick = changeMarkers;
@@ -117,12 +122,34 @@ listen('new_recording', init);
 
 
 // FUNCTIONS --------------------
+function showDeleteModal(video) {
+    let html = `<p>Do you really want to delete ${video}?</p>`;
+    html += '<p>';
+    html += `<button class="btn" onclick="deleteVideo('${video}');hideModal();">Yes</button>`;
+    html += `<button class="btn" onclick="hideModal()">No</button>`;
+    html += '</p>';
+
+    showModal(html);
+}
+function showModal(content) {
+    modalContent.innerHTML = content;
+    modal.style.display = 'block';
+}
+function hideModal(event) {
+    if (event !== undefined) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    } else {
+        modal.style.display = "none";
+    }
+}
 async function getVideoPath(video) {
     let port = await invoke('get_asset_port');
     return `http://localhost:${port}/${video}`;
 }
-function openRecordingsFolder() {
-    invoke('get_recordings_folder').then(folder => open(folder));
+async function openRecordingsFolder() {
+    open(await invoke('get_recordings_folder'));
 }
 function getRecordingsNames() {
     return invoke('get_recordings_list');
@@ -192,25 +219,34 @@ async function setVideo(name) {
         descriptionContent.innerHTML = 'No Data';
     }
 }
-function deleteVideo(video) {
-    window.confirm(`Do you really want to delete ${video}`)
-        .then(ok => {
-            if (ok) {
-                invoke('delete_video', { video: video }).then(b => {
-                    if (b) {
-                        setRecordingsSize();
-                        document.getElementById(video).remove();
-                        let newVideo = sidebar.querySelector('li')?.id;
-                        setVideo(newVideo);
-                    } else {
-                        window.alert('Error deleting video!');
-                    }
-                });
-            }
-        });
+async function deleteVideo(video) {
+    let deleteCurrentVideo = video === document.querySelector('.active').id;
+    if (deleteCurrentVideo) {
+        // make sure the video is not in use before deleting it
+        player.src({});
+        await sleep(250);
+    }
+
+    let ok = await invoke('delete_video', { 'video': video });
+    if (ok) {
+        setRecordingsSize();
+        document.getElementById(video).remove();
+        if (deleteCurrentVideo) {
+            // only set new active video if old active video was deleted
+            let newVideo = sidebar.querySelector('li')?.id;
+            setVideo(newVideo);
+        }
+    } else {
+        showModal('<p>Error deleting video!</p>');
+    }
+}
+function test(e) {
+    console.log(e);
+    e.stopPropagation();
 }
 function createSidebarElement(el) {
-    return `<li id="${el}" onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}<span class="close" onclick="deleteVideo('${el}')">&times;</span></li>`;
+    let deleteBtn = `<span class="delete" onclick="event.stopPropagation();showDeleteModal('${el}')">&times;</span>`;
+    return `<li id="${el}" onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}${deleteBtn}</li>`;
 }
 function changeMarkers() {
     player.markers.removeAll();
@@ -256,6 +292,8 @@ function changeMarkers() {
 }
 
 async function init() {
+    EVENT_DELAY = await invoke('get_polling_interval') ?? 3;
+
     let rec = await getRecordingsNames();
     sidebar.innerHTML = '';
     rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));

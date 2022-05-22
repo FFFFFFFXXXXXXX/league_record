@@ -13,7 +13,12 @@ use serde_json::Value;
 use tauri::State;
 
 #[tauri::command]
-pub async fn get_marker_flags(state: State<'_, Settings>) -> Result<Value, String> {
+pub async fn get_polling_interval(state: State<'_, Settings>) -> Result<u32, ()> {
+    Ok(state.polling_interval())
+}
+
+#[tauri::command]
+pub async fn get_marker_flags(state: State<'_, Settings>) -> Result<Value, ()> {
     Ok(state.marker_flags())
 }
 

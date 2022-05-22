@@ -16,7 +16,7 @@ members = [ "lol_rec" ]
 tauri-build = { version = "1.0.0-rc.7", features = [] }
 
 [dependencies]
-tauri = { version = "1.0.0-rc.8", features = ["dialog-confirm", "process-command-api", "shell-open", "system-tray", "window-set-fullscreen", "window-set-title", "window-show"] }
+tauri = { version = "1.0.0-rc.8", features = ["process-command-api", "shell-open", "system-tray", "window-set-fullscreen", "window-set-title", "window-show"] }
 serde_json = "1.0"
 serde = "1.0.137"
 port_check = "0.1.5"
