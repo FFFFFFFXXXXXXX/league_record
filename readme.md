@@ -1,6 +1,6 @@
-# League Record
+# LeagueRecord
 
-This program automatically detects when a League of Legends game is running and records it.
+LeagueRecord automatically detects when a League of Legends game is running and records it.
 Currently only supports Windows and is only tested for Windows 10 with an AMD GPU.
 
 ![screenshot](https://user-images.githubusercontent.com/37913466/167213695-295f5abc-02bd-471a-a31a-d65e530564f5.png)
