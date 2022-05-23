@@ -4,7 +4,8 @@ const { emit, listen } = __TAURI__.event;
 const open = __TAURI__.shell.open;
 const wmng = new __TAURI__.window.WindowManager();
 
-// this needs to be the same as SLEEP_SECS in lol_rec::main
+// sets the time a marker jumps to before the actual event happens
+// jump to (eventTime - EVENT_DELAY) when a marker is clicked
 const EVENT_DELAY = 1;
 
 let modal = document.getElementById('modal');
