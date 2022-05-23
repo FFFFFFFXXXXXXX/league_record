@@ -1,7 +1,8 @@
 Set-Location ./src-tauri/
-cargo build -p lol_rec --release
 
 if ($args[1] -eq "release") {
+    cargo build -p lol_rec --release
+
     $suffix = ""
     if ($args[0] -eq "windows") {
         $suffix = "-x86_64-pc-windows-msvc"
@@ -11,4 +12,6 @@ if ($args[1] -eq "release") {
     }
     
     Copy-Item ./target/release/lol_rec.exe ./target/release/lol_rec${suffix}.exe -Force
+} else {
+    cargo build -p lol_rec 
 }
