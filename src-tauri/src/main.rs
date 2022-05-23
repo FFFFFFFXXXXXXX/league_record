@@ -20,7 +20,6 @@ fn main() {
         .manage(AssetPort::init())
         .manage(Settings::init())
         .invoke_handler(generate_handler![
-            get_polling_interval,
             get_marker_flags,
             get_asset_port,
             get_recordings_size,

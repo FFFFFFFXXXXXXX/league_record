@@ -1,5 +1,5 @@
 use std::{
-    sync::mpsc::{channel, TryRecvError},
+    sync::mpsc::{channel, RecvTimeoutError},
     time::Duration,
 };
 
@@ -23,7 +23,7 @@ use crate::state::Settings;
 const WINDOW_TITLE: &str = "League of Legends (TM) Client";
 const WINDOW_CLASS: &str = "RiotWindowClass";
 
-const SLEEP_SECS: u64 = 3;
+const SLEEP_SECS: u64 = 5;
 
 const DEBUG: bool = false;
 
@@ -135,18 +135,11 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
             recording = false;
         }
 
-        // if value received or disconnected => break
-        // checks for sender disconnect
-        match receiver.try_recv() {
-            Err(TryRecvError::Empty) => {}
-            _ => break,
-        }
         // delay SLEEP_MS milliseconds waiting for stop event
-        // break if stop event received
-        // recv_timeout can't differentiate between timeout and disconnect
+        // break if stop event received or sender disconnected
         match receiver.recv_timeout(Duration::from_secs(SLEEP_SECS)) {
-            Ok(_) => break,
-            _ => {}
+            Ok(_) | Err(RecvTimeoutError::Disconnected) => break,
+            Err(RecvTimeoutError::Timeout) => {}
         }
     }
 

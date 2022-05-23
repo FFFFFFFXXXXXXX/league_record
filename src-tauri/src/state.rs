@@ -76,8 +76,6 @@ pub struct Settings {
     #[serde(default = "default_recordings_folder")]
     #[serde(deserialize_with = "deserialize_recordings_folder")]
     recordings_folder: PathBuf,
-    #[serde(default = "default_polling_interval")]
-    polling_interval: u32,
     #[serde(default = "default_filename_format")]
     filename_format: String,
     #[serde(default = "default_encoding_quality")]
@@ -115,7 +113,6 @@ impl Settings {
 
         Self {
             recordings_folder: default_recordings_folder(),
-            polling_interval: default_polling_interval(),
             filename_format: default_filename_format(),
             encoding_quality: default_encoding_quality(),
             output_resolution: default_output_resolution(),
@@ -135,9 +132,6 @@ impl Settings {
             .into_os_string()
             .into_string()
             .map_err(|_| ())
-    }
-    pub fn polling_interval(&self) -> u32 {
-        self.polling_interval
     }
     pub fn marker_flags(&self) -> Value {
         json!({
@@ -181,9 +175,6 @@ fn default_recordings_folder() -> PathBuf {
         let _ = create_dir_all(recordings_folder.as_path());
     }
     return recordings_folder;
-}
-fn default_polling_interval() -> u32 {
-    3
 }
 fn default_filename_format() -> String {
     String::from("%Y-%m-%d_%H-%M.mp4")

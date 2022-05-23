@@ -4,7 +4,8 @@ const { emit, listen } = __TAURI__.event;
 const open = __TAURI__.shell.open;
 const wmng = new __TAURI__.window.WindowManager();
 
-let EVENT_DELAY = 3; // 3 is just a default
+// this needs to be the same as SLEEP_SECS in lol_rec::main
+const EVENT_DELAY = 1;
 
 let modal = document.getElementById('modal');
 let modalContent = document.getElementById('modal-content');
@@ -285,8 +286,6 @@ function changeMarkers() {
 }
 
 async function init() {
-    EVENT_DELAY = await invoke('get_polling_interval') ?? 3;
-
     let rec = await getRecordingsNames();
     sidebar.innerHTML = '';
     rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
