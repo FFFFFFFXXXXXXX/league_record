@@ -1607,6 +1607,7 @@ dependencies = [
 name = "lol_rec"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "chrono",
  "libobs-recorder",
  "reqwest",
