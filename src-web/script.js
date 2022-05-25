@@ -217,7 +217,7 @@ async function deleteVideo(video) {
     if (deleteCurrentVideo) {
         // make sure the video is not in use before deleting it
         player.src({});
-        await sleep(250);
+        await sleep(1000);
     }
 
     let ok = await invoke('delete_video', { 'video': video });
