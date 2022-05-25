@@ -139,7 +139,9 @@ fn main() {
     recorder.stop_recording();
     let _ = sender.send(());
     let _ = thread.join();
-    println!("stopped recording");
+    if DEBUG {
+        println!("stopped recording");
+    }
 }
 
 fn create_recorder_settings(cfg: &Config, filename: &str) -> RecorderSettings {
@@ -200,6 +202,18 @@ fn get_timestamp(bytes: &Bytes) -> Option<f64> {
         Ok(data) => data,
         Err(_) => return None,
     };
+
+    // make sure the game has started
+    if DEBUG {
+        println!(
+            "game started: {}",
+            data["events"]["Events"][0]["EventName"] == "GameStart"
+        );
+    }
+    if data["events"]["Events"][0]["EventName"] != "GameStart" {
+        return None;
+    }
+
     data["gameData"]["gameTime"].as_f64()
 }
 
