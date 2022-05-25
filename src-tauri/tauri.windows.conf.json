@@ -1,0 +1,6 @@
+{
+    "build": {
+        "beforeDevCommand": "cd src-tauri && cargo build -p lol_rec",
+        "beforeBuildCommand": "cd src-tauri && cargo build -p lol_rec --release && copy .\\target\\release\\lol_rec.exe .\\target\\release\\lol_rec-x86_64-pc-windows-msvc.exe"
+    }
+}
