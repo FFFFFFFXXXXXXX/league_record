@@ -3,7 +3,7 @@
     "filenameFormat": "%Y-%m-%d_%H-%M.mp4",
     "encodingQuality": 20,
     "outputResolution": "_1080p",
-    "outputFramerate": [
+    "framerate": [
         30,
         1
     ],
