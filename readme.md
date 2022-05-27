@@ -54,7 +54,7 @@ This is just a rough estimate so you can get a sense for how much resources Leag
 **Currently [static-file-server](https://github.com/halverneus/static-file-server) is used as a replacement for the broken tauri asset protocol. This will be removed when the asset protocol is fixed**
 
 There is a release for Windows-x64, but you can build the project on your own.
-This project relies on libobs (27.2.4) to record the game.
+This project relies on libobs-recorder (and indirectly libobs) to record the game.
 For build prerequisites look at [libobs-recorder](https://github.com/FFFFFFFXXXXXXX/libobs-recorder)
 Build with `cargo tauri build`.
 Package up with `tar -cvzf LeagueRecord.tar.gz -C src-tauri licenses settings libobs/data libobs/obs-plugins static-file-server.exe -C libobs *.dll obs-ffmpeg-mux.exe -C ../target/release LeagueRecord.exe lol_rec.exe` (assuming that you have all your obs .dll's and the data/plugin folders in src-tauri/libobs/)
