@@ -96,6 +96,9 @@ addEventListener('keydown', event => {
         event.preventDefault();
 });
 
+// set event markers on video load
+player.tech_.contentEl().onloadedmetadata = changeMarkers;
+
 // add events to html elements
 document.getElementById('vid-folder-btn').onclick = openRecordingsFolder;
 checkboxKill.onclick = changeMarkers;
@@ -176,8 +179,6 @@ async function setVideo(name) {
     } else {
         wmng.setTitle('League Record - ' + name);
     }
-    let path = await getVideoPath(name);
-    player.src({ type: 'video/mp4', src: path });
 
     let md = await invoke('get_metadata', { video: name });
     if (md) {
@@ -203,14 +204,14 @@ async function setVideo(name) {
         descContent += `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
         descContent += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
         descriptionContent.innerHTML = descContent;
-
-        // wait for player src change to finish before adding markers
-        setTimeout(changeMarkers, 250);
     } else {
         player.markers.removeAll();
         descriptionName.innerHTML = ''
         descriptionContent.innerHTML = 'No Data';
     }
+
+    let path = await getVideoPath(name);
+    player.src({ type: 'video/mp4', src: path });
 }
 async function deleteVideo(video) {
     let deleteCurrentVideo = video === document.querySelector('.active').id;
