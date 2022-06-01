@@ -213,32 +213,30 @@ async function setVideo(name) {
     let path = await getVideoPath(name);
     player.src({ type: 'video/mp4', src: path });
 }
+// ! possibly change this when moving back to Tauri Asset Protocol
 async function deleteVideo(video) {
     let deleteCurrentVideo = video === document.querySelector('.active').id;
     if (deleteCurrentVideo) {
         // make sure the video is not in use before deleting it
-        player.src({});
-        await sleep(1000);
+        player.reset();
+        await sleep(100);
     }
 
     let ok = await invoke('delete_video', { 'video': video });
     if (ok) {
         setRecordingsSize();
         document.getElementById(video).remove();
+
+        // only set new active video if old active video was deleted
         if (deleteCurrentVideo) {
-            // only set new active video if old active video was deleted
-            let newVideo = sidebar.querySelector('li')?.id;
-            setVideo(newVideo);
+            let remainingVideos = sidebar.querySelectorAll('li');
+            remainingVideos.length > 0 ? setVideo(remainingVideos[0].id) : player.reset();
         }
     } else {
         let content = '<p>Error deleting video!</p>';
         content += '<p><button class="btn" onclick="hideModal();">Close</button></p>';
         showModal(content);
     }
-}
-function test(e) {
-    console.log(e);
-    e.stopPropagation();
 }
 function createSidebarElement(el) {
     let deleteBtn = `<span class="delete" onclick="event.stopPropagation();showDeleteModal('${el}')">&times;</span>`;
