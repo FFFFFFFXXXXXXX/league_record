@@ -56,10 +56,9 @@ fn get_window() -> Result<HWND, ()> {
 fn get_window_size(hwnd: HWND) -> Result<(u32, u32), ()> {
     let mut rect = RECT::default();
     let ok = unsafe { GetClientRect(hwnd, &mut rect as _).as_bool() };
-    if ok && rect.right > 0 && rect.bottom > 0 {
-        Ok((rect.right as u32, rect.bottom as u32))
-    } else {
-        Err(())
+    match ok && rect.right > 0 && rect.bottom > 0 {
+        true => Ok((rect.right as u32, rect.bottom as u32)),
+        false => Err(()),
     }
 }
 

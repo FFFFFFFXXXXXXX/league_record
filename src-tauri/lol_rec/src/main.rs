@@ -39,27 +39,27 @@ fn main() {
             println!("config received");
         }
 
-        if let Ok(cfg) = Config::init(buffer) {
-            if DEBUG {
-                println!("config valid");
-            }
-            cfg
-        } else {
-            exit(1);
+        match Config::init(buffer) {
+            Ok(cfg) => cfg,
+            _ => exit(1),
         }
     };
+    if DEBUG {
+        println!("config valid");
+    }
 
     // init Recorder
     let libobs_data_path = Some(String::from("./libobs/data/libobs/"));
     let plugin_bin_path = Some(String::from("./libobs/obs-plugins/64bit/"));
     let plugin_data_path = Some(String::from("./libobs/data/obs-plugins/%module%/"));
-    if let Ok(enc) = Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path) {
-        if DEBUG {
-            println!("recorder init successfull: {}", enc.id());
+    match Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path) {
+        Ok(enc) => {
+            if DEBUG {
+                println!("recorder init successfull: {}", enc.id())
+            }
         }
-    } else {
-        exit(1);
-    }
+        Err(_) => exit(1),
+    };
 
     // create recorder settings
     let filename = format!("{}", chrono::Local::now().format(cfg.filename_format()));
@@ -67,14 +67,13 @@ fn main() {
         println!("filename: {}", &filename);
     }
     let settings = create_recorder_settings(&cfg, &filename);
-    let mut recorder = if let Ok(rec) = Recorder::get(settings) {
-        if DEBUG {
-            println!("recorder created");
-        }
-        rec
-    } else {
-        exit(1);
+    let mut recorder = match Recorder::get(settings) {
+        Ok(rec) => rec,
+        Err(_) => exit(1),
     };
+    if DEBUG {
+        println!("recorder created");
+    }
 
     thread::sleep(Duration::from_secs(3));
     // start recording
@@ -190,10 +189,9 @@ fn get_league_data(client: &Client) -> Option<Bytes> {
         .send()
         .ok()?;
 
-    if result.status() == StatusCode::OK {
-        result.bytes().ok()
-    } else {
-        None
+    match result.status() {
+        StatusCode::OK => result.bytes().ok(),
+        _ => None,
     }
 }
 
