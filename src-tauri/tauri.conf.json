@@ -29,7 +29,7 @@
       "externalBin": [
         "./libobs/obs-ffmpeg-mux",
         "./static-file-server",
-        "./target/release/lol_rec"
+        "./lol_rec"
       ],
       "copyright": "gpl-2.0",
       "category": "Utility",
