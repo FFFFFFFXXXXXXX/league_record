@@ -7,10 +7,9 @@ use crate::state::WindowState;
 pub fn get_recordings(rec_folder: PathBuf) -> Vec<PathBuf> {
     // get all mp4 files in ~/Videos/%folder-name%
     let mut recordings = Vec::<PathBuf>::new();
-    let rd_dir = if let Ok(rd_dir) = rec_folder.read_dir() {
-        rd_dir
-    } else {
-        return vec![];
+    let rd_dir = match rec_folder.read_dir() {
+        Ok(rd_dir) => rd_dir,
+        Err(_) => return vec![],
     };
     for entry in rd_dir {
         if let Ok(entry) = entry {

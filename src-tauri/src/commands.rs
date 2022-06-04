@@ -43,12 +43,9 @@ pub async fn get_recordings_size(state: State<'_, Settings>) -> Result<f64, ()> 
 pub async fn get_recordings_list(state: State<'_, Settings>) -> Result<Vec<String>, ()> {
     let mut recordings = get_recordings(state.recordings_folder());
     // sort by time created (index 0 is newest)
-    recordings.sort_by(|a, b| {
-        if let Ok(result) = compare_time(a, b) {
-            result
-        } else {
-            Ordering::Equal
-        }
+    recordings.sort_by(|a, b| match compare_time(a, b) {
+        Ok(result) => result,
+        Err(_) => Ordering::Equal,
     });
     let mut ret = Vec::<String>::new();
     for path in recordings {
@@ -87,15 +84,13 @@ pub async fn get_metadata(video: String, state: State<'_, Settings>) -> Result<V
     let mut path = state.recordings_folder();
     path.push(PathBuf::from(video));
     path.set_extension("json");
-    let reader = if let Ok(file) = File::open(path) {
-        BufReader::new(file)
-    } else {
-        return Ok(Value::Null);
+    let reader = match File::open(path) {
+        Ok(file) => BufReader::new(file),
+        Err(_) => return Ok(Value::Null),
     };
 
-    if let Ok(json) = serde_json::from_reader::<BufReader<File>, Value>(reader) {
-        Ok(json)
-    } else {
-        Ok(Value::Null)
+    match serde_json::from_reader::<BufReader<File>, Value>(reader) {
+        Ok(json) => Ok(json),
+        Err(_) => Ok(Value::Null),
     }
 }
