@@ -62,6 +62,14 @@ fn get_window_size(hwnd: HWND) -> Result<(u32, u32), ()> {
     }
 }
 
+fn stop_lol_rec(lol_rec: Option<CommandChild>) {
+    if let Some(mut lol_rec) = lol_rec {
+        if lol_rec.write("stop".as_bytes()).is_err() {
+            let _ = lol_rec.kill();
+        }
+    }
+}
+
 pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
     #[cfg(target_os = "windows")]
     unsafe {
@@ -122,11 +130,7 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
 
         // if we are recording and we the window doesn't exist anymore => stop recording
         } else if recording {
-            if let Some(mut lol_rec) = lol_rec {
-                if lol_rec.write("stop".as_bytes()).is_err() {
-                    let _ = lol_rec.kill();
-                }
-            }
+            stop_lol_rec(lol_rec);
             lol_rec = None;
 
             set_recording_tray_item(&app_handle, false);
@@ -142,10 +146,7 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
         }
     }
 
-    if let Some(lol_rec) = lol_rec {
-        // just kill since we dont wait for "stop" to process anyways
-        let _ = lol_rec.kill();
-    }
+    stop_lol_rec(lol_rec);
     let _ = sfs.kill();
     app_handle.exit(0);
 }
