@@ -61,8 +61,10 @@ Package up with `tar -cvzf LeagueRecord.tar.gz -C src-tauri licenses settings li
 
 ## License
 
-The GPLv2 license of the Obs project applies to all the .dll files as well as the files in the ./data and ./obs-plugins folders in the distributed version.
+The libobs library is licensed under the GNU General Public License v2 (GPLv2).
 
 The static-file-server executable is licensed under the MIT License.
 
-This project is distributed under the GNU General Public License v2.
+The Javascript library [videojs](https://github.com/videojs/video.js) is licensed under the Apache License v2.0 and the plugin video-js markers is licensed under the MIT License.
+
+This project (LeagueRecord) is distributed under the GNU General Public License v3 (GPLv3).
