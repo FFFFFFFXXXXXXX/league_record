@@ -39,7 +39,7 @@ fn main() {
             println!("config received");
         }
 
-        match Config::init(buffer) {
+        match Config::init(&buffer) {
             Ok(cfg) => cfg,
             _ => exit(1),
         }
@@ -55,7 +55,7 @@ fn main() {
     match Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path) {
         Ok(enc) => {
             if DEBUG {
-                println!("recorder init successfull: {}", enc.id())
+                println!("recorder init successfull: {}", enc.id());
             }
         }
         Err(_) => exit(1),
@@ -120,7 +120,7 @@ fn main() {
             }
 
             if !game_data.is_empty() {
-                save_metadata(rec_folder, filename, data_delay, game_data);
+                save_metadata(rec_folder, filename, data_delay, &game_data);
             }
         }
     });
@@ -174,7 +174,7 @@ fn create_recorder_settings(cfg: &Config, filename: &str) -> RecorderSettings {
 fn create_client() -> Client {
     let pem = include_bytes!("../riotgames.pem");
     let cert = reqwest::Certificate::from_pem(pem).expect("couldn't create certificate");
-    
+
     Client::builder()
         .add_root_certificate(cert)
         .build()
@@ -215,8 +215,8 @@ fn get_timestamp(bytes: &Bytes) -> Option<f64> {
     data["gameData"]["gameTime"].as_f64()
 }
 
-fn deserialize_game_data(bytes: Bytes) -> Value {
-    let data: Value = match serde_json::from_slice(&bytes) {
+fn deserialize_game_data(bytes: &Bytes) -> Value {
+    let data: Value = match serde_json::from_slice(bytes) {
         Ok(data) => data,
         Err(_) => Value::Null,
     };
@@ -239,7 +239,7 @@ fn deserialize_game_data(bytes: Bytes) -> Value {
     })
 }
 
-fn save_metadata(mut folder: PathBuf, filename: String, data_delay: f64, data: Bytes) {
+fn save_metadata(mut folder: PathBuf, filename: String, data_delay: f64, data: &Bytes) {
     let mut json = deserialize_game_data(data);
 
     let mut result = Value::Null;
