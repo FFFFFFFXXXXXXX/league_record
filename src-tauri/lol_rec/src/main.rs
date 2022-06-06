@@ -168,17 +168,17 @@ fn create_recorder_settings(cfg: &Config, filename: &str) -> RecorderSettings {
             .expect("error converting video_path to &str"),
     );
 
-    return settings;
+    settings
 }
 
 fn create_client() -> Client {
     let pem = include_bytes!("../riotgames.pem");
     let cert = reqwest::Certificate::from_pem(pem).expect("couldn't create certificate");
-    let client = Client::builder()
+    
+    Client::builder()
         .add_root_certificate(cert)
         .build()
-        .expect("couldn't create http client");
-    return client;
+        .expect("couldn't create http client")
 }
 
 fn get_league_data(client: &Client) -> Option<Bytes> {
@@ -196,7 +196,7 @@ fn get_league_data(client: &Client) -> Option<Bytes> {
 }
 
 fn get_timestamp(bytes: &Bytes) -> Option<f64> {
-    let data: Value = match serde_json::from_slice(&bytes) {
+    let data: Value = match serde_json::from_slice(bytes) {
         Ok(data) => data,
         Err(_) => return None,
     };
