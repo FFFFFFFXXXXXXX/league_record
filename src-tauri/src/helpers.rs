@@ -1,4 +1,8 @@
-use std::{cmp::Ordering, io, path::PathBuf};
+use std::{
+    cmp::Ordering,
+    io,
+    path::{Path, PathBuf},
+};
 
 use tauri::{AppHandle, Manager, Window};
 
@@ -11,20 +15,18 @@ pub fn get_recordings(rec_folder: PathBuf) -> Vec<PathBuf> {
         Ok(rd_dir) => rd_dir,
         Err(_) => return vec![],
     };
-    for entry in rd_dir {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if let Some(ext) = path.extension() {
-                if ext == "mp4" {
-                    recordings.push(path);
-                }
+    for entry in rd_dir.flatten() {
+        let path = entry.path();
+        if let Some(ext) = path.extension() {
+            if ext == "mp4" {
+                recordings.push(path);
             }
         }
     }
-    return recordings;
+    recordings
 }
 
-pub fn compare_time(a: &PathBuf, b: &PathBuf) -> io::Result<Ordering> {
+pub fn compare_time(a: &Path, b: &Path) -> io::Result<Ordering> {
     let a_time = a.metadata()?.created()?;
     let b_time = b.metadata()?.created()?;
     Ok(a_time.cmp(&b_time).reverse())

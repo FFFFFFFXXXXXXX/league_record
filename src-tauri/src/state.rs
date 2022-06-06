@@ -146,7 +146,7 @@ impl Settings {
         })
     }
 
-    pub fn to_lol_rec_cfg(&mut self, window_size: (u32, u32)) -> Result<String, ()> {
+    pub fn create_lol_rec_cfg(&mut self, window_size: (u32, u32)) -> Result<String, ()> {
         self.window_size = window_size;
         let mut cfg = serde_json::to_string(&self).map_err(|_| ())?;
         cfg.push('\n'); // add newline as something like a termination sequence
@@ -174,7 +174,7 @@ fn default_recordings_folder() -> PathBuf {
     if !recordings_folder.exists() {
         let _ = create_dir_all(recordings_folder.as_path());
     }
-    return recordings_folder;
+    recordings_folder
 }
 fn default_filename_format() -> String {
     String::from("%Y-%m-%d_%H-%M.mp4")
