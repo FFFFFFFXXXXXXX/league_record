@@ -16,7 +16,7 @@ use crate::{
 pub fn create_system_tray() -> SystemTray {
     let tray_menu = SystemTrayMenu::new()
         .add_item(CustomMenuItem::new("rec", "Recording").disabled())
-        .add_native_item(SystemTrayMenuItem::from(SystemTrayMenuItem::Separator))
+        .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(CustomMenuItem::new("open", "Open"))
         .add_item(CustomMenuItem::new("quit", "Quit"));
     SystemTray::new().with_menu(tray_menu)
@@ -82,7 +82,7 @@ pub fn run_handler(app_handle: &AppHandle, event: RunEvent) {
             ..
         } => {
             if let Some(window) = app_handle.get_window("main") {
-                set_window_state(&app_handle, &window);
+                set_window_state(app_handle, &window);
             }
         }
         RunEvent::ExitRequested { api, .. } => {

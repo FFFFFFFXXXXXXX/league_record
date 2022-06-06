@@ -49,7 +49,7 @@ fn get_window() -> Result<HWND, ()> {
     if hwnd.is_invalid() {
         return Err(());
     }
-    return Ok(hwnd);
+    Ok(hwnd)
 }
 
 #[cfg(target_os = "windows")]
@@ -119,7 +119,7 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
                 // write serialized config to child
                 // let mut json = serde_json::to_value(settings).expect("error serializing settings");
                 let size = get_window_size(hwnd).unwrap_or_default();
-                if let Ok(cfg) = settings.to_lol_rec_cfg(size) {
+                if let Ok(cfg) = settings.create_lol_rec_cfg(size) {
                     let _ = child.write(cfg.as_bytes());
                     lol_rec = Some(child);
 
