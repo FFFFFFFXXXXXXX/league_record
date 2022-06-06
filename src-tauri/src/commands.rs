@@ -29,19 +29,19 @@ pub fn get_asset_port(state: State<'_, AssetPort>) -> u16 {
 }
 
 #[tauri::command]
-pub async fn get_recordings_size(state: State<'_, Settings>) -> Result<f64, ()> {
+pub async fn get_recordings_size(state: State<'_, Settings>) -> Result<f32, ()> {
     let mut size = 0;
-    for file in get_recordings(state.recordings_folder()) {
+    for file in get_recordings(&state.recordings_folder()) {
         if let Ok(metadata) = metadata(file) {
             size += metadata.len();
         }
     }
-    Ok(size as f64 / 1_000_000_000.0) // in Gigabyte
+    Ok(size as f32 / 1_000_000_000.0) // in Gigabyte
 }
 
 #[tauri::command]
 pub async fn get_recordings_list(state: State<'_, Settings>) -> Result<Vec<String>, ()> {
-    let mut recordings = get_recordings(state.recordings_folder());
+    let mut recordings = get_recordings(&state.recordings_folder());
     // sort by time created (index 0 is newest)
     recordings.sort_by(|a, b| match compare_time(a, b) {
         Ok(result) => result,

@@ -8,7 +8,7 @@ use tauri::{AppHandle, Manager, Window};
 
 use crate::state::WindowState;
 
-pub fn get_recordings(rec_folder: PathBuf) -> Vec<PathBuf> {
+pub fn get_recordings(rec_folder: &PathBuf) -> Vec<PathBuf> {
     // get all mp4 files in ~/Videos/%folder-name%
     let mut recordings = Vec::<PathBuf>::new();
     let rd_dir = match rec_folder.read_dir() {

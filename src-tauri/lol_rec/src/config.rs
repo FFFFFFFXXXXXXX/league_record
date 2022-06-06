@@ -19,8 +19,8 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn init(json: String) -> SerdeResult<Self> {
-        serde_json::from_str::<Self>(json.as_str())
+    pub fn init(json: &str) -> SerdeResult<Self> {
+        serde_json::from_str::<Self>(json)
     }
 
     pub fn recordings_folder(&self) -> PathBuf {

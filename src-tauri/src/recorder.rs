@@ -56,9 +56,10 @@ fn get_window() -> Result<HWND, ()> {
 fn get_window_size(hwnd: HWND) -> Result<(u32, u32), ()> {
     let mut rect = RECT::default();
     let ok = unsafe { GetClientRect(hwnd, &mut rect as _).as_bool() };
-    match ok && rect.right > 0 && rect.bottom > 0 {
-        true => Ok((rect.right as u32, rect.bottom as u32)),
-        false => Err(()),
+    if ok && rect.right > 0 && rect.bottom > 0 {
+        Ok((rect.right as u32, rect.bottom as u32))
+    } else {
+        Err(())
     }
 }
 
@@ -104,14 +105,14 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
                             println!(
                                 "{}",
                                 match line {
-                                    CommandEvent::Stderr(line) => line,
-                                    CommandEvent::Stdout(line) => line,
-                                    CommandEvent::Error(line) => line,
+                                    CommandEvent::Stderr(line)
+                                    | CommandEvent::Stdout(line)
+                                    | CommandEvent::Error(line) => line,
                                     CommandEvent::Terminated(line) =>
                                         line.code.unwrap_or_default().to_string(),
                                     _ => String::from("unknown event"),
                                 }
-                            )
+                            );
                         }
                     });
                 }
