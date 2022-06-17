@@ -23,6 +23,13 @@ impl WindowState {
     }
 }
 
+pub struct MarkerFlagsState(pub Mutex<Option<MarkerFlags>>);
+impl MarkerFlagsState {
+    pub fn init() -> MarkerFlagsState {
+        Self(Mutex::new(None))
+    }
+}
+
 pub struct AssetPort(u16);
 impl AssetPort {
     pub fn init() -> Self {
@@ -54,7 +61,20 @@ pub struct MarkerFlags {
     #[serde(default = "default_true")]
     baron: bool,
 }
-
+impl MarkerFlags {
+    pub fn to_json_value(&self) -> Value {
+        json!({
+            "kill": self.kill,
+            "death": self.death,
+            "assist": self.assist,
+            "turret": self.turret,
+            "inhibitor": self.inhibitor,
+            "dragon": self.dragon,
+            "herald": self.herald,
+            "baron": self.baron
+        })
+    }
+}
 impl Default for MarkerFlags {
     fn default() -> Self {
         MarkerFlags {
@@ -134,16 +154,7 @@ impl Settings {
             .map_err(|_| ())
     }
     pub fn marker_flags(&self) -> Value {
-        json!({
-            "kill": self.marker_flags.kill,
-            "death": self.marker_flags.death,
-            "assist": self.marker_flags.assist,
-            "turret": self.marker_flags.turret,
-            "inhibitor": self.marker_flags.inhibitor,
-            "dragon": self.marker_flags.dragon,
-            "herald": self.marker_flags.herald,
-            "baron": self.marker_flags.baron
-        })
+        self.marker_flags.to_json_value()
     }
 
     pub fn create_lol_rec_cfg(&mut self, window_size: (u32, u32)) -> Result<String, ()> {
