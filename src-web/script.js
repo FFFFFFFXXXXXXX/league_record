@@ -157,8 +157,14 @@ async function setRecordingsSize() {
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-async function getMarkerSettings() {
-    return await invoke('get_marker_flags');
+async function getDefaultMarkerSettings() {
+    return await invoke('get_default_marker_flags');
+}
+async function getCurrentMarkerSettings() {
+    return await invoke('get_current_marker_flags');
+}
+async function setCurrentMarkerSettings(markers) {
+    return await invoke('set_current_marker_flags', { markerFlags: markers });
 }
 function createMarker(event, dataDelay) {
     let delay = dataDelay ? dataDelay : 0;
@@ -283,6 +289,16 @@ function changeMarkers() {
         if (ok) arr.push(createMarker(e, currentDataDelay));
     });
     player.markers.add(arr);
+    setCurrentMarkerSettings({
+        kill: checkboxKill.checked,
+        death: checkboxDeath.checked,
+        assist: checkboxAssist.checked,
+        turret: checkboxTurret.checked,
+        inhibitor: checkboxInhibitor.checked,
+        dragon: checkboxDragon.checked,
+        herald: checkboxHerald.checked,
+        baron: checkboxBaron.checked,
+    });
 }
 
 async function init() {
@@ -291,7 +307,7 @@ async function init() {
     rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
     setVideo(rec[0]);
 
-    let settings = await getMarkerSettings();
+    let settings = await getCurrentMarkerSettings() ?? await getDefaultMarkerSettings();
     checkboxKill.checked = settings.kill;
     checkboxDeath.checked = settings.death;
     checkboxAssist.checked = settings.assist;

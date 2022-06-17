@@ -17,10 +17,13 @@ use tauri::{generate_handler, Builder};
 fn main() {
     let app = Builder::default()
         .manage(WindowState::init())
+        .manage(MarkerFlagsState::init())
         .manage(AssetPort::init())
         .manage(Settings::init())
         .invoke_handler(generate_handler![
-            get_marker_flags,
+            get_default_marker_flags,
+            get_current_marker_flags,
+            set_current_marker_flags,
             get_asset_port,
             get_recordings_size,
             get_recordings_list,

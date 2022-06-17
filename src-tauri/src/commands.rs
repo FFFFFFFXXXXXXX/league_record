@@ -13,14 +13,39 @@ use std::{
 
 use crate::{
     helpers::{compare_time, get_recordings},
-    state::{AssetPort, Settings},
+    state::{AssetPort, MarkerFlags, MarkerFlagsState, Settings},
 };
 use serde_json::Value;
 use tauri::State;
 
 #[tauri::command]
-pub async fn get_marker_flags(state: State<'_, Settings>) -> Result<Value, ()> {
+pub async fn get_default_marker_flags(state: State<'_, Settings>) -> Result<Value, ()> {
     Ok(state.marker_flags())
+}
+
+#[tauri::command]
+pub async fn get_current_marker_flags(state: State<'_, MarkerFlagsState>) -> Result<Value, ()> {
+    let flags = match state.0.lock() {
+        Ok(f) => f,
+        Err(_) => return Err(()),
+    };
+    match &*flags {
+        Some(f) => Ok(f.to_json_value()),
+        None => Ok(Value::Null),
+    }
+}
+
+#[tauri::command]
+pub async fn set_current_marker_flags(
+    marker_flags: MarkerFlags,
+    state: State<'_, MarkerFlagsState>,
+) -> Result<(), ()> {
+    let mut flags = match state.0.lock() {
+        Ok(f) => f,
+        Err(_) => return Err(()),
+    };
+    *flags = Some(marker_flags);
+    Ok(())
 }
 
 #[tauri::command]
