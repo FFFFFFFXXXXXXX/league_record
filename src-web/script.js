@@ -119,11 +119,25 @@ addEventListener('focusin', event => {
 });
 
 // listen for new recordings
-listen('new_recording', init);
+listen('new_recording', async () => {
+    let activeVideo = document.querySelector('.active')?.id;
+
+    let rec = await getRecordingsNames();
+    sidebar.innerHTML = '';
+    rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
+
+    document.getElementById(activeVideo)?.classList.add('active');
+
+    await setRecordingsSize();
+});
 // ------------------------------
 
 
 // FUNCTIONS --------------------
+function resetPlayer() {
+    player.reset();
+    player.tech_.contentEl().onloadedmetadata = changeMarkers;
+}
 function showDeleteModal(video) {
     let html = `<p>Do you really want to delete ${video}?</p>`;
     html += '<p>';
@@ -175,6 +189,13 @@ function createMarker(event, dataDelay) {
         'duration': 4
     };
 }
+function clearData() {
+    player.markers.removeAll();
+    currentEvents = [];
+    currentDataDelay = 0;
+    descriptionName.innerHTML = '';
+    descriptionContent.innerHTML = 'No Data';
+}
 async function setVideo(name) {
     document.querySelector('.active')?.classList.remove('active');
     document.getElementById(name)?.classList.add('active');
@@ -188,32 +209,34 @@ async function setVideo(name) {
 
     let md = await invoke('get_metadata', { video: name });
     if (md) {
-        currentEvents = md['events'];
-        currentDataDelay = md['dataDelay'];
+        try {
+            currentEvents = md['events'];
+            currentDataDelay = md['dataDelay'];
 
-        let descName = `<span class="summoner-name">${md['playerName']}</span><br>`;
-        descName += `${md['gameMode']}<br>`;
-        descriptionName.innerHTML = descName;
+            let descName = `<span class="summoner-name">${md['playerName']}</span><br>`;
+            descName += `${md['gameMode']}<br>`;
+            descriptionName.innerHTML = descName;
 
-        let result = '';
-        switch (md['result']) {
-            case 'Win':
-                result = '<span class="win">Victory</span><br>';
-                break;
-            case 'Lose':
-                result = '<span class="loss">Defeat</span><br>';
-                break;
-            default:
-                break;
+            let result = '';
+            switch (md['result']) {
+                case 'Win':
+                    result = '<span class="win">Victory</span><br>';
+                    break;
+                case 'Lose':
+                    result = '<span class="loss">Defeat</span><br>';
+                    break;
+                default:
+                    break;
+            }
+            let descContent = result;
+            descContent += `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
+            descContent += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
+            descriptionContent.innerHTML = descContent;
+        } catch {
+            clearData();
         }
-        let descContent = result;
-        descContent += `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
-        descContent += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
-        descriptionContent.innerHTML = descContent;
     } else {
-        player.markers.removeAll();
-        descriptionName.innerHTML = ''
-        descriptionContent.innerHTML = 'No Data';
+        clearData();
     }
 
     let path = await getVideoPath(name);
@@ -224,7 +247,7 @@ async function deleteVideo(video) {
     let deleteCurrentVideo = video === document.querySelector('.active').id;
     if (deleteCurrentVideo) {
         // make sure the video is not in use before deleting it
-        player.reset();
+        resetPlayer();
         await sleep(100);
     }
 
@@ -236,7 +259,7 @@ async function deleteVideo(video) {
         // only set new active video if old active video was deleted
         if (deleteCurrentVideo) {
             let remainingVideos = sidebar.querySelectorAll('li');
-            remainingVideos.length > 0 ? setVideo(remainingVideos[0].id) : player.reset();
+            if (remainingVideos.length > 0) setVideo(remainingVideos[0].id);
         }
     } else {
         let content = '<p>Error deleting video!</p>';
