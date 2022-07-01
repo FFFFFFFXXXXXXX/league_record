@@ -215,32 +215,39 @@ fn get_timestamp(bytes: &Bytes) -> Option<f64> {
     data["gameData"]["gameTime"].as_f64()
 }
 
-fn deserialize_game_data(bytes: &Bytes) -> Value {
+fn deserialize_game_data(bytes: &Bytes) -> Result<Value, ()> {
     let data: Value = match serde_json::from_slice(bytes) {
         Ok(data) => data,
-        Err(_) => Value::Null,
+        Err(_) => return Err(()),
     };
 
-    let mut player_info: &Value = &Value::Null;
+    let mut player_info = None;
     let player_array = data["allPlayers"].as_array().unwrap();
     for player in player_array {
         if player["summonerName"] == data["activePlayer"]["summonerName"] {
-            player_info = player;
+            player_info = Some(player);
             break;
         }
     }
 
-    json!({
-        "playerName": data["activePlayer"]["summonerName"],
-        "championName": player_info["championName"],
-        "stats": player_info["scores"],
-        "events": data["events"]["Events"],
-        "gameMode": data["gameData"]["gameMode"]
-    })
+    if let Some(player_info) = player_info {
+        Ok(json!({
+            "playerName": data["activePlayer"]["summonerName"],
+            "championName": player_info["championName"],
+            "stats": player_info["scores"],
+            "events": data["events"]["Events"],
+            "gameMode": data["gameData"]["gameMode"]
+        }))
+    } else {
+        Err(())
+    }
 }
 
 fn save_metadata(mut folder: PathBuf, filename: String, data_delay: f64, data: &Bytes) {
-    let mut json = deserialize_game_data(data);
+    let mut json = match deserialize_game_data(data) {
+        Ok(j) => j,
+        Err(_) => return,
+    };
 
     let mut result = Value::Null;
 
