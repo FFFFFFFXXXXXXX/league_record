@@ -1,25 +1,19 @@
 use std::{collections::HashMap, error::Error, thread, time::Duration};
 
 use tauri::{
-    api::{path::video_dir, process::Command},
-    App, AppHandle, CustomMenuItem, Manager, RunEvent, SystemTray, SystemTrayEvent, SystemTrayMenu,
-    SystemTrayMenuItem, WindowEvent, Wry,
+    api::{path::video_dir, process::Command, shell::open},
+    App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
 };
 
 use crate::{
-    helpers::{create_window, set_window_state},
+    helpers::{check_updates, create_tray_menu, create_window, set_window_state},
     recorder,
     state::Settings,
     AssetPort,
 };
 
 pub fn create_system_tray() -> SystemTray {
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(CustomMenuItem::new("rec", "Recording").disabled())
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(CustomMenuItem::new("open", "Open"))
-        .add_item(CustomMenuItem::new("quit", "Quit"));
-    SystemTray::new().with_menu(tray_menu)
+    SystemTray::new().with_menu(create_tray_menu())
 }
 
 pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent) {
@@ -32,6 +26,13 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                 // if that doesn't happen within 3s force shutdown here
                 thread::sleep(Duration::from_secs(3));
                 app_handle.exit(0);
+            }
+            "update" => {
+                let _ = open(
+                    &app_handle.shell_scope(),
+                    "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest",
+                    None,
+                );
             }
             _ => {}
         },
@@ -46,6 +47,8 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 
 pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     let app_handle = app.app_handle();
+
+    check_updates(&app_handle);
 
     // only start app if video directory exists
     if video_dir().is_none() {

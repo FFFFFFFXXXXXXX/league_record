@@ -4,9 +4,50 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use tauri::{AppHandle, Manager, Window};
+use reqwest::{blocking::Client, redirect::Policy, StatusCode};
+use tauri::{
+    api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem,
+    Window,
+};
 
 use crate::state::WindowState;
+
+pub fn create_tray_menu() -> SystemTrayMenu {
+    SystemTrayMenu::new()
+        .add_item(CustomMenuItem::new("rec", "Recording").disabled())
+        .add_native_item(SystemTrayMenuItem::Separator)
+        .add_item(CustomMenuItem::new("open", "Open"))
+        .add_item(CustomMenuItem::new("quit", "Quit"))
+}
+
+pub fn check_updates(app_handle: &AppHandle) {
+    let config = app_handle.config();
+    let version = config.package.version.as_ref().unwrap();
+
+    let client = Client::builder()
+        .redirect(Policy::none())
+        .build()
+        .expect("couldn't create http client");
+    let result = client
+        .get("https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest")
+        .send()
+        .expect("couldn't GET http result");
+
+    if result.status() == StatusCode::FOUND {
+        let url = result.headers().get("location").unwrap();
+        if let Ok(url) = url.to_str() {
+            let new_version = url.rsplit_once("/v").unwrap().1;
+            if let Ok(res) = compare(&version, new_version) {
+                if res == 1 {
+                    let tray_menu = create_tray_menu()
+                        .add_native_item(SystemTrayMenuItem::Separator)
+                        .add_item(CustomMenuItem::new("update", "Update Available!"));
+                    let _ = app_handle.tray_handle().set_menu(tray_menu);
+                }
+            }
+        }
+    }
+}
 
 pub fn get_recordings(rec_folder: &Path) -> Vec<PathBuf> {
     // get all mp4 files in ~/Videos/%folder-name%
