@@ -8,6 +8,7 @@
         1
     ],
     "recordAudio": true,
+    "checkForUpdates": true,
     "markerFlags": {
         "kill": true,
         "death": true,

@@ -48,7 +48,9 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     let app_handle = app.app_handle();
 
-    check_updates(&app_handle);
+    if app_handle.state::<Settings>().check_for_updates() {
+        check_updates(&app_handle);
+    }
 
     // only start app if video directory exists
     if video_dir().is_none() {
