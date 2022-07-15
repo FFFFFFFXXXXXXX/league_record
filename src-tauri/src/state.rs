@@ -107,6 +107,9 @@ pub struct Settings {
     #[serde(default = "default_true")]
     record_audio: bool,
     #[serde(skip_serializing)]
+    #[serde(default = "default_true")]
+    check_for_updates: bool,
+    #[serde(skip_serializing)]
     marker_flags: MarkerFlags,
     // for passing to lol_rec
     #[serde(skip_deserializing)]
@@ -138,6 +141,7 @@ impl Settings {
             output_resolution: default_output_resolution(),
             framerate: default_framerate(),
             record_audio: true,
+            check_for_updates: true,
             marker_flags: MarkerFlags::default(),
             window_size: (0, 0),
         }
@@ -152,6 +156,9 @@ impl Settings {
             .into_os_string()
             .into_string()
             .map_err(|_| ())
+    }
+    pub fn check_for_updates(&self) -> bool {
+        self.check_for_updates
     }
     pub fn marker_flags(&self) -> Value {
         self.marker_flags.to_json_value()
