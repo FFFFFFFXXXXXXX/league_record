@@ -12,11 +12,18 @@ use std::{
 };
 
 use crate::{
-    helpers::{compare_time, get_recordings},
+    helpers::{compare_time, get_recordings, show_window},
     state::{AssetPort, MarkerFlags, MarkerFlagsState, Settings},
 };
 use serde_json::Value;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
+
+#[tauri::command]
+pub async fn show_app_window(app_handle: AppHandle) {
+    if let Some(main) = app_handle.windows().get("main") {
+        show_window(main);
+    }
+}
 
 #[tauri::command]
 pub async fn get_default_marker_flags(state: State<'_, Settings>) -> Result<Value, ()> {
