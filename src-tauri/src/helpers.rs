@@ -73,10 +73,15 @@ pub fn compare_time(a: &Path, b: &Path) -> io::Result<Ordering> {
     Ok(a_time.cmp(&b_time).reverse())
 }
 
+pub fn show_window(window: &Window) {
+    let _ = window.show();
+    let _ = window.unminimize();
+    let _ = window.set_focus();
+}
+
 pub fn create_window(app_handle: &AppHandle) {
-    let windows = app_handle.windows();
-    if let Some(main) = windows.get("main") {
-        let _ = main.show();
+    if let Some(main) = app_handle.windows().get("main") {
+        show_window(main);
     } else {
         let window_state = app_handle.state::<WindowState>();
 

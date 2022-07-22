@@ -60,8 +60,7 @@
       },
       "window": {
         "setTitle": true,
-        "setFullscreen": true,
-        "show": true
+        "setFullscreen": true
       }
     },
     "windows": [

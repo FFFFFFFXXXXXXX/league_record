@@ -343,7 +343,7 @@ async function init() {
     await setRecordingsSize();
 
     await sleep(150); // delay so the initial blank screen when creating a window doesn't show
-    wmng.show();
+    await invoke('show_app_window');
 }
 // ------------------------------
 
