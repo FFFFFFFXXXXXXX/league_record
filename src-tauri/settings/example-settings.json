@@ -8,7 +8,6 @@
         1
     ],
     "recordAudio": true,
-    "checkForUpdates": true,
     "markerFlags": {
         "kill": true,
         "death": true,
@@ -18,5 +17,7 @@
         "dragon": true,
         "herald": true,
         "baron": true
-    }
+    },
+    "checkForUpdates": true,
+    "debugLog": false
 }

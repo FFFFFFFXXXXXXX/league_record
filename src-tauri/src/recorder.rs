@@ -25,8 +25,6 @@ const WINDOW_CLASS: &str = "RiotWindowClass";
 
 const SLEEP_SECS: u64 = 5;
 
-const DEBUG: bool = false;
-
 fn set_recording_tray_item<R: Runtime>(app_handle: &AppHandle<R>, recording: bool) {
     let item = app_handle.tray_handle().get_item("rec");
     // set selected only updates the tray menu when open if the menu item is enabled
@@ -86,6 +84,7 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
 
     // get owned copy of settings so we can change window_size
     let mut settings = app_handle.state::<Settings>().inner().to_owned();
+    let debug_log = settings.debug_log();
 
     let mut recording = false;
     let mut lol_rec = None;
@@ -99,7 +98,7 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
                     .expect("error spawing lol_rec");
 
                 // log received messages
-                if DEBUG {
+                if debug_log {
                     std::thread::spawn(move || {
                         while let Some(line) = rcv.blocking_recv() {
                             println!(

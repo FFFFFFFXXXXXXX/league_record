@@ -16,6 +16,7 @@ pub struct Config {
     #[serde(deserialize_with = "deserialize_framerate")]
     framerate: Framerate,
     record_audio: bool,
+    debug_log: bool,
 }
 
 impl Config {
@@ -43,6 +44,9 @@ impl Config {
     }
     pub fn record_audio(&self) -> bool {
         self.record_audio
+    }
+    pub fn debug_log(&self) -> bool {
+        self.debug_log
     }
 }
 
