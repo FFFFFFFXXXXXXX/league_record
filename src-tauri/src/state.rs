@@ -111,6 +111,7 @@ pub struct Settings {
     check_for_updates: bool,
     #[serde(skip_serializing)]
     marker_flags: MarkerFlags,
+    debug_log: bool,
     // for passing to lol_rec
     #[serde(skip_deserializing)]
     window_size: (u32, u32),
@@ -143,6 +144,7 @@ impl Settings {
             record_audio: true,
             check_for_updates: true,
             marker_flags: MarkerFlags::default(),
+            debug_log: false,
             window_size: (0, 0),
         }
     }
@@ -162,6 +164,9 @@ impl Settings {
     }
     pub fn marker_flags(&self) -> Value {
         self.marker_flags.to_json_value()
+    }
+    pub fn debug_log(&self) -> bool {
+        self.debug_log
     }
 
     pub fn create_lol_rec_cfg(&mut self, window_size: (u32, u32)) -> Result<String, ()> {

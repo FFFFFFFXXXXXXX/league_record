@@ -26,8 +26,6 @@ const WINDOW_PROCESS: &str = "League of Legends.exe";
 
 const SLEEP_SECS: u64 = 1;
 
-const DEBUG: bool = false;
-
 fn main() {
     let stdin = stdin();
 
@@ -35,16 +33,14 @@ fn main() {
     let cfg = {
         let mut buffer = String::new();
         stdin.read_line(&mut buffer).expect("error reading stdin");
-        if DEBUG {
-            println!("config received");
-        }
 
         match Config::init(&buffer) {
             Ok(cfg) => cfg,
             _ => exit(1),
         }
     };
-    if DEBUG {
+    let debug_log: bool = cfg.debug_log();
+    if debug_log {
         println!("config valid");
     }
 
@@ -54,7 +50,7 @@ fn main() {
     let plugin_data_path = Some(String::from("./libobs/data/obs-plugins/%module%/"));
     match Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path) {
         Ok(enc) => {
-            if DEBUG {
+            if debug_log {
                 println!("recorder init successfull: {}", enc.id());
             }
         }
@@ -63,7 +59,7 @@ fn main() {
 
     // create recorder settings
     let filename = format!("{}", chrono::Local::now().format(cfg.filename_format()));
-    if DEBUG {
+    if debug_log {
         println!("filename: {}", &filename);
     }
     let settings = create_recorder_settings(&cfg, &filename);
@@ -71,7 +67,7 @@ fn main() {
         Ok(rec) => rec,
         Err(_) => exit(1),
     };
-    if DEBUG {
+    if debug_log {
         println!("recorder created");
     }
 
@@ -82,7 +78,7 @@ fn main() {
     }
     let instant = Instant::now();
     let stop_time = Duration::from_secs(5000);
-    if DEBUG {
+    if debug_log {
         println!("recording started");
     }
 
@@ -103,7 +99,7 @@ fn main() {
                     // store the delay between event time and recording time
                     // but only if recording delay is unset (<0.0)
                     if init {
-                        if let Some(ts) = get_timestamp(&data) {
+                        if let Some(ts) = get_timestamp(&data, debug_log) {
                             data_delay = instant.elapsed().as_secs_f64() - ts;
                             init = false;
                         }
@@ -128,7 +124,7 @@ fn main() {
     // wait for stdin: "stop" or timeout ~83min
     let mut buffer = String::new();
     while buffer != "stop" && instant.elapsed() < stop_time {
-        if DEBUG {
+        if debug_log {
             println!("check buffer");
         }
         buffer.clear();
@@ -138,7 +134,7 @@ fn main() {
     recorder.stop_recording();
     let _ = sender.send(());
     let _ = thread.join();
-    if DEBUG {
+    if debug_log {
         println!("stopped recording");
     }
 }
@@ -195,14 +191,14 @@ fn get_league_data(client: &Client) -> Option<Bytes> {
     }
 }
 
-fn get_timestamp(bytes: &Bytes) -> Option<f64> {
+fn get_timestamp(bytes: &Bytes, debug_log: bool) -> Option<f64> {
     let data: Value = match serde_json::from_slice(bytes) {
         Ok(data) => data,
         Err(_) => return None,
     };
 
     // make sure the game has started
-    if DEBUG {
+    if debug_log {
         println!(
             "game started: {}",
             data["events"]["Events"][0]["EventName"] == "GameStart"
