@@ -107,10 +107,10 @@ pub struct Settings {
     #[serde(default = "default_true")]
     record_audio: bool,
     #[serde(skip_serializing)]
+    marker_flags: MarkerFlags,
+    #[serde(skip_serializing)]
     #[serde(default = "default_true")]
     check_for_updates: bool,
-    #[serde(skip_serializing)]
-    marker_flags: MarkerFlags,
     debug_log: bool,
     // for passing to lol_rec
     #[serde(skip_deserializing)]
