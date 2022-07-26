@@ -41,6 +41,7 @@ fn main() {
     };
     let debug_log: bool = cfg.debug_log();
     if debug_log {
+        println!("lol_rec:");
         println!("config valid");
     }
 
@@ -51,7 +52,7 @@ fn main() {
     match Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path) {
         Ok(enc) => {
             if debug_log {
-                println!("recorder init successfull: {}", enc.id());
+                println!("recorder init successful: {}", enc.id());
             }
         }
         Err(_) => exit(1),
@@ -135,7 +136,7 @@ fn main() {
     let _ = sender.send(());
     let _ = thread.join();
     if debug_log {
-        println!("stopped recording");
+        println!("stopped recording and exit lol_rec");
     }
 }
 

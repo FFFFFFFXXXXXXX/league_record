@@ -26,13 +26,15 @@ pub async fn show_app_window(app_handle: AppHandle) {
 }
 
 #[tauri::command]
-pub async fn get_default_marker_flags(state: State<'_, Settings>) -> Result<Value, ()> {
-    Ok(state.marker_flags())
+pub async fn get_default_marker_flags(settings_state: State<'_, Settings>) -> Result<Value, ()> {
+    Ok(settings_state.marker_flags())
 }
 
 #[tauri::command]
-pub async fn get_current_marker_flags(state: State<'_, MarkerFlagsState>) -> Result<Value, ()> {
-    let flags = match state.0.lock() {
+pub async fn get_current_marker_flags(
+    flag_state: State<'_, MarkerFlagsState>,
+) -> Result<Value, ()> {
+    let flags = match flag_state.0.lock() {
         Ok(f) => f,
         Err(_) => return Err(()),
     };
@@ -45,9 +47,9 @@ pub async fn get_current_marker_flags(state: State<'_, MarkerFlagsState>) -> Res
 #[tauri::command]
 pub async fn set_current_marker_flags(
     marker_flags: MarkerFlags,
-    state: State<'_, MarkerFlagsState>,
+    flag_state: State<'_, MarkerFlagsState>,
 ) -> Result<(), ()> {
-    let mut flags = match state.0.lock() {
+    let mut flags = match flag_state.0.lock() {
         Ok(f) => f,
         Err(_) => return Err(()),
     };
@@ -56,14 +58,14 @@ pub async fn set_current_marker_flags(
 }
 
 #[tauri::command]
-pub fn get_asset_port(state: State<'_, AssetPort>) -> u16 {
-    state.get()
+pub fn get_asset_port(port_state: State<'_, AssetPort>) -> u16 {
+    port_state.get()
 }
 
 #[tauri::command]
-pub async fn get_recordings_size(state: State<'_, Settings>) -> Result<f32, ()> {
+pub async fn get_recordings_size(settings_state: State<'_, Settings>) -> Result<f32, ()> {
     let mut size = 0;
-    for file in get_recordings(&state.recordings_folder()) {
+    for file in get_recordings(&settings_state.recordings_folder()) {
         if let Ok(metadata) = metadata(file) {
             size += metadata.len();
         }
@@ -72,8 +74,8 @@ pub async fn get_recordings_size(state: State<'_, Settings>) -> Result<f32, ()> 
 }
 
 #[tauri::command]
-pub async fn get_recordings_list(state: State<'_, Settings>) -> Result<Vec<String>, ()> {
-    let mut recordings = get_recordings(&state.recordings_folder());
+pub async fn get_recordings_list(settings_state: State<'_, Settings>) -> Result<Vec<String>, ()> {
+    let mut recordings = get_recordings(&settings_state.recordings_folder());
     // sort by time created (index 0 is newest)
     recordings.sort_by(|a, b| match compare_time(a, b) {
         Ok(result) => result,

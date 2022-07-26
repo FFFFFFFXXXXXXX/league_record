@@ -6,7 +6,7 @@ use tauri::{
 };
 
 use crate::{
-    helpers::{check_updates, create_tray_menu, create_window, set_window_state},
+    helpers::{check_updates, create_tray_menu, create_window, save_window_state},
     recorder,
     state::Settings,
     AssetPort,
@@ -47,30 +47,52 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 
 pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     let app_handle = app.app_handle();
+    let settings = app_handle.state::<Settings>();
+    let debug_log = settings.debug_log();
 
-    if app_handle.state::<Settings>().check_for_updates() {
-        check_updates(&app_handle);
+    println!(
+        "debug_log: {}\n",
+        if debug_log { "enabled" } else { "disabled" }
+    );
+
+    if debug_log {
+        println!("Settings: {:?}\n", settings);
+    }
+
+    if settings.check_for_updates() {
+        check_updates(&app_handle, debug_log);
     }
 
     // only start app if video directory exists
     if video_dir().is_none() {
+        if debug_log {
+            println!("Error: No video directory available");
+        }
         app_handle.exit(-1);
     }
 
     // don't show window on startup and set initial window state
     if let Some(window) = app_handle.get_window("main") {
-        set_window_state(&app_handle, &window);
+        save_window_state(&app_handle, &window);
         let _ = window.close();
     }
 
     // launch static-file-server as a replacement for the broken asset protocol
     let port = app_handle.state::<AssetPort>().get();
-    let folder = app_handle.state::<Settings>().recordings_folder_as_string();
+    let folder = settings
+        .recordings_folder_as_string()
+        .expect("invalid sfs folder");
+
+    if debug_log {
+        println!("SFS port: {}\n", port);
+        println!("video folder: {}\n", folder);
+    }
+
     let (_, sfs) = Command::new_sidecar("static-file-server")
         .expect("missing static-file-server")
         .envs(HashMap::from([
             ("PORT".into(), port.to_string()),
-            ("FOLDER".into(), folder.expect("invalid sfs folder")),
+            ("FOLDER".into(), folder),
         ]))
         .spawn()
         .expect("error spawing static-file-server");
@@ -86,11 +108,14 @@ pub fn run_handler(app_handle: &AppHandle, event: RunEvent) {
             event: WindowEvent::CloseRequested { api: _, .. },
             ..
         } => {
+            // triggered on window close (X Button)
             if let Some(window) = app_handle.get_window("main") {
-                set_window_state(app_handle, &window);
+                save_window_state(app_handle, &window);
             }
         }
         RunEvent::ExitRequested { api, .. } => {
+            // triggered when no windows remain
+            // prevent complete shutdown of program so that just the tray icon stays
             api.prevent_exit();
         }
         _ => {}

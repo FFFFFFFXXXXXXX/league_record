@@ -92,13 +92,19 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
         // if window exists && we get data from the API && we are not recording => start recording
         if let Ok(hwnd) = get_window() {
             if !recording {
+                if debug_log {
+                    println!("LoL Window found");
+                }
+
                 let (mut rcv, mut child) = Command::new_sidecar("lol_rec")
                     .expect("missing lol_rec")
                     .spawn()
                     .expect("error spawing lol_rec");
 
-                // log received messages
                 if debug_log {
+                    println!("lol_rec started");
+
+                    // log received messages
                     std::thread::spawn(move || {
                         while let Some(line) = rcv.blocking_recv() {
                             println!(
@@ -113,6 +119,7 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
                                 }
                             );
                         }
+                        println!(""); //empty line after lol_rec output
                     });
                 }
 
@@ -136,6 +143,10 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
             set_recording_tray_item(&app_handle, false);
             let _ = app_handle.emit_all("new_recording", ());
             recording = false;
+
+            if debug_log {
+                println!("LoL window closed: lol_rec stopped");
+            }
         }
 
         // delay SLEEP_MS milliseconds waiting for stop event
