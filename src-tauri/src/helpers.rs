@@ -10,7 +10,9 @@ use tauri::{
     Window,
 };
 
-use crate::state::WindowState;
+use crate::state::{Settings, WindowState};
+
+const GITHUB_LATEST: &str = "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest";
 
 pub fn create_tray_menu() -> SystemTrayMenu {
     SystemTrayMenu::new()
@@ -20,18 +22,29 @@ pub fn create_tray_menu() -> SystemTrayMenu {
         .add_item(CustomMenuItem::new("quit", "Quit"))
 }
 
-pub fn check_updates(app_handle: &AppHandle) {
+pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
     let config = app_handle.config();
     let version = config.package.version.as_ref().unwrap();
 
-    let client = Client::builder()
-        .redirect(Policy::none())
-        .build()
-        .expect("couldn't create http client");
-    let result = client
-        .get("https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest")
-        .send()
-        .expect("couldn't GET http result");
+    let client = match Client::builder().redirect(Policy::none()).build() {
+        Ok(c) => c,
+        Err(_) => {
+            if debug_log {
+                println!("Error creating HTTP Client in 'check_updates'");
+            }
+            return;
+        }
+    };
+
+    let result = match client.get(GITHUB_LATEST).send() {
+        Ok(r) => r,
+        Err(_) => {
+            if debug_log {
+                println!("couldn't GET http result in 'check_updates");
+            }
+            return;
+        }
+    };
 
     if result.status() == StatusCode::FOUND {
         let url = result.headers().get("location").unwrap();
@@ -45,7 +58,15 @@ pub fn check_updates(app_handle: &AppHandle) {
                     let _ = app_handle.tray_handle().set_menu(tray_menu);
                 }
             }
+            return; // skip last log when there was a version to check against
         }
+    }
+
+    if debug_log {
+        println!(
+            "Error somewhere in the HTTP response from {}",
+            GITHUB_LATEST
+        );
     }
 }
 
@@ -104,20 +125,33 @@ pub fn create_window(app_handle: &AppHandle) {
     }
 }
 
-pub fn set_window_state(app_handle: &AppHandle, window: &Window) {
-    let scale_factor = window.scale_factor().unwrap();
+pub fn save_window_state(app_handle: &AppHandle, window: &Window) {
+    let debug_log = app_handle.state::<Settings>().debug_log();
+    let scale_factor = window
+        .scale_factor()
+        .expect("Error getting window scale factor");
     let window_state = app_handle.state::<WindowState>();
 
     if let Ok(size) = window.inner_size() {
-        *window_state.size.lock().unwrap() = (
+        let size = (
             (size.width as f64) / scale_factor,
             (size.height as f64) / scale_factor,
         );
+        *window_state.size.lock().expect("win-state mutex error") = size;
+
+        if debug_log {
+            println!("saved window size: {}x{}", size.0, size.1);
+        }
     }
     if let Ok(position) = window.outer_position() {
-        *window_state.position.lock().unwrap() = (
+        let position = (
             (position.x as f64) / scale_factor,
             (position.y as f64) / scale_factor,
         );
+        *window_state.position.lock().expect("win-state mutex error") = position;
+
+        if debug_log {
+            println!("saved window position: {}x {}y", position.0, position.1);
+        }
     }
 }
