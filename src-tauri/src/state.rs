@@ -5,6 +5,7 @@ use std::{
     sync::Mutex,
 };
 
+use port_check::free_local_port_in_range;
 use serde::{Deserialize, Serialize};
 
 use serde_json::{json, Value};
@@ -33,9 +34,9 @@ impl MarkerFlagsState {
 pub struct AssetPort(u16);
 impl AssetPort {
     pub fn init() -> Self {
-        let port =
-            port_check::free_local_port_in_range(1024, 65535).expect("no free port available");
-        AssetPort(port)
+        // dont accidentally block port 2999 which the LoL ingame API uses
+        // use a "ephemeral"/"dynamic" port for temporary applications
+        AssetPort(free_local_port_in_range(49152, 65535).expect("no free port available"))
     }
     pub fn get(&self) -> u16 {
         self.0
