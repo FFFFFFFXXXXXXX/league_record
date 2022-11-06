@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use libobs_recorder::{Framerate, Resolution, Size};
+use libobs_recorder::{Framerate, Resolution, Size, RecordAudio};
 use serde::Deserialize;
 use serde_json::error::Result as SerdeResult;
 
@@ -15,7 +15,8 @@ pub struct Config {
     output_resolution: Resolution,
     #[serde(deserialize_with = "deserialize_framerate")]
     framerate: Framerate,
-    record_audio: bool,
+    #[serde(deserialize_with = "deserialize_record_audio")]
+    record_audio: RecordAudio,
     debug_log: bool,
 }
 
@@ -42,7 +43,7 @@ impl Config {
     pub fn framerate(&self) -> Framerate {
         self.framerate
     }
-    pub fn record_audio(&self) -> bool {
+    pub fn record_audio(&self) -> RecordAudio {
         self.record_audio
     }
     pub fn debug_log(&self) -> bool {
@@ -70,4 +71,15 @@ fn deserialize_framerate<'de, D: serde::Deserializer<'de>>(
 ) -> Result<Framerate, D::Error> {
     let fr: (u32, u32) = Deserialize::deserialize(deserializer)?;
     Ok(Framerate::new(fr.0, fr.1))
+}
+fn deserialize_record_audio<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<RecordAudio, D::Error> {
+    let res: String = Deserialize::deserialize(deserializer)?;
+    Ok(match res.as_str() {
+        "NONE" => RecordAudio::NONE,
+        "APPLICATION" => RecordAudio::APPLICATION,
+        "SYSTEM" => RecordAudio::SYSTEM,
+        _ => RecordAudio::APPLICATION,
+    })
 }

@@ -13,7 +13,6 @@ use windows::{
     core::PCSTR,
     Win32::{
         Foundation::{HWND, RECT},
-        UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE},
         UI::WindowsAndMessaging::{FindWindowA, GetClientRect},
     },
 };
@@ -69,17 +68,15 @@ fn stop_lol_rec(lol_rec: Option<CommandChild>) {
     }
 }
 
-pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
-    #[cfg(target_os = "windows")]
-    unsafe {
-        // Get correct window size from GetClientRect
-        SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
-    };
+pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
+    std::thread::spawn(move || start_internal(app_handle));
+}
 
+fn start_internal<R: Runtime>(app_handle: AppHandle<R>) {
     // send stop to channel on "shutdown" event
-    let (sender, receiver) = channel::<_>();
+    let (tx, rx) = channel::<_>();
     app_handle.once_global("shutdown", move |_| {
-        let _ = sender.send(());
+        let _ = tx.send(());
     });
 
     // get owned copy of settings so we can change window_size
@@ -119,12 +116,11 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
                                 }
                             );
                         }
-                        println!(""); //empty line after lol_rec output
+                        println!(""); //formatting: empty line after lol_rec output
                     });
                 }
 
                 // write serialized config to child
-                // let mut json = serde_json::to_value(settings).expect("error serializing settings");
                 let size = get_window_size(hwnd).unwrap_or_default();
                 if let Ok(cfg) = settings.create_lol_rec_cfg(size) {
                     let _ = child.write(cfg.as_bytes());
@@ -137,8 +133,7 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
 
         // if we are recording and we the window doesn't exist anymore => stop recording
         } else if recording {
-            stop_lol_rec(lol_rec);
-            lol_rec = None;
+            stop_lol_rec(lol_rec.take());
 
             set_recording_tray_item(&app_handle, false);
             let _ = app_handle.emit_all("new_recording", ());
@@ -151,13 +146,12 @@ pub fn start_polling<R: Runtime>(app_handle: AppHandle<R>, sfs: CommandChild) {
 
         // delay SLEEP_MS milliseconds waiting for stop event
         // break if stop event received or sender disconnected
-        match receiver.recv_timeout(Duration::from_secs(SLEEP_SECS)) {
+        match rx.recv_timeout(Duration::from_secs(SLEEP_SECS)) {
             Ok(_) | Err(RecvTimeoutError::Disconnected) => break,
             Err(RecvTimeoutError::Timeout) => {}
         }
     }
 
     stop_lol_rec(lol_rec);
-    let _ = sfs.kill();
     app_handle.exit(0);
 }

@@ -36,7 +36,7 @@ impl AssetPort {
     pub fn init() -> Self {
         // dont accidentally block port 2999 which the LoL ingame API uses
         // use a "ephemeral"/"dynamic" port for temporary applications
-        AssetPort(free_local_port_in_range(49152, 65535).expect("no free port available"))
+        Self(free_local_port_in_range(49152, 65535).expect("no free port available"))
     }
     pub fn get(&self) -> u16 {
         self.0
@@ -105,8 +105,8 @@ pub struct Settings {
     output_resolution: String,
     #[serde(default = "default_framerate")]
     framerate: (u32, u32),
-    #[serde(default = "default_true")]
-    record_audio: bool,
+    #[serde(default = "default_record_audio")]
+    record_audio: String,
     #[serde(skip_serializing)]
     marker_flags: MarkerFlags,
     #[serde(skip_serializing)]
@@ -142,7 +142,7 @@ impl Settings {
             encoding_quality: default_encoding_quality(),
             output_resolution: default_output_resolution(),
             framerate: default_framerate(),
-            record_audio: true,
+            record_audio: String::from("APPLICATION"),
             check_for_updates: true,
             marker_flags: MarkerFlags::default(),
             debug_log: false,
@@ -211,6 +211,9 @@ fn default_output_resolution() -> String {
 }
 fn default_framerate() -> (u32, u32) {
     (30, 1)
+}
+fn default_record_audio() -> String {
+    String::from("APPLICATION")
 }
 fn default_true() -> bool {
     true

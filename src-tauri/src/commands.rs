@@ -34,9 +34,8 @@ pub async fn get_default_marker_flags(settings_state: State<'_, Settings>) -> Re
 pub async fn get_current_marker_flags(
     flag_state: State<'_, MarkerFlagsState>,
 ) -> Result<Value, ()> {
-    let flags = match flag_state.0.lock() {
-        Ok(f) => f,
-        Err(_) => return Err(()),
+    let Ok(flags) = flag_state.0.lock() else {
+        return Err(());
     };
     match &*flags {
         Some(f) => Ok(f.to_json_value()),
@@ -49,12 +48,12 @@ pub async fn set_current_marker_flags(
     marker_flags: MarkerFlags,
     flag_state: State<'_, MarkerFlagsState>,
 ) -> Result<(), ()> {
-    let mut flags = match flag_state.0.lock() {
-        Ok(f) => f,
-        Err(_) => return Err(()),
-    };
-    *flags = Some(marker_flags);
-    Ok(())
+    if let Ok(mut flags) = flag_state.0.lock() {
+        *flags = Some(marker_flags);
+        return Ok(());
+    } else {
+        return Err(());
+    }
 }
 
 #[tauri::command]

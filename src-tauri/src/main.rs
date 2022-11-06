@@ -4,6 +4,7 @@
 )]
 
 mod commands;
+mod fileserver;
 mod handlers;
 mod helpers;
 mod recorder;
