@@ -1,11 +1,15 @@
-use std::{collections::HashMap, error::Error, thread, time::Duration};
+use std::{error::Error, path::PathBuf, thread, time::Duration};
 
 use tauri::{
-    api::{path::video_dir, process::Command, shell::open},
+    api::{path::video_dir, shell::open},
     App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
+};
+use windows::Win32::UI::HiDpi::{
+    SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE,
 };
 
 use crate::{
+    fileserver,
     helpers::{check_updates, create_tray_menu, create_window, save_window_state},
     recorder,
     state::Settings,
@@ -46,6 +50,12 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 }
 
 pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
+    #[cfg(target_os = "windows")]
+    unsafe {
+        // Get correct window size from GetClientRect
+        SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
+    };
+
     let app_handle = app.app_handle();
     let settings = app_handle.state::<Settings>();
     let debug_log = settings.debug_log();
@@ -66,7 +76,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     // only start app if video directory exists
     if video_dir().is_none() {
         if debug_log {
-            println!("Error: No video directory available");
+            println!("Error: No video folder available");
         }
         app_handle.exit(-1);
     }
@@ -81,23 +91,15 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     let port = app_handle.state::<AssetPort>().get();
     let folder = settings
         .recordings_folder_as_string()
-        .expect("invalid sfs folder");
+        .expect("invalid video folder");
 
     if debug_log {
-        println!("SFS port: {}\n", port);
+        println!("fileserver port: {}\n", port);
         println!("video folder: {}\n", folder);
     }
 
-    let (_, sfs) = Command::new_sidecar("static-file-server")
-        .expect("missing static-file-server")
-        .envs(HashMap::from([
-            ("PORT".into(), port.to_string()),
-            ("FOLDER".into(), folder),
-        ]))
-        .spawn()
-        .expect("error spawing static-file-server");
-
-    std::thread::spawn(|| recorder::start_polling(app_handle, sfs));
+    fileserver::start(app_handle.clone(), PathBuf::from(folder), port);
+    recorder::start(app_handle);
     Ok(())
 }
 

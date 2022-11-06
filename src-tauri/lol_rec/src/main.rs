@@ -11,10 +11,7 @@ use std::{
 };
 
 use bytes::Bytes;
-use libobs_recorder::{
-    rate_control::{Cqp, Icq},
-    Recorder, RecorderSettings, Window,
-};
+use libobs_recorder::{RateControl, Recorder, RecorderSettings, Window};
 use reqwest::{blocking::Client, header::ACCEPT, StatusCode};
 use serde_json::{json, Value};
 
@@ -52,7 +49,8 @@ fn main() {
     match Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path) {
         Ok(enc) => {
             if debug_log {
-                println!("recorder init successful: {}", enc.id());
+                println!("recorder init successful");
+                println!("available encoders: {:?}", enc);
             }
         }
         Err(_) => exit(1),
@@ -135,6 +133,7 @@ fn main() {
     recorder.stop_recording();
     let _ = sender.send(());
     let _ = thread.join();
+    Recorder::shutdown();
     if debug_log {
         println!("stopped recording and exit lol_rec");
     }
@@ -150,11 +149,9 @@ fn create_recorder_settings(cfg: &Config, filename: &str) -> RecorderSettings {
     ));
 
     settings.set_input_size(cfg.window_size());
-
     settings.set_output_resolution(cfg.output_resolution());
     settings.set_framerate(cfg.framerate());
-    settings.set_cqp(Cqp::new(cfg.encoding_quality())); // for amd/nvidia/software
-    settings.set_icq(Icq::new(cfg.encoding_quality())); // for intel quicksync
+    settings.set_rate_control(RateControl::CQP(cfg.encoding_quality()));
     settings.record_audio(cfg.record_audio());
 
     let mut video_path = cfg.recordings_folder();
@@ -193,9 +190,8 @@ fn get_league_data(client: &Client) -> Option<Bytes> {
 }
 
 fn get_timestamp(bytes: &Bytes, debug_log: bool) -> Option<f64> {
-    let data: Value = match serde_json::from_slice(bytes) {
-        Ok(data) => data,
-        Err(_) => return None,
+    let Ok(data) = serde_json::from_slice::<Value>(bytes) else {
+        return None;
     };
 
     // make sure the game has started
@@ -213,9 +209,8 @@ fn get_timestamp(bytes: &Bytes, debug_log: bool) -> Option<f64> {
 }
 
 fn deserialize_game_data(bytes: &Bytes) -> Result<Value, ()> {
-    let data: Value = match serde_json::from_slice(bytes) {
-        Ok(data) => data,
-        Err(_) => return Err(()),
+    let Ok(data) = serde_json::from_slice::<Value>(bytes) else {
+        return Err(());
     };
 
     let mut player_info = None;
@@ -241,9 +236,8 @@ fn deserialize_game_data(bytes: &Bytes) -> Result<Value, ()> {
 }
 
 fn save_metadata(mut folder: PathBuf, filename: String, data_delay: f64, data: &Bytes) {
-    let mut json = match deserialize_game_data(data) {
-        Ok(j) => j,
-        Err(_) => return,
+    let Ok(mut json) = deserialize_game_data(data) else {
+        return;
     };
 
     let mut result = Value::Null;

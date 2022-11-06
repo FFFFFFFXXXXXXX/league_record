@@ -31,41 +31,43 @@ To adjust the settings create/change the settings.json file in the installation 
 | encodingQuality  |                                positive whole number from 0-50                                  | Determines the size vs. quality tradeoff for the mp4 files. Zero means best encoding quality with a big filesize. 50 means heavily compressed with a small filesize.                                                                                                                       |
 | outputResolution |                      ['480p', '720p', '1080p', '1440p', '2160p', '4320p']                       | Sets the output resolution of the recordings.                                                                                                                                                                                                                                              |
 | outputFramerate  |                              [whole number > 0, whole number > 0]                               | Sets the framerate of the recordings as a fraction (numerator/denominator). <br> e.g. [30, 1] => 30fps, [30, 2] => 15fps                                                                                                                                                                   |
-|   recordAudio    |                                          true \| false                                          | Determines if audio gets recorded.                                                                                                                                                                                                                                                         |
+|   recordAudio    |                              'NONE' \| 'APPLICATION' \| 'SYSTEM'                                | Determines what audio gets recorded. 'NONE' records no audio. 'APPLICATION' records only LoL sounds. 'SYSTEM' records all sound output of your pc (e.g music in the background)                                                                                                            |
 |   markerFlags    |{ 'kill', 'death', 'assist', 'turret', 'inhibitor', 'dragon', 'herald', 'baron' } : true \| false| Choose which events are shown by default in the timeline when playing a recording.                                                                                                                                                                                                         |
 |check for updates |                                          true \| false                                          | Determines if on start LeagueRecord checks for new releases on GitHub                                                                                                                                                                                                                      |
 |    debug log     |                                          true \| false                                          | If true prints logs to stdout                                                                                                                                                                                                         |
 
 ## Resources and Performance
 
-LeagueRecord takes up ~70MB of your disk space.
+LeagueRecord takes up ~65MB of your disk space.
 
 On a system with a Ryzen 3600 CPU and RX5700 GPU these are the performance numbers measured with Windows Taskmanager.
 
-|                             | CPU | RAM    | GPU   |
-| --------------------------- |:---:|:------:|:-----:|
-| idle                        | ~0% | ~5MB   | 0%    |
-| record                      | ~2% | ~140MB | ~2%   |
-| watch recording             | ~3% | ~130MB | ~1%   |
-| record and watch recording  | ~5% | ~280MB | ~3%   |
+|                             | CPU  | RAM    | GPU   |
+| --------------------------- |:----:|:------:|:-----:|
+| idle                        | ~0%  | ~5.5MB |  0%   |
+| record                      | ~3%  | ~50MB  | ~3%   |
+| watch recording             | ~2.5%| ~160MB | ~2.5% |
 
-This is just a rough estimate so you can get a sense for how much resources LeagueRecord uses.
+The high RAM usage when watching a recording is due to using a WebView2 Window for the UI, which basically is Chromium in disguise.
+This is just a rough estimate with the default settings so you can get a sense for how much resources LeagueRecord uses.
 
 ## Release / Build
-
-**Currently [static-file-server](https://github.com/halverneus/static-file-server) is used as a replacement for the broken tauri asset protocol. This will be removed when the asset protocol is fixed**
 
 There is a release for Windows-x64, but you can build the project on your own.
 This project relies on libobs-recorder (and indirectly libobs) to record the game.
 For build prerequisites look at [libobs-recorder](https://github.com/FFFFFFFXXXXXXX/libobs-recorder)
-Build with `cargo tauri build`.
-Package up with `tar -cvzf LeagueRecord.tar.gz -C src-tauri licenses settings libobs/data libobs/obs-plugins static-file-server.exe -C libobs *.dll obs-ffmpeg-mux.exe -C ../target/release LeagueRecord.exe lol_rec.exe` (assuming that you have all your obs .dll's and the data/plugin folders in src-tauri/libobs/)
+Build with `cargo tauri build` to create an installer.
+In order to build a standalone archive, package everything up with
+
+```bash
+tar -cvzf LeagueRecord.tar.gz -C src-tauri licenses settings libobs/data libobs/obs-plugins -C libobs *.dll obs-ffmpeg-mux.exe obs-amf-test.exe obs-nvenc-test.exe -C ../target/release LeagueRecord.exe lol_rec.exe
+```
+
+(assuming that you have all your obs .dll's and the data/plugin folders in src-tauri/libobs/)
 
 ## License
 
 The libobs library is licensed under the GNU General Public License v2 (GPLv2).
-
-The static-file-server executable is licensed under the MIT License.
 
 The Javascript library [videojs](https://github.com/videojs/video.js) is licensed under the Apache License v2.0 and the plugin video-js markers is licensed under the MIT License.
 
