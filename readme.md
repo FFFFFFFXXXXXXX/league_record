@@ -1,7 +1,5 @@
 # LeagueRecord
 
-In case you have any problems, suggestions or questions feel free to open an issue. :)
-
 LeagueRecord automatically detects when a League of Legends game is running and records it.
 Currently only supports Windows and is only tested for Windows 10 with an AMD GPU.
 
@@ -74,3 +72,5 @@ The libobs library is licensed under the GNU General Public License v2 (GPLv2).
 The Javascript library [videojs](https://github.com/videojs/video.js) is licensed under the Apache License v2.0 and the plugin video-js markers is licensed under the MIT License.
 
 This project (LeagueRecord) is distributed under the GNU General Public License v3 (GPLv3).
+
+In case you have any problems, suggestions or questions feel free to open an issue. :)
