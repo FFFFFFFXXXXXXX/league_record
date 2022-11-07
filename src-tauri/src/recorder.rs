@@ -62,7 +62,7 @@ fn get_window_size(hwnd: HWND) -> Result<(u32, u32), ()> {
 
 fn stop_lol_rec(lol_rec: Option<CommandChild>) {
     if let Some(mut lol_rec) = lol_rec {
-        if lol_rec.write("stop".as_bytes()).is_err() {
+        if lol_rec.write(b"stop").is_err() {
             let _ = lol_rec.kill();
         }
     }
@@ -140,7 +140,7 @@ fn start_internal<R: Runtime>(app_handle: AppHandle<R>) {
             recording = false;
 
             if debug_log {
-                println!("LoL window closed: lol_rec stopped");
+                println!("LoL window closed: lol_rec stop signal sent");
             }
         }
 
