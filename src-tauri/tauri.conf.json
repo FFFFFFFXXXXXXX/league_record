@@ -21,15 +21,15 @@
         "icons/icon.ico"
       ],
       "resources": [
-        "./libobs*/data/",
-        "./libobs*/obs-plugins/",
+        "./libobs/data/",
+        "./libobs/obs-plugins/",
         "./licenses/*",
         "./settings/*"
       ],
       "externalBin": [
-        "./libobs*/obs-amf-test",
-        "./libobs*/obs-nvenc-test",
-        "./libobs*/obs-ffmpeg-mux",
+        "./libobs/obs-amf-test",
+        "./libobs/obs-nvenc-test",
+        "./libobs/obs-ffmpeg-mux",
         "./lol_rec"
       ],
       "copyright": "gpl-2.0",

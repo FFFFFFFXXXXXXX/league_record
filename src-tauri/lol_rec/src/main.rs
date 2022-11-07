@@ -133,7 +133,7 @@ fn main() {
     recorder.stop_recording();
     let _ = sender.send(());
     let _ = thread.join();
-    Recorder::shutdown();
+    // Recorder::shutdown(); // somehow hangs here - dont know why yet
     if debug_log {
         println!("stopped recording and exit lol_rec");
     }
