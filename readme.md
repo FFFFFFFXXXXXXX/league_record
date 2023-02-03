@@ -38,14 +38,14 @@ To adjust the settings create/change the settings.json file in the installation 
 
 ## Resources and Performance
 
-LeagueRecord takes up ~65MB of your disk space.
+LeagueRecord takes up ~60MB of your disk space.
 
 On a system with a Ryzen 3600 CPU and RX5700 GPU these are the performance numbers measured with Windows Taskmanager.
 
 |                             | CPU  | RAM    | GPU   |
 | --------------------------- |:----:|:------:|:-----:|
 | idle                        | ~0%  | ~5.5MB |  0%   |
-| record                      | ~3%  | ~50MB  | ~3%   |
+| record                      | ~3%  | ~50MB  | ~4%   |
 | watch recording             | ~2.5%| ~160MB | ~2.5% |
 
 The high RAM usage when watching a recording is due to using a WebView2 Window for the UI, which basically is Chromium in disguise.
@@ -60,7 +60,7 @@ Build with `cargo tauri build` to create an installer.
 In order to build a standalone archive, package everything up with
 
 ```bash
-tar -cvzf LeagueRecord.tar.gz -C src-tauri licenses settings libobs/data libobs/obs-plugins -C libobs *.dll obs-ffmpeg-mux.exe obs-amf-test.exe obs-nvenc-test.exe -C ../target/release LeagueRecord.exe lol_rec.exe
+tar -cvzf LeagueRecord.tar.gz -C src-tauri licenses settings libobs/data libobs/obs-plugins -C libobs *.dll obs-ffmpeg-mux.exe obs-amf-test.exe obs-nvenc-test.exe obs-qsv-test.exe -C ../target/release LeagueRecord.exe lol_rec.exe
 ```
 
 (assuming that you have all your obs .dll's and the data/plugin folders in src-tauri/libobs/)

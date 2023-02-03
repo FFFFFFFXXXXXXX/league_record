@@ -204,7 +204,7 @@ fn default_filename_format() -> String {
     String::from("%Y-%m-%d_%H-%M.mp4")
 }
 fn default_encoding_quality() -> u32 {
-    20
+    30
 }
 fn default_output_resolution() -> String {
     String::from("1080p")
