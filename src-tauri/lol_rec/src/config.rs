@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use libobs_recorder::{Framerate, Resolution, Size, RecordAudio};
+use libobs_recorder::{Framerate, RecordAudio, Resolution, Size};
 use serde::Deserialize;
 use serde_json::error::Result as SerdeResult;
 
