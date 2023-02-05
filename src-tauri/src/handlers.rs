@@ -1,7 +1,10 @@
-use std::{error::Error, path::PathBuf, thread, time::Duration};
+use std::{error::Error, fs, path::PathBuf, thread, time::Duration};
 
 use tauri::{
-    api::{path::video_dir, shell::open},
+    api::{
+        path::{app_config_dir, video_dir},
+        shell::{self, open},
+    },
     App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
 };
 use windows::Win32::UI::HiDpi::{
@@ -10,9 +13,9 @@ use windows::Win32::UI::HiDpi::{
 
 use crate::{
     fileserver,
-    helpers::{check_updates, create_tray_menu, create_window, save_window_state},
+    helpers::{self, check_updates, create_tray_menu, create_window, save_window_state},
     recorder,
-    state::Settings,
+    state::{Settings, SettingsFile},
     AssetPort,
 };
 
@@ -23,13 +26,45 @@ pub fn create_system_tray() -> SystemTray {
 pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent) {
     match event {
         SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+            "settings" => {
+                let path = app_handle.state::<SettingsFile>().get();
+                if path.is_file() {
+                    let _ = shell::open(
+                        &app_handle.shell_scope(),
+                        helpers::path_to_string(&path),
+                        None,
+                    );
+                } else {
+                    if let Some(parent) = path.parent() {
+                        if fs::create_dir_all(parent).is_ok() {
+                            if fs::write(&path, include_str!("../default-settings.json")).is_ok() {
+                                let _ = shell::open(
+                                    &app_handle.shell_scope(),
+                                    helpers::path_to_string(&path),
+                                    None,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
             "open" => create_window(app_handle),
             "quit" => {
-                app_handle.trigger_global("shutdown", Some("".into()));
+                if let Some(main) = app_handle.windows().get("main") {
+                    let _ = main.close();
+                }
+                app_handle.trigger_global("shutdown_fileserver", None);
+                app_handle.trigger_global("shutdown_recorder", None);
+
                 // normally recorder should call app_handle.exit() after shutting down
                 // if that doesn't happen within 3s force shutdown here
-                thread::sleep(Duration::from_secs(3));
-                app_handle.exit(0);
+                std::thread::spawn({
+                    let app_handle = app_handle.clone();
+                    move || {
+                        thread::sleep(Duration::from_secs(3));
+                        app_handle.exit(0);
+                    }
+                });
             }
             "update" => {
                 let _ = open(
@@ -57,7 +92,15 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     };
 
     let app_handle = app.app_handle();
+
     let settings = app_handle.state::<Settings>();
+    // Load settings from settings.json file if it exists and save settings folder
+    let mut settings_path =
+        app_config_dir(app_handle.config().as_ref()).expect("Error getting app directory");
+    settings_path.push("settings.json");
+    settings.load_settings_file(&settings_path);
+    app_handle.state::<SettingsFile>().set(settings_path);
+
     let debug_log = settings.debug_log();
 
     println!(
@@ -89,9 +132,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
 
     // launch static-file-server as a replacement for the broken asset protocol
     let port = app_handle.state::<AssetPort>().get();
-    let folder = settings
-        .recordings_folder_as_string()
-        .expect("invalid video folder");
+    let folder = helpers::path_to_string(&settings.recordings_folder());
 
     if debug_log {
         println!("fileserver port: {}\n", port);

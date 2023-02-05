@@ -2,7 +2,7 @@ use std::{
     fs::{create_dir_all, File},
     io::BufReader,
     path::PathBuf,
-    sync::Mutex,
+    sync::{Mutex, RwLock},
 };
 
 use port_check::free_local_port_in_range;
@@ -40,6 +40,19 @@ impl AssetPort {
     }
     pub fn get(&self) -> u16 {
         self.0
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct SettingsFile(RwLock<Option<PathBuf>>);
+
+impl SettingsFile {
+    pub fn get(&self) -> PathBuf {
+        self.0.read().unwrap().to_owned().unwrap()
+    }
+
+    pub fn set(&self, folder: PathBuf) {
+        *self.0.write().unwrap() = Some(folder);
     }
 }
 
@@ -91,9 +104,50 @@ impl Default for MarkerFlags {
     }
 }
 
+#[derive(Debug)]
+pub struct Settings(RwLock<SettingsInner>);
+
+impl Settings {
+    pub fn load_settings_file(&self, settings_path: &PathBuf) {
+        if let Ok(file) = File::open(&settings_path) {
+            let reader = BufReader::new(file);
+            if let Ok(settings) = serde_json::from_reader::<_, SettingsInner>(reader) {
+                *self.0.write().unwrap() = settings;
+            }
+        }
+    }
+
+    pub fn recordings_folder(&self) -> PathBuf {
+        self.0.read().unwrap().recordings_folder.clone()
+    }
+    pub fn check_for_updates(&self) -> bool {
+        self.0.read().unwrap().check_for_updates
+    }
+    pub fn marker_flags(&self) -> Value {
+        self.0.read().unwrap().marker_flags.to_json_value()
+    }
+    pub fn debug_log(&self) -> bool {
+        self.0.read().unwrap().debug_log
+    }
+
+    pub fn create_lol_rec_cfg(&self, window_size: (u32, u32)) -> Result<String, ()> {
+        let mut s = self.0.write().unwrap();
+        s.window_size = window_size;
+        let mut cfg = serde_json::to_string(&*s).map_err(|_| ())?;
+        cfg.push('\n'); // add newline as something like a termination sequence
+        Ok(cfg)
+    }
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self(RwLock::from(SettingsInner::default()))
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Settings {
+pub struct SettingsInner {
     #[serde(default = "default_recordings_folder")]
     #[serde(deserialize_with = "deserialize_recordings_folder")]
     recordings_folder: PathBuf,
@@ -118,24 +172,8 @@ pub struct Settings {
     window_size: (u32, u32),
 }
 
-impl Settings {
-    pub fn init() -> Self {
-        let mut exe_dir = std::path::PathBuf::from("./");
-        if let Ok(p) = std::env::current_exe() {
-            if let Ok(mut path) = p.canonicalize() {
-                path.pop();
-                exe_dir = path;
-            }
-        }
-        exe_dir.push("settings");
-        exe_dir.push("settings.json");
-        if let Ok(file) = File::open(&exe_dir) {
-            let reader = BufReader::new(file);
-            if let Ok(settings) = serde_json::from_reader::<_, Settings>(reader) {
-                return settings;
-            }
-        }
-
+impl Default for SettingsInner {
+    fn default() -> Self {
         Self {
             recordings_folder: default_recordings_folder(),
             filename_format: default_filename_format(),
@@ -148,33 +186,6 @@ impl Settings {
             debug_log: false,
             window_size: (0, 0),
         }
-    }
-
-    pub fn recordings_folder(&self) -> PathBuf {
-        self.recordings_folder.clone()
-    }
-    pub fn recordings_folder_as_string(&self) -> Result<String, ()> {
-        self.recordings_folder
-            .clone()
-            .into_os_string()
-            .into_string()
-            .map_err(|_| ())
-    }
-    pub fn check_for_updates(&self) -> bool {
-        self.check_for_updates
-    }
-    pub fn marker_flags(&self) -> Value {
-        self.marker_flags.to_json_value()
-    }
-    pub fn debug_log(&self) -> bool {
-        self.debug_log
-    }
-
-    pub fn create_lol_rec_cfg(&mut self, window_size: (u32, u32)) -> Result<String, ()> {
-        self.window_size = window_size;
-        let mut cfg = serde_json::to_string(&self).map_err(|_| ())?;
-        cfg.push('\n'); // add newline as something like a termination sequence
-        Ok(cfg)
     }
 }
 

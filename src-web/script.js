@@ -1,7 +1,6 @@
 // CONSTANTS AND GLOBAL VARIABLES
 const invoke = __TAURI__.invoke;
 const { emit, listen } = __TAURI__.event;
-const open = __TAURI__.shell.open;
 const wmng = new __TAURI__.window.WindowManager();
 
 // sets the time a marker jumps to before the actual event happens
@@ -124,7 +123,7 @@ listen('new_recording', async () => {
 
     let rec = await getRecordingsNames();
     sidebar.innerHTML = '';
-    rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
+    rec.forEach(el => createSidebarElement(el));
 
     document.getElementById(activeVideo)?.classList.add('active');
 
@@ -156,10 +155,10 @@ function hideModal(event) {
 }
 async function getVideoPath(video) {
     let port = await invoke('get_asset_port');
-    return `http://localhost:${port}/${video}`;
+    return `http://127.0.0.1:${port}/${video}`;
 }
 async function openRecordingsFolder() {
-    open(await invoke('get_recordings_folder'));
+    invoke('open_recordings_folder');
 }
 function getRecordingsNames() {
     return invoke('get_recordings_list');

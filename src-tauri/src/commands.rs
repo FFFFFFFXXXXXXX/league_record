@@ -12,11 +12,11 @@ use std::{
 };
 
 use crate::{
-    helpers::{compare_time, get_recordings, show_window},
+    helpers::{self, compare_time, get_recordings, show_window},
     state::{AssetPort, MarkerFlags, MarkerFlagsState, Settings},
 };
 use serde_json::Value;
-use tauri::{AppHandle, Manager, State};
+use tauri::{api::shell, AppHandle, Manager, State};
 
 #[tauri::command]
 pub async fn show_app_window(app_handle: AppHandle) {
@@ -92,8 +92,12 @@ pub async fn get_recordings_list(settings_state: State<'_, Settings>) -> Result<
 }
 
 #[tauri::command]
-pub fn get_recordings_folder(state: State<'_, Settings>) -> Result<String, ()> {
-    state.recordings_folder_as_string()
+pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, Settings>) {
+    let _ = shell::open(
+        &app_handle.shell_scope(),
+        helpers::path_to_string(&state.recordings_folder()),
+        None,
+    );
 }
 
 #[tauri::command]

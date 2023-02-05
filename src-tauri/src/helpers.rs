@@ -18,6 +18,7 @@ pub fn create_tray_menu() -> SystemTrayMenu {
     SystemTrayMenu::new()
         .add_item(CustomMenuItem::new("rec", "Recording").disabled())
         .add_native_item(SystemTrayMenuItem::Separator)
+        .add_item(CustomMenuItem::new("settings", "Settings"))
         .add_item(CustomMenuItem::new("open", "Open"))
         .add_item(CustomMenuItem::new("quit", "Quit"))
 }
@@ -86,6 +87,13 @@ pub fn get_recordings(rec_folder: &Path) -> Vec<PathBuf> {
         }
     }
     recordings
+}
+
+pub fn path_to_string(path: &PathBuf) -> String {
+    path.to_owned()
+        .into_os_string()
+        .into_string()
+        .expect("invalid path")
 }
 
 pub fn compare_time(a: &Path, b: &Path) -> io::Result<Ordering> {
