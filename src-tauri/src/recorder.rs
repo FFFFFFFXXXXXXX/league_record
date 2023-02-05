@@ -75,12 +75,12 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
 fn start_internal<R: Runtime>(app_handle: AppHandle<R>) {
     // send stop to channel on "shutdown" event
     let (tx, rx) = channel::<_>();
-    app_handle.once_global("shutdown", move |_| {
+    app_handle.once_global("shutdown_recorder", move |_| {
         let _ = tx.send(());
     });
 
     // get owned copy of settings so we can change window_size
-    let mut settings = app_handle.state::<Settings>().inner().to_owned();
+    let settings = app_handle.state::<Settings>();
     let debug_log = settings.debug_log();
 
     let mut recording = false;

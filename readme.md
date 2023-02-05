@@ -22,7 +22,7 @@ Currently only supports Windows and is only tested for Windows 10 with an AMD GP
 
 ## Settings
 
-To adjust the settings create/change the settings.json file in the installation path. There should be an example-settings.json file for reference.
+It is possible to adjust the settings via the settings button in the tray menu. Changed settings are require a restart to apply.
 
 |       Name       |                                              Value                                              | Description                                                                                                                                                                                                                                                                                |
 |:----------------:|:-----------------------------------------------------------------------------------------------:| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -60,7 +60,7 @@ Build with `cargo tauri build` to create an installer.
 In order to build a standalone archive, package everything up with
 
 ```bash
-tar -cvzf LeagueRecord.tar.gz -C src-tauri licenses settings libobs/data libobs/obs-plugins -C libobs *.dll obs-ffmpeg-mux.exe obs-amf-test.exe obs-nvenc-test.exe obs-qsv-test.exe -C ../target/release LeagueRecord.exe lol_rec.exe
+tar -cvzf LeagueRecord.tar.gz -C src-tauri licenses libobs/data libobs/obs-plugins -C libobs *.dll obs-ffmpeg-mux.exe obs-amf-test.exe obs-nvenc-test.exe obs-qsv-test.exe -C ../target/release LeagueRecord.exe lol_rec.exe
 ```
 
 (assuming that you have all your obs .dll's and the data/plugin folders in src-tauri/libobs/)

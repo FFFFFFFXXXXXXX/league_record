@@ -20,7 +20,8 @@ fn main() {
         .manage(WindowState::init())
         .manage(MarkerFlagsState::init())
         .manage(AssetPort::init())
-        .manage(Settings::init())
+        .manage(SettingsFile::default())
+        .manage(Settings::default())
         .invoke_handler(generate_handler![
             show_app_window,
             get_default_marker_flags,
@@ -29,7 +30,7 @@ fn main() {
             get_asset_port,
             get_recordings_size,
             get_recordings_list,
-            get_recordings_folder,
+            open_recordings_folder,
             delete_video,
             get_metadata
         ])

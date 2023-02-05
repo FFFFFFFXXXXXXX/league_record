@@ -24,6 +24,8 @@ use tauri::{AppHandle, Manager, Runtime};
 use tokio::{fs::File, io::AsyncSeekExt};
 use tokio_util::io::poll_read_buf;
 
+use crate::state::Settings;
+
 static BUFFER_SIZE: usize = 8192;
 
 pub fn start<R: Runtime>(app_handle: AppHandle<R>, folder: PathBuf, port: u16) {
@@ -31,7 +33,7 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>, folder: PathBuf, port: u16) {
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
         let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-        app_handle.once_global("shutdown", move |_| {
+        app_handle.once_global("shutdown_fileserver", move |_| {
             let _ = tx.send(());
         });
 
@@ -41,10 +43,15 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>, folder: PathBuf, port: u16) {
                 let _ = rx.await;
             });
 
+        let debug = app_handle.state::<Settings>().debug_log();
         if let Err(e) = server.await {
-            eprintln!("fileserver error: {}", e);
+            if debug {
+                eprintln!("fileserver error: {}", e)
+            }
         } else {
-            println!("fileserver gracefully shutdown")
+            if debug {
+                println!("fileserver gracefully shutdown")
+            }
         }
     });
 }
@@ -95,7 +102,7 @@ async fn response(req: Request<Body>, mut folder: PathBuf) -> Result<Response<Bo
     if let Some(host) = headers.get("host") {
         if let Ok(host_str) = host.to_str() {
             if let Some((domain, _port)) = host_str.rsplit_once(':') {
-                local_conn = domain == "localhost";
+                local_conn = domain == "127.0.0.1";
             }
         }
     }
