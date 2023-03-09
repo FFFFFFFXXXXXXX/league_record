@@ -5,11 +5,12 @@ edition = "2021"
 
 [dependencies]
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder" }
+shaco = { path = "../../../../Rust/Shaco" }
 reqwest = { version = "0.11.10", features = ["json", "blocking"] }
-serde_json = "1.0"
 serde = { version = "1.0.137", features = ["derive"] }
-bytes = "1.1.0"
+serde_json = "1.0"
+tokio = { version = "1.25.0", features = ["rt", "net", "fs", "time", "macros", "io-std"] }
+tokio-util = "0.7.7"
+futures = "0.3.26"
+anyhow = "1.0.69"
 chrono = "0.4.19"
-
-[features]
-debug = [ "libobs-recorder/debug" ]

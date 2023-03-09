@@ -183,7 +183,7 @@ fn file_stream(
     mut file: File,
     buf_size: usize,
     (start, end): (u64, u64),
-) -> impl Stream<Item = std::result::Result<Bytes, io::Error>> + Send {
+) -> impl Stream<Item = Result<Bytes, io::Error>> + Send {
     let seek = async move {
         if start != 0 {
             file.seek(io::SeekFrom::Start(start)).await?;

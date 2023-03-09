@@ -1,13 +1,13 @@
 use std::{
     sync::mpsc::{channel, RecvTimeoutError},
+    thread,
     time::Duration,
 };
 
 use tauri::{
-    api::process::{Command, CommandChild, CommandEvent},
+    api::process::{Command, CommandEvent},
     AppHandle, Manager, Runtime,
 };
-
 #[cfg(target_os = "windows")]
 use windows::{
     core::PCSTR,
@@ -60,98 +60,94 @@ fn get_window_size(hwnd: HWND) -> Result<(u32, u32), ()> {
     }
 }
 
-fn stop_lol_rec(lol_rec: Option<CommandChild>) {
-    if let Some(mut lol_rec) = lol_rec {
-        if lol_rec.write(b"stop").is_err() {
-            let _ = lol_rec.kill();
-        }
-    }
-}
-
 pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
-    std::thread::spawn(move || start_internal(app_handle));
-}
+    thread::spawn(move || {
+        // send stop to channel on "shutdown" event
+        let (tx, rx) = channel::<_>();
+        app_handle.once_global("shutdown_recorder", move |_| {
+            let _ = tx.send(());
+        });
 
-fn start_internal<R: Runtime>(app_handle: AppHandle<R>) {
-    // send stop to channel on "shutdown" event
-    let (tx, rx) = channel::<_>();
-    app_handle.once_global("shutdown_recorder", move |_| {
-        let _ = tx.send(());
-    });
+        // get owned copy of settings so we can change window_size
+        let settings = app_handle.state::<Settings>();
+        let debug_log = settings.debug_log();
 
-    // get owned copy of settings so we can change window_size
-    let settings = app_handle.state::<Settings>();
-    let debug_log = settings.debug_log();
+        let mut recording = false;
+        let mut lol_rec = None;
+        loop {
+            // if window exists && we get data from the API && we are not recording => start recording
+            if let Ok(hwnd) = get_window() {
+                if !recording {
+                    if debug_log {
+                        println!("LoL Window found");
+                    }
 
-    let mut recording = false;
-    let mut lol_rec = None;
-    loop {
-        // if window exists && we get data from the API && we are not recording => start recording
-        if let Ok(hwnd) = get_window() {
-            if !recording {
-                if debug_log {
-                    println!("LoL Window found");
-                }
+                    let (mut rcv, mut child) = Command::new_sidecar("lol_rec")
+                        .expect("missing lol_rec")
+                        .spawn()
+                        .expect("error spawing lol_rec");
 
-                let (mut rcv, mut child) = Command::new_sidecar("lol_rec")
-                    .expect("missing lol_rec")
-                    .spawn()
-                    .expect("error spawing lol_rec");
+                    if debug_log {
+                        println!("lol_rec started");
 
-                if debug_log {
-                    println!("lol_rec started");
-
-                    // log received messages
-                    std::thread::spawn(move || {
-                        while let Some(line) = rcv.blocking_recv() {
-                            println!(
-                                "{}",
-                                match line {
-                                    CommandEvent::Stderr(line)
-                                    | CommandEvent::Stdout(line)
-                                    | CommandEvent::Error(line) => line,
-                                    CommandEvent::Terminated(line) =>
-                                        line.code.unwrap_or_default().to_string(),
-                                    _ => String::from("unknown event"),
+                        // log received messages
+                        thread::spawn({
+                            let app_handle = app_handle.clone();
+                            move || {
+                                while let Some(line) = rcv.blocking_recv() {
+                                    println!(
+                                        "{}",
+                                        match line {
+                                            CommandEvent::Stderr(line)
+                                            | CommandEvent::Stdout(line)
+                                            | CommandEvent::Error(line) => line,
+                                            CommandEvent::Terminated(line) => {
+                                                let _ = app_handle.emit_all("new_recording", ());
+                                                format!("Exitcode: {}", line.code.unwrap_or(-1))
+                                            }
+                                            _ => String::from("unknown event"),
+                                        }
+                                    );
                                 }
-                            );
-                        }
-                        println!(""); //formatting: empty line after lol_rec output
-                    });
+                                println!(); //formatting: empty line after lol_rec output
+                            }
+                        });
+                    }
+
+                    // write serialized config to child
+                    let size = get_window_size(hwnd).unwrap_or_default();
+                    if let Ok(cfg) = settings.create_lol_rec_cfg(size) {
+                        let _ = child.write(cfg.as_bytes());
+                        lol_rec = Some(child);
+
+                        set_recording_tray_item(&app_handle, true);
+                        recording = true;
+                    }
                 }
 
-                // write serialized config to child
-                let size = get_window_size(hwnd).unwrap_or_default();
-                if let Ok(cfg) = settings.create_lol_rec_cfg(size) {
-                    let _ = child.write(cfg.as_bytes());
-                    lol_rec = Some(child);
+                // if we are recording and we the window doesn't exist anymore => stop recording
+            } else if recording {
+                set_recording_tray_item(&app_handle, false);
+                recording = false;
 
-                    set_recording_tray_item(&app_handle, true);
-                    recording = true;
+                if debug_log {
+                    println!("LoL window closed: lol_rec stop signal sent");
                 }
             }
 
-        // if we are recording and we the window doesn't exist anymore => stop recording
-        } else if recording {
-            stop_lol_rec(lol_rec.take());
-
-            set_recording_tray_item(&app_handle, false);
-            let _ = app_handle.emit_all("new_recording", ());
-            recording = false;
-
-            if debug_log {
-                println!("LoL window closed: lol_rec stop signal sent");
+            // delay SLEEP_MS milliseconds waiting for stop event
+            // break if stop event received or sender disconnected
+            match rx.recv_timeout(Duration::from_secs(SLEEP_SECS)) {
+                Ok(_) | Err(RecvTimeoutError::Disconnected) => break,
+                Err(RecvTimeoutError::Timeout) => {}
             }
         }
 
-        // delay SLEEP_MS milliseconds waiting for stop event
-        // break if stop event received or sender disconnected
-        match rx.recv_timeout(Duration::from_secs(SLEEP_SECS)) {
-            Ok(_) | Err(RecvTimeoutError::Disconnected) => break,
-            Err(RecvTimeoutError::Timeout) => {}
+        if let Some(mut lol_rec) = lol_rec {
+            if lol_rec.write(b"stop").is_err() {
+                let _ = lol_rec.kill();
+            }
         }
-    }
-
-    stop_lol_rec(lol_rec);
-    app_handle.exit(0);
+        app_handle.exit(0);
+    });
 }
