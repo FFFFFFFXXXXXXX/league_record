@@ -56,7 +56,6 @@ addEventListener('fullscreenchange', e => {
 });
 
 addEventListener('keydown', event => {
-    let preventDefault = true;
     switch (event.key) {
         case ' ':
             player.paused() ? player.play() : player.pause();
@@ -88,11 +87,10 @@ addEventListener('keydown', event => {
                 player.playbackRate(player.playbackRate() + 0.25);
             break;
         default:
-            preventDefault = false;
-            break;
+			// return early to not call preventDefault()
+            return;
     }
-    if (preventDefault)
-        event.preventDefault();
+	event.preventDefault();
 });
 
 // set event markers on video load
@@ -123,7 +121,7 @@ listen('new_recording', async () => {
 
     let rec = await getRecordingsNames();
     sidebar.innerHTML = '';
-    rec.forEach(el => createSidebarElement(el));
+    rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
 
     document.getElementById(activeVideo)?.classList.add('active');
 
@@ -182,9 +180,9 @@ async function setCurrentMarkerSettings(markers) {
 function createMarker(event, dataDelay) {
     let delay = dataDelay ? dataDelay : 0;
     return {
-        'time': event['eventTime'] + delay - EVENT_DELAY,
-        'text': event['eventName'],
-        'class': event['eventName']?.toLowerCase(),
+        'time': event['time'] + delay - EVENT_DELAY,
+        'text': event['name'],
+        'class': event['name']?.toLowerCase(),
         'duration': 4
     };
 }
@@ -210,25 +208,18 @@ async function setVideo(name) {
     if (md) {
         try {
             currentEvents = md['events'];
-            currentDataDelay = md['dataDelay'];
+            currentDataDelay = md['gameInfo']['recordingDelay'];
 
-            let descName = `<span class="summoner-name">${md['playerName']}</span><br>`;
-            descName += `${md['gameMode']}<br>`;
+            let descName = `<span class="summoner-name">${md['gameInfo']['summonerName']}</span><br>`;
+            descName += `${md['gameInfo']['gameMode']}<br>`;
             descriptionName.innerHTML = descName;
 
             let result = '';
-            switch (md['result']) {
-                case 'Win':
-                    result = '<span class="win">Victory</span><br>';
-                    break;
-                case 'Lose':
-                    result = '<span class="loss">Defeat</span><br>';
-                    break;
-                default:
-                    break;
+            if (md['win'] != null) {
+                result = md['win'] ? '<span class="win">Victory</span><br>' : '<span class="loss">Defeat</span><br>';
             }
             let descContent = result;
-            descContent += `${md['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
+            descContent += `${md['gameInfo']['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
             descContent += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
             descriptionContent.innerHTML = descContent;
         } catch {
@@ -275,7 +266,7 @@ function changeMarkers() {
     let arr = [];
     currentEvents.forEach(e => {
         let ok = false;
-        switch (e['eventName']) {
+        switch (e['name']) {
             case 'Kill':
                 ok = checkboxKill.checked;
                 break;
@@ -291,12 +282,13 @@ function changeMarkers() {
             case 'Inhibitor':
                 ok = checkboxInhibitor.checked;
                 break;
-            case 'Fire Dragon':
-            case 'Water Dragon':
-            case 'Earth Dragon':
-            case 'Air Dragon':
-            case 'Hextech Dragon':
-            case 'Elder Dragon':
+            case 'Infernal-Dragon':
+            case 'Ocean-Dragon':
+            case 'Mountain-Dragon':
+            case 'Cloud-Dragon':
+            case 'Hextech-Dragon':
+            case 'Chemtech-Dragon':
+            case 'Elder-Dragon':
                 ok = checkboxDragon.checked;
                 break;
             case 'Herald':

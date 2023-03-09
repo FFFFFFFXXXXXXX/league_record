@@ -205,6 +205,13 @@ hr {
     background-color: mediumblue !important;
 }
 
+.infernal-dragon,
+.ocean-dragon,
+.mountain-dragon,
+.cloud-dragon,
+.hextech-dragon,
+.chemtech-dragon,
+.elder-dragon
 .dragon {
     background-color: darkgoldenrod !important;
 }
