@@ -96,14 +96,14 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                             move || {
                                 while let Some(line) = rcv.blocking_recv() {
                                     println!(
-                                        "{}",
+                                        "lol_rec: {}",
                                         match line {
                                             CommandEvent::Stderr(line)
                                             | CommandEvent::Stdout(line)
                                             | CommandEvent::Error(line) => line,
-                                            CommandEvent::Terminated(line) => {
+                                            CommandEvent::Terminated(payload) => {
                                                 let _ = app_handle.emit_all("new_recording", ());
-                                                format!("Exitcode: {}", line.code.unwrap_or(-1))
+                                                format!("Exitcode: {}", payload.code.unwrap_or(-1))
                                             }
                                             _ => String::from("unknown event"),
                                         }
@@ -131,7 +131,7 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                 recording = false;
 
                 if debug_log {
-                    println!("LoL window closed: lol_rec stop signal sent");
+                    println!("LoL window closed: waiting for next game");
                 }
             }
 
