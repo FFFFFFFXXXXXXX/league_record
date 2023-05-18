@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder" }
-shaco = { path = "../../../../Rust/Shaco" }
+common = { path = "../common" }
+libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", features = ["full", "serde"] }
+shaco = "0.6.0"
 reqwest = { version = "0.11.10", features = ["json", "blocking"] }
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0"

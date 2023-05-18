@@ -7,9 +7,7 @@ use tauri::{
     },
     App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
 };
-use windows::Win32::UI::HiDpi::{
-    SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE,
-};
+use windows::Win32::UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE};
 
 use crate::{
     fileserver,
@@ -29,20 +27,12 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
             "settings" => {
                 let path = app_handle.state::<SettingsFile>().get();
                 if path.is_file() {
-                    let _ = shell::open(
-                        &app_handle.shell_scope(),
-                        helpers::path_to_string(&path),
-                        None,
-                    );
+                    let _ = shell::open(&app_handle.shell_scope(), helpers::path_to_string(&path), None);
                 } else {
                     if let Some(parent) = path.parent() {
                         if fs::create_dir_all(parent).is_ok() {
                             if fs::write(&path, include_str!("../default-settings.json")).is_ok() {
-                                let _ = shell::open(
-                                    &app_handle.shell_scope(),
-                                    helpers::path_to_string(&path),
-                                    None,
-                                );
+                                let _ = shell::open(&app_handle.shell_scope(), helpers::path_to_string(&path), None);
                             }
                         }
                     }
@@ -76,9 +66,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
             _ => {}
         },
         SystemTrayEvent::DoubleClick {
-            position: _,
-            size: _,
-            ..
+            position: _, size: _, ..
         } => create_window(app_handle),
         _ => {}
     }
@@ -94,19 +82,25 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     let app_handle = app.app_handle();
 
     let settings = app_handle.state::<Settings>();
-    // Load settings from settings.json file if it exists and save settings folder
-    let mut settings_path =
-        app_config_dir(app_handle.config().as_ref()).expect("Error getting app directory");
+
+    // get path to config directory
+    let mut settings_path = app_config_dir(app_handle.config().as_ref()).expect("Error getting app directory");
     settings_path.push("settings.json");
+    // create settings.json file if missing
+    if !settings_path.is_file() {
+        let parent = settings_path
+            .parent()
+            .expect("unable to get parent directory to settings.json file");
+        fs::create_dir_all(parent).expect("could not create folder for settings.json");
+        fs::write(&settings_path, include_str!("../default-settings.json")).expect("error creating settings.json file");
+    }
+    // load settings and set state
     settings.load_settings_file(&settings_path);
     app_handle.state::<SettingsFile>().set(settings_path);
 
     let debug_log = settings.debug_log();
 
-    println!(
-        "debug_log: {}\n",
-        if debug_log { "enabled" } else { "disabled" }
-    );
+    println!("debug_log: {}\n", if debug_log { "enabled" } else { "disabled" });
 
     if debug_log {
         println!("Settings: {:?}\n", settings);

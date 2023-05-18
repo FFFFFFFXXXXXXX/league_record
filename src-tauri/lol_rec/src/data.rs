@@ -29,7 +29,9 @@ pub struct Stats {
     pub assists: u64,
     #[serde(alias = "MINIONS_KILLED")]
     pub creep_score: u64,
+    // add default value fallback since there is no ward score in some game modes like ARAM
     #[serde(alias = "VISION_SCORE")]
+    #[serde(default)]
     pub ward_score: f64,
 }
 
