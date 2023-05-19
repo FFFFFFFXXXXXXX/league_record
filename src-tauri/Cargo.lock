@@ -2987,7 +2987,7 @@ dependencies = [
 [[package]]
 name = "shaco"
 version = "0.6.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/Shaco#f617eac4601abad9e0df0c7e63ce64dc0e18c48b"
+source = "git+https://github.com/FFFFFFFXXXXXXX/Shaco?rev=f617eac#f617eac4601abad9e0df0c7e63ce64dc0e18c48b"
 dependencies = [
  "base64 0.21.0",
  "derive_more",

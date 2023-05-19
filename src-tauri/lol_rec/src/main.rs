@@ -6,7 +6,7 @@ use libobs_recorder::{RateControl, Recorder, RecorderSettings, Window};
 use shaco::{
     ingame::{EventStream, IngameClient},
     model::ingame::{DragonType, GameEvent, GameResult, Killer},
-    model::ws::LcuSubscriptionType::JsonApiEvent,
+    model::{ws::LcuSubscriptionType::JsonApiEvent, ingame::ChampionKill},
     ws::LcuWebsocketClient,
 };
 use tokio::{io::AsyncBufReadExt, io::BufReader, time};
@@ -213,7 +213,7 @@ fn main() -> anyhow::Result<()> {
                     };
 
                     if cfg.debug_log {
-                        println!("[{}] new ingame event: {}", event.get_event_time(), event.get_event_id());
+                        println!("[{}] new ingame event: {:?}", event.get_event_time(), event);
                     }
 
                     let time = event.get_event_time();
@@ -226,19 +226,18 @@ fn main() -> anyhow::Result<()> {
                         GameEvent::BaronKill(_) => Some("Baron"),
                         GameEvent::ChampionKill(e) => {
                             let summoner_name = &game_data.game_info.summoner_name;
-
-                            let mut result = None;
-                            if let Killer::Summoner(ref killer_name) = e.killer_name {
-                                if killer_name == summoner_name {
-                                    result = Some("Kill");
+                            match e {
+                                ChampionKill { killer_name: Killer::Summoner(ref killer_name), .. } if killer_name == summoner_name => {
+                                    Some("Kill")
                                 }
-                            } else if e.assisters.contains(summoner_name) {
-                                result = Some("Assist");
-                            } else if &e.victim_name == summoner_name {
-                                result = Some("Death");
+                                ChampionKill { ref victim_name, .. } if victim_name == summoner_name => {
+                                    Some("Death")
+                                }
+                                ChampionKill { assisters, .. } if assisters.contains(summoner_name) => {
+                                    Some("Assist")
+                                }
+                                _ => None,
                             }
-
-                            result
                         }
                         GameEvent::DragonKill(e) => {
                             let dragon = match e.dragon_type {
