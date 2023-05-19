@@ -93,7 +93,7 @@ fn main() -> anyhow::Result<()> {
 
     // wait for recorder to initialize, hook into the game, ...
     // if we don't do this we start the recording with a few seconds of black screen
-    thread::sleep(Duration::from_secs(2));
+    thread::sleep(Duration::from_millis(2500));
 
     if !recorder.start_recording() {
         return Err(anyhow!("Error starting recording"));
