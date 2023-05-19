@@ -76,7 +76,7 @@ checksum = "9c7d0618f0e0b7e8ff11427422b64564d5fb0be1940354bfe2e0529b18a9d9b8"
 
 [[package]]
 name = "app"
-version = "1.9.0"
+version = "1.10.0"
 dependencies = [
  "bytes",
  "common",
@@ -2780,9 +2780,9 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "security-framework"
-version = "2.9.0"
+version = "2.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca2855b3715770894e67cbfa3df957790aa0c9edc3bf06efa1a84d77fa0839d1"
+checksum = "1fc758eb7bffce5b308734e9b0c1468893cae9ff70ebf13e7090be8dcbcc83a8"
 dependencies = [
  "bitflags",
  "core-foundation",
@@ -2987,8 +2987,7 @@ dependencies = [
 [[package]]
 name = "shaco"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcf3eb15f91d25a433ef07913bfa92ebfa69bcb64674769e948ec0761fa8ca46"
+source = "git+https://github.com/FFFFFFFXXXXXXX/Shaco#5af16d3d0ebed0e5732f745ee128eac71501e1c0"
 dependencies = [
  "base64 0.21.0",
  "derive_more",
