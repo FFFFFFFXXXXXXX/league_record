@@ -1,7 +1,7 @@
 # LeagueRecord
 
 LeagueRecord automatically detects when a League of Legends game is running and records it.
-Currently only supports Windows and is only tested for Windows 10 with an AMD GPU.
+Currently only supports Windows and is only tested for Windows 10 and Windows 11 with an AMD GPU.
 
 ![screenshot](https://user-images.githubusercontent.com/37913466/187545060-f97961f2-346d-48b7-bf1b-c453cbd86776.png)
 
@@ -38,7 +38,7 @@ It is possible to adjust the settings via the settings button in the tray menu. 
 
 ## Resources and Performance
 
-LeagueRecord takes up ~60MB of your disk space.
+LeagueRecord takes up ~70MB of your disk space.
 
 On a system with a Ryzen 3600 CPU and RX5700 GPU these are the performance numbers measured with Windows Taskmanager.
 
