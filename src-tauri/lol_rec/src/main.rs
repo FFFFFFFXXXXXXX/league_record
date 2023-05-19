@@ -225,9 +225,6 @@ fn main() -> anyhow::Result<()> {
                         },
                         GameEvent::BaronKill(_) => Some("Baron"),
                         GameEvent::ChampionKill(e) => {
-                            println!("{:?}", game_data.game_info.summoner_name);
-                            println!("{e:?}");
-
                             let summoner_name = &game_data.game_info.summoner_name;
 
                             let mut result = None;
