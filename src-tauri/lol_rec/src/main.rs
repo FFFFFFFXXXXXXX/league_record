@@ -98,11 +98,10 @@ fn main() -> anyhow::Result<()> {
     if !recorder.start_recording() {
         return Err(anyhow!("Error starting recording"));
     }
+    let recording_start = Instant::now();
     if cfg.debug_log {
         println!("recording started");
     }
-
-    let recording_start = Instant::now();
 
     let cancel_token = CancellationToken::new();
     let cancel_subtoken1 = cancel_token.child_token();
@@ -212,17 +211,12 @@ fn main() -> anyhow::Result<()> {
                         break;
                     };
 
+                    let time = recording_start.elapsed().as_secs_f64();
                     if cfg.debug_log {
-                        println!("[{}] new ingame event: {:?}", event.get_event_time(), event);
+                        println!("[{}] new ingame event: {:?}", time, event);
                     }
 
-                    let time = event.get_event_time();
                     let event_name = match event {
-                        GameEvent::GameStart(_) => {
-                            // delay from recording start to ingame start (00:00:00)
-                            game_data.game_info.recording_delay = recording_start.elapsed().as_secs_f64();
-                            None
-                        },
                         GameEvent::BaronKill(_) => Some("Baron"),
                         GameEvent::ChampionKill(e) => {
                             let summoner_name = &game_data.game_info.summoner_name;
@@ -282,12 +276,23 @@ fn main() -> anyhow::Result<()> {
 
         tokio::select! {
             _ = cancel_subtoken2.cancelled() => (),
-            event = time::timeout(Duration::from_secs(20), ws_client.next()) => {
+            event = time::timeout(Duration::from_secs(30), ws_client.next()) => {
                 if let Ok(Some(mut event)) = event {
                     let json_stats = event.data["localPlayer"]["stats"].take();
+
+                    if cfg.debug_log {
+                        println!("EOG stats: {:?}", json_stats);
+                    }
+
                     if game_data.win.is_none() {
-                        if let Some(win_bool) = json_stats["WIN"].as_u64() {
-                            game_data.win = Some(win_bool == 1);
+                        // on win the data contains a "WIN" key with a value of '1'
+                        // on lose the data contains a "LOSE" key with a value of '1'
+                        // So if json_stats["WIN"] is not null => WIN
+                        // and if json_stats["LOSE"] is not null => LOSE
+                        if !json_stats["WIN"].is_null() {
+                            game_data.win = Some(true);
+                        } else if !json_stats["LOSE"].is_null() {
+                            game_data.win = Some(false);
                         }
                     }
 
