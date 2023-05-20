@@ -178,7 +178,8 @@ hr {
 
 /* EVENT MARKERS */
 .vjs-marker {
-    min-width: 3.5px;
+    min-width: 4px;
+    max-width: 10px;
 }
 
 .vjs-marker:hover {
@@ -211,8 +212,7 @@ hr {
 .cloud-dragon,
 .hextech-dragon,
 .chemtech-dragon,
-.elder-dragon
-.dragon {
+.elder-dragon .dragon {
     background-color: darkgoldenrod !important;
 }
 
