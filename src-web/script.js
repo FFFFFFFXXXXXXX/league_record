@@ -5,7 +5,7 @@ const wmng = new __TAURI__.window.WindowManager();
 
 // sets the time a marker jumps to before the actual event happens
 // jump to (eventTime - EVENT_DELAY) when a marker is clicked
-const EVENT_DELAY = 1;
+const EVENT_DELAY = 3;
 
 let modal = document.getElementById('modal');
 let modalContent = document.getElementById('modal-content');
@@ -25,7 +25,6 @@ let checkboxBaron = document.getElementById('baron');
 
 let fullscreen = false;
 let currentEvents = [];
-let currentDataDelay = 0;
 // ------------------------------
 
 
@@ -87,10 +86,10 @@ addEventListener('keydown', event => {
                 player.playbackRate(player.playbackRate() + 0.25);
             break;
         default:
-			// return early to not call preventDefault()
+            // return early to not call preventDefault()
             return;
     }
-	event.preventDefault();
+    event.preventDefault();
 });
 
 // set event markers on video load
@@ -177,19 +176,9 @@ async function getCurrentMarkerSettings() {
 async function setCurrentMarkerSettings(markers) {
     return await invoke('set_current_marker_flags', { markerFlags: markers });
 }
-function createMarker(event, dataDelay) {
-    let delay = dataDelay ? dataDelay : 0;
-    return {
-        'time': event['time'] + delay - EVENT_DELAY,
-        'text': event['name'],
-        'class': event['name']?.toLowerCase(),
-        'duration': 4
-    };
-}
 function clearData() {
     player.markers.removeAll();
     currentEvents = [];
-    currentDataDelay = 0;
     descriptionName.innerHTML = '';
     descriptionContent.innerHTML = 'No Data';
 }
@@ -208,7 +197,6 @@ async function setVideo(name) {
     if (md) {
         try {
             currentEvents = md['events'];
-            currentDataDelay = md['gameInfo']['recordingDelay'];
 
             let descName = `<span class="summoner-name">${md['gameInfo']['summonerName']}</span><br>`;
             descName += `${md['gameInfo']['gameMode']}<br>`;
@@ -265,22 +253,22 @@ function changeMarkers() {
     player.markers.removeAll();
     let arr = [];
     currentEvents.forEach(e => {
-        let ok = false;
+        let visible = false;
         switch (e['name']) {
             case 'Kill':
-                ok = checkboxKill.checked;
+                visible = checkboxKill.checked;
                 break;
             case 'Death':
-                ok = checkboxDeath.checked;
+                visible = checkboxDeath.checked;
                 break;
             case 'Assist':
-                ok = checkboxAssist.checked;
+                visible = checkboxAssist.checked;
                 break;
             case 'Turret':
-                ok = checkboxTurret.checked;
+                visible = checkboxTurret.checked;
                 break;
             case 'Inhibitor':
-                ok = checkboxInhibitor.checked;
+                visible = checkboxInhibitor.checked;
                 break;
             case 'Infernal-Dragon':
             case 'Ocean-Dragon':
@@ -289,18 +277,25 @@ function changeMarkers() {
             case 'Hextech-Dragon':
             case 'Chemtech-Dragon':
             case 'Elder-Dragon':
-                ok = checkboxDragon.checked;
+                visible = checkboxDragon.checked;
                 break;
             case 'Herald':
-                ok = checkboxHerald.checked;
+                visible = checkboxHerald.checked;
                 break;
             case 'Baron':
-                ok = checkboxBaron.checked;
+                visible = checkboxBaron.checked;
                 break;
             default:
                 break;
         }
-        if (ok) arr.push(createMarker(e, currentDataDelay));
+        if (visible) {
+            arr.push({
+                'time': e['time'] - EVENT_DELAY,
+                'text': e['name'],
+                'class': e['name']?.toLowerCase(),
+                'duration': 4
+            });
+        }
     });
     player.markers.add(arr);
     setCurrentMarkerSettings({

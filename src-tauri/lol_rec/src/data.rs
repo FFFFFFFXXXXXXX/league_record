@@ -12,7 +12,6 @@ pub struct GameData {
 #[derive(Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct GameInfo {
-    pub recording_delay: f64,
     pub game_mode: String,
     pub summoner_name: String,
     pub champion_name: String,
