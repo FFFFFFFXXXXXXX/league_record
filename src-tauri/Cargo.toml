@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "1.10.0"
+version = "1.11.0"
 description = "Record and Play League of Legends games"
 authors = ["FX"]
 license = "gpl-2.0"
@@ -46,10 +46,9 @@ default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
 
 [profile.release]
-codegen-units = 1
+opt-level = 3
+strip = "debuginfo"
 debug = false
 debug-assertions = false
 lto = "fat"
-opt-level = 3
 panic = "abort"
-strip = true
