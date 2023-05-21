@@ -6,7 +6,7 @@ use libobs_recorder::{RateControl, Recorder, RecorderSettings, Window};
 use shaco::{
     ingame::{EventStream, IngameClient},
     model::ingame::{DragonType, GameEvent, GameResult, Killer},
-    model::{ws::LcuSubscriptionType::JsonApiEvent, ingame::ChampionKill},
+    model::{ingame::ChampionKill, ws::LcuSubscriptionType::JsonApiEvent},
     ws::LcuWebsocketClient,
 };
 use tokio::{io::AsyncBufReadExt, io::BufReader, time};
@@ -186,7 +186,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         Recorder::shutdown();
-    
+
         // explicitly call exit() instead of return normally since the process doesn't stop if we don't
         // my best guess is there are some libobs background tasks or threads still running that prevent full termination
         exit(1);
@@ -319,7 +319,7 @@ fn main() -> anyhow::Result<()> {
         let _ = serde_json::to_writer(file, &game_data);
 
         if cfg.debug_log {
-            println!("metadata saved"); 
+            println!("metadata saved");
         }
     }
 

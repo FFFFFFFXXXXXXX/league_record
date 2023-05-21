@@ -1,9 +1,9 @@
 use port_check::free_local_port_in_range;
-use serde::Deserialize;
-use serde_json::{json, Value};
+use serde::{Deserialize, Serialize};
 use tauri::api::path::video_dir;
 
 use std::{
+    fs,
     path::PathBuf,
     sync::{Mutex, RwLock},
 };
@@ -18,13 +18,6 @@ impl WindowState {
             size: Mutex::from((1200.0, 650.0)),
             position: Mutex::from((-1.0, -1.0)),
         }
-    }
-}
-
-pub struct MarkerFlagsState(pub Mutex<Option<MarkerFlags>>);
-impl MarkerFlagsState {
-    pub fn init() -> MarkerFlagsState {
-        Self(Mutex::new(None))
     }
 }
 
@@ -53,7 +46,7 @@ impl SettingsFile {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MarkerFlags {
     #[serde(default = "default_true")]
     kill: bool,
@@ -72,20 +65,7 @@ pub struct MarkerFlags {
     #[serde(default = "default_true")]
     baron: bool,
 }
-impl MarkerFlags {
-    pub fn to_json_value(&self) -> Value {
-        json!({
-            "kill": self.kill,
-            "death": self.death,
-            "assist": self.assist,
-            "turret": self.turret,
-            "inhibitor": self.inhibitor,
-            "dragon": self.dragon,
-            "herald": self.herald,
-            "baron": self.baron
-        })
-    }
-}
+
 impl Default for MarkerFlags {
     fn default() -> Self {
         MarkerFlags {
@@ -105,21 +85,44 @@ impl Default for MarkerFlags {
 pub struct Settings(RwLock<SettingsInner>);
 
 impl Settings {
-    pub fn load_settings_file(&self, settings_path: &PathBuf) {
-        if let Some(config) = common::Config::new(settings_path, video_dir().expect("video_dir doesn't exist")) {
-            self.0.write().unwrap().config = config;
+    pub fn load_from_file(&self, settings_path: &PathBuf) {
+        let Ok(json) = fs::read_to_string(settings_path) else { return };
+        let mut settings = serde_json::from_str::<SettingsInner>(json.as_str())
+            .expect("Deserialization to 'Config' should always succeed since every field has a 'default'");
+
+        let mut video_dir = video_dir().expect("video_dir doesn't exist");
+        // if recordings_folder is absolute the whole path gets replaced by the absolute path
+        // if recordings_folder is relative the path gets appened to the system video directory
+        video_dir.push(settings.config.recordings_folder);
+        settings.config.recordings_folder = video_dir;
+        if fs::create_dir_all(settings.config.recordings_folder.as_path()).is_err() && settings.config.debug_log {
+            println!("Unable to create recordings_folder");
         }
+
+        *self.0.write().unwrap() = settings;
     }
 
-    pub fn recordings_folder(&self) -> PathBuf {
+    pub fn write_to_file(&self, settings_path: &PathBuf) {
+        let json = serde_json::to_string_pretty(&*self.0.read().unwrap()).unwrap();
+        let _ = fs::write(settings_path, json);
+    }
+
+    pub fn get_recordings_path(&self) -> PathBuf {
         self.0.read().unwrap().config.recordings_folder.clone()
     }
+
     pub fn check_for_updates(&self) -> bool {
         self.0.read().unwrap().check_for_updates
     }
-    pub fn marker_flags(&self) -> Value {
-        self.0.read().unwrap().marker_flags.to_json_value()
+
+    pub fn get_marker_flags(&self) -> MarkerFlags {
+        self.0.read().unwrap().marker_flags.clone()
     }
+
+    pub fn set_marker_flags(&self, marker_flags: MarkerFlags) {
+        self.0.write().unwrap().marker_flags = marker_flags;
+    }
+
     pub fn debug_log(&self) -> bool {
         self.0.read().unwrap().config.debug_log
     }
@@ -139,15 +142,17 @@ impl Default for Settings {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsInner {
     // only used in the tauri application
+    #[serde(default)]
     marker_flags: MarkerFlags,
     #[serde(default = "default_true")]
     check_for_updates: bool,
     // these get passed to lol_rec
     #[serde(flatten)]
+    #[serde(default)]
     pub config: common::Config,
 }
 
