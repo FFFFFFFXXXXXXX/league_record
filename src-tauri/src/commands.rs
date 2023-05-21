@@ -13,7 +13,7 @@ use std::{
 
 use crate::{
     helpers::{self, compare_time, get_recordings, show_window},
-    state::{AssetPort, MarkerFlags, MarkerFlagsState, Settings},
+    state::{AssetPort, MarkerFlags, Settings, SettingsFile},
 };
 use serde_json::Value;
 use tauri::{api::shell, AppHandle, Manager, State};
@@ -26,34 +26,23 @@ pub async fn show_app_window(app_handle: AppHandle) {
 }
 
 #[tauri::command]
-pub async fn get_default_marker_flags(settings_state: State<'_, Settings>) -> Result<Value, ()> {
-    Ok(settings_state.marker_flags())
+pub fn get_default_marker_flags() -> MarkerFlags {
+    MarkerFlags::default()
 }
 
 #[tauri::command]
-pub async fn get_current_marker_flags(
-    flag_state: State<'_, MarkerFlagsState>,
-) -> Result<Value, ()> {
-    let Ok(flags) = flag_state.0.lock() else {
-        return Err(());
-    };
-    match &*flags {
-        Some(f) => Ok(f.to_json_value()),
-        None => Ok(Value::Null),
-    }
+pub fn get_current_marker_flags(settings: State<'_, Settings>) -> MarkerFlags {
+    settings.get_marker_flags()
 }
 
 #[tauri::command]
-pub async fn set_current_marker_flags(
+pub fn set_current_marker_flags(
     marker_flags: MarkerFlags,
-    flag_state: State<'_, MarkerFlagsState>,
-) -> Result<(), ()> {
-    if let Ok(mut flags) = flag_state.0.lock() {
-        *flags = Some(marker_flags);
-        return Ok(());
-    } else {
-        return Err(());
-    }
+    settings: State<'_, Settings>,
+    settings_file: State<'_, SettingsFile>,
+) {
+    settings.set_marker_flags(marker_flags);
+    settings.write_to_file(&settings_file.get());
 }
 
 #[tauri::command]
@@ -62,22 +51,22 @@ pub fn get_asset_port(port_state: State<'_, AssetPort>) -> u16 {
 }
 
 #[tauri::command]
-pub async fn get_recordings_size(settings_state: State<'_, Settings>) -> Result<f32, ()> {
+pub fn get_recordings_size(settings_state: State<'_, Settings>) -> f32 {
     let mut size = 0;
-    for file in get_recordings(&settings_state.recordings_folder()) {
+    for file in get_recordings(&settings_state.get_recordings_path()) {
         if let Ok(metadata) = metadata(file) {
             size += metadata.len();
         }
     }
-    Ok(size as f32 / 1_000_000_000.0) // in Gigabyte
+    size as f32 / 1_000_000_000.0 // in Gigabyte
 }
 
 #[tauri::command]
-pub async fn get_recordings_list(settings_state: State<'_, Settings>) -> Result<Vec<String>, ()> {
-    let mut recordings = get_recordings(&settings_state.recordings_folder());
+pub fn get_recordings_list(settings_state: State<'_, Settings>) -> Vec<String> {
+    let mut recordings = get_recordings(&settings_state.get_recordings_path());
     // sort by time created (index 0 is newest)
     recordings.sort_by(|a, b| match compare_time(a, b) {
-        Ok(result) => result,
+        Ok(ordering) => ordering,
         Err(_) => Ordering::Equal,
     });
     let mut ret = Vec::<String>::new();
@@ -88,46 +77,46 @@ pub async fn get_recordings_list(settings_state: State<'_, Settings>) -> Result<
             }
         }
     }
-    Ok(ret)
+    ret
 }
 
 #[tauri::command]
 pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, Settings>) {
     let _ = shell::open(
         &app_handle.shell_scope(),
-        helpers::path_to_string(&state.recordings_folder()),
+        helpers::path_to_string(&state.get_recordings_path()),
         None,
     );
 }
 
 #[tauri::command]
-pub async fn delete_video(video: String, state: State<'_, Settings>) -> Result<bool, ()> {
+pub fn delete_video(video: String, state: State<'_, Settings>) -> bool {
     // remove video
-    let mut path = state.recordings_folder();
+    let mut path = state.get_recordings_path();
     path.push(PathBuf::from(&video));
     if remove_file(&path).is_err() {
         // if video delete fails return and dont delete json file
-        return Ok(false);
+        return false;
     }
 
     // remove json file if it exists
     path.set_extension("json");
     let _ = remove_file(path);
-    Ok(true)
+    true
 }
 
 #[tauri::command]
-pub async fn get_metadata(video: String, state: State<'_, Settings>) -> Result<Value, ()> {
-    let mut path = state.recordings_folder();
+pub fn get_metadata(video: String, state: State<'_, Settings>) -> Value {
+    let mut path = state.get_recordings_path();
     path.push(PathBuf::from(video));
     path.set_extension("json");
     let reader = match File::open(path) {
         Ok(file) => BufReader::new(file),
-        Err(_) => return Ok(Value::Null),
+        Err(_) => return Value::Null,
     };
 
     match serde_json::from_reader::<BufReader<File>, Value>(reader) {
-        Ok(json) => Ok(json),
-        Err(_) => Ok(Value::Null),
+        Ok(json) => json,
+        Err(_) => Value::Null,
     }
 }

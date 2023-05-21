@@ -1,7 +1,4 @@
-#![cfg_attr(
-    all(not(debug_assertions), target_os = "windows"),
-    windows_subsystem = "windows"
-)]
+#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 mod commands;
 mod fileserver;
@@ -18,7 +15,6 @@ use tauri::{generate_handler, Builder};
 fn main() {
     let app = Builder::default()
         .manage(WindowState::init())
-        .manage(MarkerFlagsState::init())
         .manage(AssetPort::init())
         .manage(SettingsFile::default())
         .manage(Settings::default())

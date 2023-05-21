@@ -1,14 +1,11 @@
 use std::{
     cmp::Ordering,
-    io,
+    fs, io,
     path::{Path, PathBuf},
 };
 
 use reqwest::{blocking::Client, redirect::Policy, StatusCode};
-use tauri::{
-    api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem,
-    Window,
-};
+use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem, Window};
 
 use crate::state::{Settings, WindowState};
 
@@ -51,7 +48,7 @@ pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
         let url = result.headers().get("location").unwrap();
         if let Ok(url) = url.to_str() {
             let new_version = url.rsplit_once("/v").unwrap().1;
-            if let Ok(res) = compare(&version, new_version) {
+            if let Ok(res) = compare(version, new_version) {
                 if res == 1 {
                     let tray_menu = create_tray_menu()
                         .add_native_item(SystemTrayMenuItem::Separator)
@@ -64,10 +61,7 @@ pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
     }
 
     if debug_log {
-        println!(
-            "Error somewhere in the HTTP response from {}",
-            GITHUB_LATEST
-        );
+        println!("Error somewhere in the HTTP response from {}", GITHUB_LATEST);
     }
 }
 
@@ -90,10 +84,7 @@ pub fn get_recordings(rec_folder: &Path) -> Vec<PathBuf> {
 }
 
 pub fn path_to_string(path: &PathBuf) -> String {
-    path.to_owned()
-        .into_os_string()
-        .into_string()
-        .expect("invalid path")
+    path.to_owned().into_os_string().into_string().expect("invalid path")
 }
 
 pub fn compare_time(a: &Path, b: &Path) -> io::Result<Ordering> {
@@ -114,11 +105,7 @@ pub fn create_window(app_handle: &AppHandle) {
     } else {
         let window_state = app_handle.state::<WindowState>();
 
-        let builder = tauri::Window::builder(
-            app_handle,
-            "main",
-            tauri::WindowUrl::App(PathBuf::from("/")),
-        );
+        let builder = tauri::Window::builder(app_handle, "main", tauri::WindowUrl::App(PathBuf::from("/")));
 
         let size = *window_state.size.lock().unwrap();
         let position = *window_state.position.lock().unwrap();
@@ -135,16 +122,11 @@ pub fn create_window(app_handle: &AppHandle) {
 
 pub fn save_window_state(app_handle: &AppHandle, window: &Window) {
     let debug_log = app_handle.state::<Settings>().debug_log();
-    let scale_factor = window
-        .scale_factor()
-        .expect("Error getting window scale factor");
+    let scale_factor = window.scale_factor().expect("Error getting window scale factor");
     let window_state = app_handle.state::<WindowState>();
 
     if let Ok(size) = window.inner_size() {
-        let size = (
-            (size.width as f64) / scale_factor,
-            (size.height as f64) / scale_factor,
-        );
+        let size = ((size.width as f64) / scale_factor, (size.height as f64) / scale_factor);
         *window_state.size.lock().expect("win-state mutex error") = size;
 
         if debug_log {
@@ -152,14 +134,23 @@ pub fn save_window_state(app_handle: &AppHandle, window: &Window) {
         }
     }
     if let Ok(position) = window.outer_position() {
-        let position = (
-            (position.x as f64) / scale_factor,
-            (position.y as f64) / scale_factor,
-        );
+        let position = ((position.x as f64) / scale_factor, (position.y as f64) / scale_factor);
         *window_state.position.lock().expect("win-state mutex error") = position;
 
         if debug_log {
             println!("saved window position: {}x {}y", position.0, position.1);
         }
     }
+}
+
+pub fn ensure_settings_exist(settings_file: &PathBuf) -> bool {
+    if !settings_file.is_file() {
+        // get directory of settings file
+        let Some(parent) = settings_file.parent() else { return false };
+        // create the whole settings_file to the directory
+        let Ok(_) = fs::create_dir_all(parent) else { return false };
+        // create the settings file with the default settings json
+        let Ok(_) = fs::write(settings_file, include_str!("../default-settings.json")) else { return false };
+    }
+    true
 }

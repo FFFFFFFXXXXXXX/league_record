@@ -48,10 +48,8 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>, folder: PathBuf, port: u16) {
             if debug {
                 eprintln!("fileserver error: {}", e)
             }
-        } else {
-            if debug {
-                println!("fileserver gracefully shutdown")
-            }
+        } else if debug {
+            println!("fileserver gracefully shutdown")
         }
     });
 }
@@ -81,8 +79,7 @@ pub(crate) struct FileService(PathBuf);
 impl Service<Request<Body>> for FileService {
     type Response = Response<Body>;
     type Error = String;
-    type Future =
-        Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send + 'static>>;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send + 'static>>;
 
     fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
@@ -163,10 +160,7 @@ async fn response(req: Request<Body>, mut folder: PathBuf) -> Result<Response<Bo
 
 #[inline]
 fn response_from_statuscode(statuscode: StatusCode) -> Response<Body> {
-    Response::builder()
-        .status(statuscode)
-        .body(Body::empty())
-        .unwrap()
+    Response::builder().status(statuscode).body(Body::empty()).unwrap()
 }
 
 #[inline]

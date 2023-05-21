@@ -1,9 +1,9 @@
-use std::{error::Error, fs, path::PathBuf, thread, time::Duration};
+use std::{error::Error, path::PathBuf, process::Command, thread, time::Duration};
 
 use tauri::{
     api::{
         path::{app_config_dir, video_dir},
-        shell::{self, open},
+        shell,
     },
     App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
 };
@@ -11,7 +11,7 @@ use windows::Win32::UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CON
 
 use crate::{
     fileserver,
-    helpers::{self, check_updates, create_tray_menu, create_window, save_window_state},
+    helpers::{self, check_updates, create_tray_menu, create_window, ensure_settings_exist, save_window_state},
     recorder,
     state::{Settings, SettingsFile},
     AssetPort,
@@ -23,20 +23,30 @@ pub fn create_system_tray() -> SystemTray {
 
 pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent) {
     match event {
+        SystemTrayEvent::DoubleClick { .. } => {
+            create_window(app_handle);
+        }
         SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
             "settings" => {
-                let path = app_handle.state::<SettingsFile>().get();
-                if path.is_file() {
-                    let _ = shell::open(&app_handle.shell_scope(), helpers::path_to_string(&path), None);
-                } else {
-                    if let Some(parent) = path.parent() {
-                        if fs::create_dir_all(parent).is_ok() {
-                            if fs::write(&path, include_str!("../default-settings.json")).is_ok() {
-                                let _ = shell::open(&app_handle.shell_scope(), helpers::path_to_string(&path), None);
-                            }
+                // spawn a seperate thread to avoid blocking the main thread with .status()
+                thread::spawn({
+                    let app_handle = app_handle.clone();
+                    move || {
+                        let path = app_handle.state::<SettingsFile>().get();
+
+                        if ensure_settings_exist(&path) {
+                            // hardcode 'notepad' since league_record currently only works on windows anyways
+                            Command::new("notepad")
+                                .arg(&path)
+                                .status()
+                                .expect("failed to start text editor");
+
+                            let settings = app_handle.state::<Settings>();
+                            settings.load_from_file(&path);
+                            let _ = app_handle.emit_all("markerflags_changed", ());
                         }
                     }
-                }
+                });
             }
             "open" => create_window(app_handle),
             "quit" => {
@@ -57,7 +67,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                 });
             }
             "update" => {
-                let _ = open(
+                let _ = shell::open(
                     &app_handle.shell_scope(),
                     "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest",
                     None,
@@ -65,9 +75,6 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
             }
             _ => {}
         },
-        SystemTrayEvent::DoubleClick {
-            position: _, size: _, ..
-        } => create_window(app_handle),
         _ => {}
     }
 }
@@ -87,15 +94,9 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     let mut settings_path = app_config_dir(app_handle.config().as_ref()).expect("Error getting app directory");
     settings_path.push("settings.json");
     // create settings.json file if missing
-    if !settings_path.is_file() {
-        let parent = settings_path
-            .parent()
-            .expect("unable to get parent directory to settings.json file");
-        fs::create_dir_all(parent).expect("could not create folder for settings.json");
-        fs::write(&settings_path, include_str!("../default-settings.json")).expect("error creating settings.json file");
-    }
+    ensure_settings_exist(&settings_path);
     // load settings and set state
-    settings.load_settings_file(&settings_path);
+    settings.load_from_file(&settings_path);
     app_handle.state::<SettingsFile>().set(settings_path);
 
     let debug_log = settings.debug_log();
@@ -126,7 +127,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
 
     // launch static-file-server as a replacement for the broken asset protocol
     let port = app_handle.state::<AssetPort>().get();
-    let folder = helpers::path_to_string(&settings.recordings_folder());
+    let folder = helpers::path_to_string(&settings.get_recordings_path());
 
     if debug_log {
         println!("fileserver port: {}\n", port);
