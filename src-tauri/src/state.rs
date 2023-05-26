@@ -124,7 +124,8 @@ impl Settings {
     }
 
     pub fn debug_log(&self) -> bool {
-        self.0.read().unwrap().config.debug_log
+        let debug = std::env::args().find(|e| e == "-d" || e == "--debug");
+        self.0.read().unwrap().config.debug_log || debug.is_some()
     }
 
     pub fn create_lol_rec_cfg(&self, window_size: (u32, u32)) -> Result<String, ()> {
