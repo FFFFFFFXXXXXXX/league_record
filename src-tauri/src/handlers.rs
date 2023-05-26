@@ -1,4 +1,4 @@
-use std::{error::Error, path::PathBuf, process::Command, thread, time::Duration};
+use std::{error::Error, process::Command, thread, time::Duration};
 
 use tauri::{
     api::{
@@ -11,7 +11,7 @@ use windows::Win32::UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CON
 
 use crate::{
     fileserver,
-    helpers::{self, check_updates, create_tray_menu, create_window, ensure_settings_exist, save_window_state},
+    helpers::{check_updates, create_tray_menu, create_window, ensure_settings_exist, save_window_state},
     recorder,
     state::{Settings, SettingsFile},
     AssetPort,
@@ -127,14 +127,14 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
 
     // launch static-file-server as a replacement for the broken asset protocol
     let port = app_handle.state::<AssetPort>().get();
-    let folder = helpers::path_to_string(&settings.get_recordings_path());
+    let recordings_path = settings.get_recordings_path();
 
     if debug_log {
+        println!("video folder: {:?}\n", recordings_path);
         println!("fileserver port: {}\n", port);
-        println!("video folder: {}\n", folder);
     }
 
-    fileserver::start(app_handle.clone(), PathBuf::from(folder), port);
+    fileserver::start(app_handle.clone(), recordings_path, port);
     recorder::start(app_handle);
     Ok(())
 }
