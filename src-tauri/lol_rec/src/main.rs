@@ -13,11 +13,10 @@ use tokio::{io::AsyncBufReadExt, io::BufReader, time};
 use tokio_util::sync::CancellationToken;
 
 use std::{
-    fs::{self, File},
+    fs::File,
     io::stdin,
     path::PathBuf,
     process::exit,
-    thread,
     time::{Duration, Instant},
 };
 
@@ -91,18 +90,6 @@ fn main() -> anyhow::Result<()> {
         println!("recorder created");
     }
 
-    // wait for recorder to initialize, hook into the game, ...
-    // if we don't do this we start the recording with a few seconds of black screen
-    thread::sleep(Duration::from_millis(2500));
-
-    if !recorder.start_recording() {
-        return Err(anyhow!("Error starting recording"));
-    }
-    let recording_start = Instant::now();
-    if cfg.debug_log {
-        println!("recording started");
-    }
-
     let cancel_token = CancellationToken::new();
     let cancel_subtoken1 = cancel_token.child_token();
     let cancel_subtoken2 = cancel_token.child_token();
@@ -145,9 +132,18 @@ fn main() -> anyhow::Result<()> {
         }
 
         // don't record spectator games
-        if let Ok(true) = ingame_client.is_spectator_mode().await {
-            return None;
+        // spectator game detected if there is no activeplayer and therefore also no activeplayername (name emtpy or Err)
+        let specator = match ingame_client.active_player_name().await {
+            Ok(player_name) if player_name.len() == 0 => true,
+            Err(_) => true,
+            _ => false,
         };
+        if specator {
+            if cfg.debug_log {
+                println!("spectator game detected - stopping")
+            }
+            return None;
+        }
 
         let mut game_data = GameData::default();
         if let Ok(data) = ingame_client.all_game_data(None).await {
@@ -172,25 +168,35 @@ fn main() -> anyhow::Result<()> {
     });
 
     if cfg.debug_log {
-        println!("Game started / initial data collected");
+        println!("Game started");
     }
 
     // If some error occurred stop and delete the recording
     let Some((mut game_data, ingame_client)) = game_data else {
-        recorder.stop_recording();
-        let outfile = cfg.recordings_folder.join(filename);
-        let _ = fs::remove_file(outfile);
+        // stop the future listening for "stop" on stdin since we now always complete
+        handle.abort();
+        Recorder::shutdown();
 
         if cfg.debug_log {
-            println!("Error getting initial data - stopping and deleting recording");
+            println!("Error getting initial data - stopping");
         }
-
-        Recorder::shutdown();
 
         // explicitly call exit() instead of return normally since the process doesn't stop if we don't
         // my best guess is there are some libobs background tasks or threads still running that prevent full termination
-        exit(1);
+        exit(0);
     };
+
+    if cfg.debug_log {
+        println!("Initial data collected");
+    }
+
+    if !recorder.start_recording() {
+        return Err(anyhow!("Error starting recording"));
+    }
+    let recording_start = Instant::now();
+    if cfg.debug_log {
+        println!("recording started");
+    }
 
     let game_data = runtime.block_on(async move {
         // wait for ingame events and filter them (or stop recording on cancel)
