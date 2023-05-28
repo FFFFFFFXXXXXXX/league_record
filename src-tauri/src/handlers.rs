@@ -41,9 +41,15 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                                 .status()
                                 .expect("failed to start text editor");
 
+                            // update markerflags in UI
                             let settings = app_handle.state::<Settings>();
                             settings.load_from_file(&path);
                             let _ = app_handle.emit_all("markerflags_changed", ());
+                            // restart fileserver with new folder
+                            app_handle.trigger_global("shutdown_fileserver", None);
+                            let settings = app_handle.state::<Settings>();
+                            let port = app_handle.state::<AssetPort>().get();
+                            fileserver::start(app_handle.clone(), settings.get_recordings_path(), port);
                         }
                     }
                 });

@@ -129,7 +129,7 @@ listen('new_recording', async () => {
 
 // listen for MarkerFlags change due to settings change
 listen('markerflags_changed', async () => {
-    await setMarkers();
+    await init();
 });
 // ------------------------------
 
@@ -254,17 +254,6 @@ function createSidebarElement(el) {
     let deleteBtn = `<span class="delete" onclick="event.stopPropagation();showDeleteModal('${el}')">&times;</span>`;
     return `<li id="${el}" onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}${deleteBtn}</li>`;
 }
-async function setMarkers() {
-    let settings = await getCurrentMarkerSettings() ?? await getDefaultMarkerSettings();
-    checkboxKill.checked = settings.kill;
-    checkboxDeath.checked = settings.death;
-    checkboxAssist.checked = settings.assist;
-    checkboxTurret.checked = settings.turret;
-    checkboxInhibitor.checked = settings.inhibitor;
-    checkboxDragon.checked = settings.dragon;
-    checkboxHerald.checked = settings.herald;
-    checkboxBaron.checked = settings.baron;
-}
 function changeMarkers() {
     player.markers.removeAll();
     let arr = [];
@@ -332,7 +321,16 @@ async function init() {
     rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
     setVideo(rec[0]);
 
-    await setMarkers();
+    let settings = await getCurrentMarkerSettings() ?? await getDefaultMarkerSettings();
+    checkboxKill.checked = settings.kill;
+    checkboxDeath.checked = settings.death;
+    checkboxAssist.checked = settings.assist;
+    checkboxTurret.checked = settings.turret;
+    checkboxInhibitor.checked = settings.inhibitor;
+    checkboxDragon.checked = settings.dragon;
+    checkboxHerald.checked = settings.herald;
+    checkboxBaron.checked = settings.baron;
+
     await setRecordingsSize();
 
     await sleep(150); // delay so the initial blank screen when creating a window doesn't show
