@@ -128,12 +128,12 @@ impl Settings {
         self.0.read().unwrap().config.debug_log || debug.is_some()
     }
 
-    pub fn create_lol_rec_cfg(&self, window_size: (u32, u32)) -> Result<String, ()> {
+    pub fn create_lol_rec_cfg(&self, window_size: (u32, u32)) -> String {
         let mut s = self.0.write().unwrap();
         s.config.window_size = common::Size::new(window_size.0, window_size.1);
-        let mut cfg = serde_json::to_string(&s.config).map_err(|_| ())?;
+        let mut cfg = serde_json::to_string(&s.config).expect("error serializing lol_rec config");
         cfg.push('\n'); // add newline as something like a termination sequence
-        Ok(cfg)
+        cfg
     }
 }
 
