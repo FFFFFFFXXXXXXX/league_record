@@ -33,9 +33,7 @@ fn main() -> anyhow::Result<()> {
         stdin().read_line(&mut buffer)?;
         serde_json::from_str::<common::Config>(&buffer)?
     };
-    if cfg.debug_log {
-        println!("config valid");
-    }
+    println!("config valid");
 
     // async runtime for since Shaco is an async LoL API client
     let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
@@ -46,19 +44,15 @@ fn main() -> anyhow::Result<()> {
     let plugin_data_path = Some(String::from("./libobs/data/obs-plugins/%module%/"));
     match Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path) {
         Ok(enc) => {
-            if cfg.debug_log {
-                println!("recorder init successful");
-                println!("available encoders: {:?}", enc);
-            }
+            println!("recorder init successful");
+            println!("available encoders: {:?}", enc);
         }
         Err(e) => return Err(anyhow!("{e}")),
     };
 
     // create recorder settings and libobs_recorder::Recorder
     let filename = format!("{}", chrono::Local::now().format(&cfg.filename_format));
-    if cfg.debug_log {
-        println!("filename: {}", &filename);
-    }
+    println!("filename: {}", &filename);
     let settings = {
         let cfg = &cfg;
         let filename: &str = &filename;
@@ -86,9 +80,7 @@ fn main() -> anyhow::Result<()> {
         Ok(rec) => rec,
         Err(e) => return Err(anyhow!("{e}")),
     };
-    if cfg.debug_log {
-        println!("recorder created");
-    }
+    println!("recorder created");
 
     let cancel_token = CancellationToken::new();
     let cancel_subtoken1 = cancel_token.child_token();
@@ -105,18 +97,14 @@ fn main() -> anyhow::Result<()> {
                 // if there was a "stop" in stdin or we are running longer than 83 minutes (5000 minutes)
                 // cancel all other tasks and exit
                 cancel_token.cancel();
-                if cfg.debug_log {
-                    println!("\"stop\" signal received or timeout");
-                }
+                println!("\"stop\" signal received or timeout");
                 return;
             }
             buffer.clear();
         }
     });
 
-    if cfg.debug_log {
-        println!("stop listener spawned");
-    }
+    println!("stop listener spawned");
 
     // wait for API to be available and collect initial game infos
     let ingame_client = IngameClient::new()?;
@@ -133,9 +121,7 @@ fn main() -> anyhow::Result<()> {
 
         // don't record spectator games
         if let Ok(true) = ingame_client.is_spectator_mode().await {
-            if cfg.debug_log {
-                println!("spectator game detected - stopping")
-            }
+            println!("spectator game detected");
             return None;
         }
 
@@ -161,9 +147,7 @@ fn main() -> anyhow::Result<()> {
         Some((game_data, ingame_client))
     });
 
-    if cfg.debug_log {
-        println!("Game started");
-    }
+    println!("Game started");
 
     // If some error occurred stop and delete the recording
     let Some((mut game_data, ingame_client)) = game_data else {
@@ -171,26 +155,20 @@ fn main() -> anyhow::Result<()> {
         handle.abort();
         Recorder::shutdown();
 
-        if cfg.debug_log {
-            println!("Error getting initial data - stopping");
-        }
+        println!("Error getting initial data - stopping");
 
         // explicitly call exit() instead of return normally since the process doesn't stop if we don't
         // my best guess is there are some libobs background tasks or threads still running that prevent full termination
         exit(0);
     };
 
-    if cfg.debug_log {
-        println!("Initial data collected");
-    }
+    println!("Initial data collected");
 
     if !recorder.start_recording() {
         return Err(anyhow!("Error starting recording"));
     }
     let recording_start = Instant::now();
-    if cfg.debug_log {
-        println!("recording started");
-    }
+    println!("recording started");
 
     let game_data = runtime.block_on(async move {
         // wait for ingame events and filter them (or stop recording on cancel)
@@ -200,21 +178,18 @@ fn main() -> anyhow::Result<()> {
             tokio::select! {
                 _ = cancel_subtoken2.cancelled() => {
                     recorder.stop_recording();
+                    println!("recording stopped");
                     return game_data;
                 }
                 event = ingame_events.next() => {
                     let Some(event) = event else {
-                        if cfg.debug_log {
-                            println!("None event received - stopping recording");
-                        }
                         recorder.stop_recording();
+                        println!("recording stopped");
                         break;
                     };
 
                     let time = recording_start.elapsed().as_secs_f64();
-                    if cfg.debug_log {
-                        println!("[{}] new ingame event: {:?}", time, event);
-                    }
+                    println!("[{}] new ingame event: {:?}", time, event);
 
                     let event_name = match event {
                         GameEvent::BaronKill(_) => Some("Baron"),
@@ -280,9 +255,7 @@ fn main() -> anyhow::Result<()> {
                 if let Ok(Some(mut event)) = event {
                     let json_stats = event.data["localPlayer"]["stats"].take();
 
-                    if cfg.debug_log {
-                        println!("EOG stats: {:?}", json_stats);
-                    }
+                    println!("EOG stats: {:?}", json_stats);
 
                     if game_data.win.is_none() {
                         // on win the data contains a "WIN" key with a value of '1'
@@ -298,10 +271,9 @@ fn main() -> anyhow::Result<()> {
 
                     match serde_json::from_value(json_stats) {
                         Ok(stats) => game_data.stats = stats,
-                        Err(e) if cfg.debug_log => println!("Error deserializing end of game stats: {:?}", e),
-                        _ => {}
+                        Err(e) => println!("Error deserializing end of game stats: {:?}", e),
                     }
-                } else if cfg.debug_log {
+                } else {
                     println!("LCU event listener timed out");
                 }
             }
@@ -317,21 +289,14 @@ fn main() -> anyhow::Result<()> {
     outfile.set_extension("json");
     if let Ok(file) = File::create(&outfile) {
         let _ = serde_json::to_writer(file, &game_data);
-
-        if cfg.debug_log {
-            println!("metadata saved");
-        }
+        println!("metadata saved");
     }
 
-    if cfg.debug_log {
-        println!("shutting down Recorder");
-    }
+    println!("shutting down Recorder");
 
     Recorder::shutdown();
 
-    if cfg.debug_log {
-        println!("stopped recording and exit lol_rec");
-    }
+    println!("Recorder shutdown, exiting lol_rec");
 
     // explicitly call exit() instead of return normally since the process doesn't stop if we don't
     // my best guess is there are some libobs background tasks or threads still running that prevent full termination

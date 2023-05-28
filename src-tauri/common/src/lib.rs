@@ -20,8 +20,6 @@ pub struct Config {
     pub framerate: Framerate,
     #[serde(default = "default_record_audio")]
     pub record_audio: AudioSource,
-    #[serde(default)]
-    pub debug_log: bool,
 }
 
 impl Default for Config {
@@ -34,7 +32,6 @@ impl Default for Config {
             output_resolution: default_output_resolution(),
             framerate: default_framerate(),
             record_audio: AudioSource::APPLICATION,
-            debug_log: false,
         }
     }
 }

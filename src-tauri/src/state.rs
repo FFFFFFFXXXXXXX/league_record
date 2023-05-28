@@ -95,7 +95,7 @@ impl Settings {
         // if recordings_folder is relative the path gets appened to the system video directory
         video_dir.push(settings.config.recordings_folder);
         settings.config.recordings_folder = video_dir;
-        if fs::create_dir_all(settings.config.recordings_folder.as_path()).is_err() && settings.config.debug_log {
+        if fs::create_dir_all(settings.config.recordings_folder.as_path()).is_err() && settings.debug_log {
             println!("Unable to create recordings_folder");
         }
 
@@ -125,7 +125,7 @@ impl Settings {
 
     pub fn debug_log(&self) -> bool {
         let debug = std::env::args().find(|e| e == "-d" || e == "--debug");
-        self.0.read().unwrap().config.debug_log || debug.is_some()
+        self.0.read().unwrap().debug_log || debug.is_some()
     }
 
     pub fn create_lol_rec_cfg(&self, window_size: (u32, u32)) -> String {
@@ -151,6 +151,8 @@ pub struct SettingsInner {
     marker_flags: MarkerFlags,
     #[serde(default = "default_true")]
     check_for_updates: bool,
+    #[serde(default)]
+    pub debug_log: bool,
     // these get passed to lol_rec
     #[serde(flatten)]
     #[serde(default)]
@@ -160,8 +162,9 @@ pub struct SettingsInner {
 impl Default for SettingsInner {
     fn default() -> Self {
         Self {
-            marker_flags: MarkerFlags::default(),
             check_for_updates: true,
+            marker_flags: MarkerFlags::default(),
+            debug_log: false,
             config: common::Config::default(),
         }
     }
