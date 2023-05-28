@@ -132,13 +132,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         // don't record spectator games
-        // spectator game detected if there is no activeplayer and therefore also no activeplayername (name emtpy or Err)
-        let specator = match ingame_client.active_player_name().await {
-            Ok(player_name) if player_name.len() == 0 => true,
-            Err(_) => true,
-            _ => false,
-        };
-        if specator {
+        if let Ok(true) = ingame_client.is_spectator_mode().await {
             if cfg.debug_log {
                 println!("spectator game detected - stopping")
             }
