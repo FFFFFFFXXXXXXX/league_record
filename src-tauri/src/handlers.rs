@@ -35,21 +35,39 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                         let path = app_handle.state::<SettingsFile>().get();
 
                         if ensure_settings_exist(&path) {
+                            let settings = app_handle.state::<Settings>();
+                            let old_recordings_path = settings.get_recordings_path();
+                            let old_marker_flags = settings.get_marker_flags();
+
                             // hardcode 'notepad' since league_record currently only works on windows anyways
                             Command::new("notepad")
                                 .arg(&path)
                                 .status()
                                 .expect("failed to start text editor");
-
                             // update markerflags in UI
-                            let settings = app_handle.state::<Settings>();
                             settings.load_from_file(&path);
-                            let _ = app_handle.emit_all("markerflags_changed", ());
-                            // restart fileserver with new folder
-                            app_handle.trigger_global("shutdown_fileserver", None);
-                            let settings = app_handle.state::<Settings>();
-                            let port = app_handle.state::<AssetPort>().get();
-                            fileserver::start(app_handle.clone(), settings.get_recordings_path(), port);
+
+                            let marker_flags = settings.get_marker_flags();
+                            let recordings_path = settings.get_recordings_path();
+                            let marker_flags_changed = marker_flags != old_marker_flags;
+                            let recordings_path_changed = recordings_path != old_recordings_path;
+
+                            if recordings_path_changed {
+                                // send stop fileserver signal
+                                app_handle.trigger_global("shutdown_fileserver", None);
+                                // when fileserver stopped restart with new folder on the same port as before
+                                app_handle.once_global("fileserver_shutdown", {
+                                    let app_handle = app_handle.clone();
+                                    move |_| {
+                                        let port = app_handle.state::<AssetPort>().get();
+                                        fileserver::start(app_handle, recordings_path, port);
+                                    }
+                                });
+                            }
+
+                            if marker_flags_changed || recordings_path_changed {
+                                let _ = app_handle.emit_all("reload_ui", ());
+                            }
                         }
                     }
                 });

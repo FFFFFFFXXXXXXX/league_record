@@ -127,8 +127,8 @@ listen('new_recording', async () => {
     await setRecordingsSize();
 });
 
-// listen for MarkerFlags change due to settings change
-listen('markerflags_changed', async () => {
+// listen for settings change
+listen('reload_ui', async () => {
     await init();
 });
 // ------------------------------

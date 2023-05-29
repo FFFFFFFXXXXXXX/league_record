@@ -51,6 +51,7 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>, folder: PathBuf, port: u16) {
         } else if debug {
             println!("fileserver gracefully shutdown")
         }
+        app_handle.trigger_global("fileserver_shutdown", None);
     });
 }
 
