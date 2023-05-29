@@ -1,3 +1,4 @@
+use common::{AudioSource, Framerate, Resolution};
 use port_check::free_local_port_in_range;
 use serde::{Deserialize, Serialize};
 use tauri::api::path::video_dir;
@@ -46,7 +47,7 @@ impl SettingsFile {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq)]
 pub struct MarkerFlags {
     #[serde(default = "default_true")]
     kill: bool,
@@ -81,21 +82,33 @@ impl Default for MarkerFlags {
     }
 }
 
+impl PartialEq for MarkerFlags {
+    fn eq(&self, other: &Self) -> bool {
+        self.kill == other.kill
+            && self.death == other.death
+            && self.assist == other.assist
+            && self.turret == other.turret
+            && self.inhibitor == other.inhibitor
+            && self.dragon == other.dragon
+            && self.herald == other.herald
+            && self.baron == other.baron
+    }
+}
+
 #[derive(Debug)]
 pub struct Settings(RwLock<SettingsInner>);
 
 impl Settings {
     pub fn load_from_file(&self, settings_path: &PathBuf) {
         let Ok(json) = fs::read_to_string(settings_path) else { return };
-        let mut settings = serde_json::from_str::<SettingsInner>(json.as_str())
-            .expect("Deserialization to 'Config' should always succeed since every field has a 'default'");
+        let mut settings = serde_json::from_str::<SettingsInner>(json.as_str()).unwrap_or_default();
 
-        let mut video_dir = video_dir().expect("video_dir doesn't exist");
         // if recordings_folder is absolute the whole path gets replaced by the absolute path
         // if recordings_folder is relative the path gets appened to the system video directory
-        video_dir.push(settings.config.recordings_folder);
-        settings.config.recordings_folder = video_dir;
-        if fs::create_dir_all(settings.config.recordings_folder.as_path()).is_err() && settings.debug_log {
+        settings.recordings_folder = video_dir()
+            .expect("video_dir doesn't exist")
+            .join(settings.recordings_folder);
+        if fs::create_dir_all(settings.recordings_folder.as_path()).is_err() && settings.debug_log {
             println!("Unable to create recordings_folder");
         }
 
@@ -108,7 +121,7 @@ impl Settings {
     }
 
     pub fn get_recordings_path(&self) -> PathBuf {
-        self.0.read().unwrap().config.recordings_folder.clone()
+        self.0.read().unwrap().recordings_folder.clone()
     }
 
     pub fn check_for_updates(&self) -> bool {
@@ -129,10 +142,20 @@ impl Settings {
     }
 
     pub fn create_lol_rec_cfg(&self, window_size: (u32, u32)) -> String {
-        let mut s = self.0.write().unwrap();
-        s.config.window_size = common::Size::new(window_size.0, window_size.1);
-        let mut cfg = serde_json::to_string(&s.config).expect("error serializing lol_rec config");
-        cfg.push('\n'); // add newline as something like a termination sequence
+        let settings = self.0.read().unwrap();
+
+        let config = common::Config {
+            recordings_folder: settings.recordings_folder.clone(),
+            filename_format: settings.filename_format.clone(),
+            window_size: common::Size::new(window_size.0, window_size.1),
+            encoding_quality: settings.encoding_quality,
+            output_resolution: settings.output_resolution,
+            framerate: settings.framerate,
+            record_audio: settings.record_audio,
+        };
+
+        let mut cfg = serde_json::to_string(&config).expect("error serializing lol_rec config");
+        cfg.push('\n'); // so the receiving end knows when the line ends
         cfg
     }
 }
@@ -152,11 +175,20 @@ pub struct SettingsInner {
     #[serde(default = "default_true")]
     check_for_updates: bool,
     #[serde(default)]
-    pub debug_log: bool,
+    debug_log: bool,
     // these get passed to lol_rec
-    #[serde(flatten)]
-    #[serde(default)]
-    pub config: common::Config,
+    #[serde(default = "default_recordings_folder")]
+    recordings_folder: PathBuf,
+    #[serde(default = "default_filename_format")]
+    filename_format: String,
+    #[serde(default = "default_encoding_quality")]
+    encoding_quality: u32,
+    #[serde(default = "default_output_resolution")]
+    output_resolution: Resolution,
+    #[serde(default = "default_framerate")]
+    framerate: Framerate,
+    #[serde(default = "default_record_audio")]
+    record_audio: AudioSource,
 }
 
 impl Default for SettingsInner {
@@ -165,11 +197,40 @@ impl Default for SettingsInner {
             check_for_updates: true,
             marker_flags: MarkerFlags::default(),
             debug_log: false,
-            config: common::Config::default(),
+            recordings_folder: PathBuf::default(),
+            filename_format: default_filename_format(),
+            encoding_quality: default_encoding_quality(),
+            output_resolution: default_output_resolution(),
+            framerate: default_framerate(),
+            record_audio: AudioSource::APPLICATION,
         }
     }
 }
 
 fn default_true() -> bool {
     true
+}
+
+fn default_recordings_folder() -> PathBuf {
+    PathBuf::from("league_recordings")
+}
+
+fn default_filename_format() -> String {
+    String::from("%Y-%m-%d_%H-%M.mp4")
+}
+
+fn default_encoding_quality() -> u32 {
+    30
+}
+
+fn default_output_resolution() -> Resolution {
+    Resolution::_1080p
+}
+
+fn default_framerate() -> Framerate {
+    Framerate::new(30, 1)
+}
+
+fn default_record_audio() -> AudioSource {
+    AudioSource::APPLICATION
 }
