@@ -11,8 +11,8 @@ let modal = document.getElementById('modal');
 let modalContent = document.getElementById('modal-content');
 let sidebar = document.getElementById('sidebar-content');
 let recordingsSize = document.getElementById('size');
-let descriptionName = document.getElementById('description-name');
-let descriptionContent = document.getElementById('description-content');
+let descriptionLeft = document.getElementById('description-left');
+let descriptionCenter = document.getElementById('description-center');
 
 let checkboxKill = document.getElementById('kill');
 let checkboxDeath = document.getElementById('death');
@@ -184,8 +184,8 @@ async function setCurrentMarkerSettings(markers) {
 function clearData() {
     player.markers.removeAll();
     currentEvents = [];
-    descriptionName.innerHTML = '';
-    descriptionContent.innerHTML = 'No Data';
+    descriptionLeft.innerHTML = '';
+    descriptionCenter.innerHTML = 'No Data';
 }
 async function setVideo(name) {
     document.querySelector('.active')?.classList.remove('active');
@@ -203,18 +203,17 @@ async function setVideo(name) {
         try {
             currentEvents = md['events'];
 
-            let descName = `<span class="summoner-name">${md['gameInfo']['summonerName']}</span><br>`;
-            descName += `${md['gameInfo']['gameMode']}<br>`;
-            descriptionName.innerHTML = descName;
+            let descLeft = `<span class="summoner-name">${md['gameInfo']['summonerName']}</span><br>`;
+            descLeft += `${md['gameInfo']['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
+            descLeft += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
+            // descLeft += `Map: ${md['gameInfo']['gameMode']}`;
+            descriptionLeft.innerHTML = descLeft;
 
-            let result = '';
+            let descCenter = `Map: ${md['gameInfo']['gameMode']}<br>`;
             if (md['win'] != null) {
-                result = md['win'] ? '<span class="win">Victory</span><br>' : '<span class="loss">Defeat</span><br>';
+                descCenter += md['win'] ? '<span class="win">Victory</span><br>' : '<span class="loss">Defeat</span>';
             }
-            let descContent = result;
-            descContent += `${md['gameInfo']['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
-            descContent += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
-            descriptionContent.innerHTML = descContent;
+            descriptionCenter.innerHTML = descCenter;
         } catch {
             clearData();
         }

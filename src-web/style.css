@@ -117,12 +117,12 @@ hr {
     align-items: center;
 }
 
-#description-name {
+#description-left {
     flex: 0.5 1 auto;
     text-align: center;
 }
 
-#description-content {
+#description-center {
     flex: 1 1 auto;
     text-align: center;
 }
@@ -133,12 +133,12 @@ hr {
 }
 
 .win {
-    font-size: 24px;
+    font-size: 30px;
     color: #0acbe6;
 }
 
 .loss {
-    font-size: 24px;
+    font-size: 30px;
     color: #ff2345;
 }
 
