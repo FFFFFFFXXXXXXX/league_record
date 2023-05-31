@@ -82,6 +82,10 @@ fn main() -> anyhow::Result<()> {
     };
     println!("recorder created");
 
+    // wait 2 seconds to make sure the Recorder is ready / initialized
+    // else we get a few seconds of a completely black screen at the start of the recording
+    std::thread::sleep(Duration::from_secs(2));
+
     let cancel_token = CancellationToken::new();
     let cancel_subtoken1 = cancel_token.child_token();
     let cancel_subtoken2 = cancel_token.child_token();
