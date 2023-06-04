@@ -53,7 +53,7 @@ pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
                     let tray_menu = create_tray_menu()
                         .add_native_item(SystemTrayMenuItem::Separator)
                         .add_item(CustomMenuItem::new("update", "Update Available!"));
-                    let _ = app_handle.tray_handle().set_menu(tray_menu);
+                    _ = app_handle.tray_handle().set_menu(tray_menu);
                 }
             }
             return; // skip last log when there was a version to check against
@@ -94,9 +94,9 @@ pub fn compare_time(a: &Path, b: &Path) -> io::Result<Ordering> {
 }
 
 pub fn show_window(window: &Window) {
-    let _ = window.show();
-    let _ = window.unminimize();
-    let _ = window.set_focus();
+    _ = window.show();
+    _ = window.unminimize();
+    _ = window.set_focus();
 }
 
 pub fn create_window(app_handle: &AppHandle) {

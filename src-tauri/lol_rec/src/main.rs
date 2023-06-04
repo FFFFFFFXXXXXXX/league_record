@@ -292,7 +292,7 @@ fn main() -> anyhow::Result<()> {
     let mut outfile = cfg.recordings_folder.join(filename);
     outfile.set_extension("json");
     if let Ok(file) = File::create(&outfile) {
-        let _ = serde_json::to_writer(file, &game_data);
+        _ = serde_json::to_writer(file, &game_data);
         println!("metadata saved");
     }
 

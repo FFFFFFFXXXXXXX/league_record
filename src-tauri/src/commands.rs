@@ -82,7 +82,7 @@ pub fn get_recordings_list(settings_state: State<'_, Settings>) -> Vec<String> {
 
 #[tauri::command]
 pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, Settings>) {
-    let _ = shell::open(
+    _ = shell::open(
         &app_handle.shell_scope(),
         helpers::path_to_string(&state.get_recordings_path()),
         None,
@@ -101,7 +101,7 @@ pub fn delete_video(video: String, state: State<'_, Settings>) -> bool {
 
     // remove json file if it exists
     path.set_extension("json");
-    let _ = remove_file(path);
+    _ = remove_file(path);
     true
 }
 

@@ -117,7 +117,7 @@ impl Settings {
 
     pub fn write_to_file(&self, settings_path: &PathBuf) {
         let json = serde_json::to_string_pretty(&*self.0.read().unwrap()).unwrap();
-        let _ = fs::write(settings_path, json);
+        _ = fs::write(settings_path, json);
     }
 
     pub fn get_recordings_path(&self) -> PathBuf {
