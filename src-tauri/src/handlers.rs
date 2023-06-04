@@ -66,7 +66,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                             }
 
                             if marker_flags_changed || recordings_path_changed {
-                                let _ = app_handle.emit_all("reload_ui", ());
+                                _ = app_handle.emit_all("reload_ui", ());
                             }
                         }
                     }
@@ -75,7 +75,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
             "open" => create_window(app_handle),
             "quit" => {
                 if let Some(main) = app_handle.windows().get("main") {
-                    let _ = main.close();
+                    _ = main.close();
                 }
                 app_handle.trigger_global("shutdown_fileserver", None);
                 app_handle.trigger_global("shutdown_recorder", None);
@@ -91,7 +91,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                 });
             }
             "update" => {
-                let _ = shell::open(
+                _ = shell::open(
                     &app_handle.shell_scope(),
                     "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest",
                     None,
@@ -146,7 +146,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     // don't show window on startup and set initial window state
     if let Some(window) = app_handle.get_window("main") {
         save_window_state(&app_handle, &window);
-        let _ = window.close();
+        _ = window.close();
     }
 
     // launch static-file-server as a replacement for the broken asset protocol

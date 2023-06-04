@@ -34,13 +34,13 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>, folder: PathBuf, port: u16) {
 
         let (tx, rx) = tokio::sync::oneshot::channel::<()>();
         app_handle.once_global("shutdown_fileserver", move |_| {
-            let _ = tx.send(());
+            _ = tx.send(());
         });
 
         let server = Server::bind(&addr)
             .serve(MakeFileService::new(folder))
             .with_graceful_shutdown(async {
-                let _ = rx.await;
+                _ = rx.await;
             });
 
         let debug = app_handle.state::<Settings>().debug_log();

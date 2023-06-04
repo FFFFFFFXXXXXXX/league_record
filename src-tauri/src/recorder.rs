@@ -26,9 +26,9 @@ const WINDOW_CLASS: &str = "RiotWindowClass";
 fn set_recording_tray_item<R: Runtime>(app_handle: &AppHandle<R>, recording: bool) {
     let item = app_handle.tray_handle().get_item("rec");
     // set selected only updates the tray menu when open if the menu item is enabled
-    let _ = item.set_enabled(true);
-    let _ = item.set_selected(recording);
-    let _ = item.set_enabled(false);
+    _ = item.set_enabled(true);
+    _ = item.set_selected(recording);
+    _ = item.set_enabled(false);
 }
 
 #[cfg(target_os = "windows")]
@@ -64,7 +64,7 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
         // send stop to channel on "shutdown" event
         let (tx, rx) = channel::<_>();
         app_handle.once_global("shutdown_recorder", move |_| {
-            let _ = tx.send(());
+            _ = tx.send(());
         });
 
         // get owned copy of settings so we can change window_size
@@ -89,7 +89,7 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
 
                     // write serialized config to child
                     let size = get_window_size(hwnd).unwrap_or_default();
-                    let _ = child.write(settings.create_lol_rec_cfg(size).as_bytes());
+                    _ = child.write(settings.create_lol_rec_cfg(size).as_bytes());
 
                     if debug_log {
                         println!("lol_rec started");
@@ -108,7 +108,7 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                             }
                             result @ (Ok(CommandEvent::Terminated(_)) | Err(TryRecvError::Disconnected)) => {
                                 set_recording_tray_item(&app_handle, false);
-                                let _ = app_handle.emit_all("new_recording", ());
+                                _ = app_handle.emit_all("new_recording", ());
 
                                 if debug_log {
                                     match result {
@@ -131,7 +131,7 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                         match rx.recv_timeout(Duration::from_secs(1)) {
                             Ok(_) | Err(RecvTimeoutError::Disconnected) => {
                                 if child.write(b"stop").is_err() {
-                                    let _ = child.kill();
+                                    _ = child.kill();
                                 }
                                 break;
                             }
