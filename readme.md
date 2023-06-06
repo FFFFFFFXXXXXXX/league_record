@@ -5,6 +5,8 @@ Currently only supports Windows and is only tested for Windows 10 and Windows 11
 
 ![screenshot](https://user-images.githubusercontent.com/37913466/187545060-f97961f2-346d-48b7-bf1b-c453cbd86776.png)
 
+LeagueRecord isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
+
 ## Keybindings
 
 | Key         | Function           |
