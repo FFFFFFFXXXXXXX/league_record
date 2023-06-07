@@ -2,7 +2,7 @@
 
 > LeagueRecord isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
 
-LeagueRecord automatically detects when a League of Legends game is running and records it.
+LeagueRecord automatically detects when a League of Legends game is running and records it. \
 Currently only supports Windows.
 
 ![screenshot](https://user-images.githubusercontent.com/37913466/187545060-f97961f2-346d-48b7-bf1b-c453cbd86776.png)
