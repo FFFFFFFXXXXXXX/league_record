@@ -193,7 +193,7 @@ fn main() -> anyhow::Result<()> {
                     };
 
                     let time = recording_start.elapsed().as_secs_f64();
-                    println!("[{}] new ingame event: {:?}", time, event);
+                    println!("[{}]: {:?}", time, event);
 
                     let event_name = match event {
                         GameEvent::BaronKill(_) => Some("Baron"),
@@ -257,9 +257,9 @@ fn main() -> anyhow::Result<()> {
             _ = cancel_subtoken2.cancelled() => (),
             event = time::timeout(Duration::from_secs(30), ws_client.next()) => {
                 if let Ok(Some(mut event)) = event {
-                    let json_stats = event.data["localPlayer"]["stats"].take();
+                    println!("EOG stats: {:?}", event.data);
 
-                    println!("EOG stats: {:?}", json_stats);
+                    let json_stats = event.data["localPlayer"]["stats"].take();
 
                     if game_data.win.is_none() {
                         // on win the data contains a "WIN" key with a value of '1'
