@@ -1,27 +1,26 @@
 // CONSTANTS AND GLOBAL VARIABLES
-const invoke = __TAURI__.invoke;
-const { emit, listen } = __TAURI__.event;
-const wmng = new __TAURI__.window.WindowManager();
 
 // sets the time a marker jumps to before the actual event happens
 // jump to (eventTime - EVENT_DELAY) when a marker is clicked
 const EVENT_DELAY = 3;
 
-let modal = document.getElementById('modal');
-let modalContent = document.getElementById('modal-content');
-let sidebar = document.getElementById('sidebar-content');
-let recordingsSize = document.getElementById('size');
-let descriptionLeft = document.getElementById('description-left');
-let descriptionCenter = document.getElementById('description-center');
+const tauriWindowManager = new __TAURI__.window.WindowManager();
 
-let checkboxKill = document.getElementById('kill');
-let checkboxDeath = document.getElementById('death');
-let checkboxAssist = document.getElementById('assist');
-let checkboxTurret = document.getElementById('turret');
-let checkboxInhibitor = document.getElementById('inhibitor');
-let checkboxDragon = document.getElementById('dragon');
-let checkboxHerald = document.getElementById('herald');
-let checkboxBaron = document.getElementById('baron');
+const modal = document.getElementById('modal');
+const modalContent = document.getElementById('modal-content');
+const sidebar = document.getElementById('sidebar-content');
+const recordingsSize = document.getElementById('size');
+const descriptionLeft = document.getElementById('description-left');
+const descriptionCenter = document.getElementById('description-center');
+
+const checkboxKill = document.getElementById('kill');
+const checkboxDeath = document.getElementById('death');
+const checkboxAssist = document.getElementById('assist');
+const checkboxTurret = document.getElementById('turret');
+const checkboxInhibitor = document.getElementById('inhibitor');
+const checkboxDragon = document.getElementById('dragon');
+const checkboxHerald = document.getElementById('herald');
+const checkboxBaron = document.getElementById('baron');
 
 let fullscreen = false;
 let currentEvents = [];
@@ -49,9 +48,9 @@ player.markers({
 });
 
 // listen to fullscreenchange and set window fullscreen
-addEventListener('fullscreenchange', e => {
+addEventListener('fullscreenchange', () => {
     fullscreen = !fullscreen;
-    wmng.setFullscreen(fullscreen);
+    tauriWindowManager.setFullscreen(fullscreen);
 });
 
 addEventListener('keydown', event => {
@@ -115,7 +114,7 @@ addEventListener('focusin', event => {
 });
 
 // listen for new recordings
-listen('new_recording', async () => {
+__TAURI__.event.listen('new_recording', async () => {
     let activeVideo = document.querySelector('.active')?.id;
 
     let rec = await getRecordingsNames();
@@ -128,17 +127,36 @@ listen('new_recording', async () => {
 });
 
 // listen for settings change
-listen('reload_ui', async () => {
+__TAURI__.event.listen('reload_ui', async () => {
     await init();
 });
 // ------------------------------
 
 
 // FUNCTIONS --------------------
+const entityMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;',
+    '`': '&#x60;',
+    '=': '&#x3D;'
+};
+
+// inspired by https://github.com/janl/mustache.js/blob/master/mustache.js#L55
+function escape(string) {
+    return String(string)
+        .replace(/[&<>"'`=\/]/g, s => entityMap[s])
+        .replace(/[\r\n]+/g, ' ');
+}
+
 function resetPlayer() {
     player.reset();
     player.tech_.contentEl().onloadedmetadata = changeMarkers;
 }
+
 function showDeleteModal(video) {
     let html = `<p>Do you really want to delete ${video}?</p>`;
     html += '<p>';
@@ -148,82 +166,95 @@ function showDeleteModal(video) {
 
     showModal(html);
 }
+
 function showModal(content) {
     modalContent.innerHTML = content;
     modal.style.display = 'block';
 }
-function hideModal(event) {
+
+function hideModal() {
     modal.style.display = 'none';
 }
+
 async function getVideoPath(video) {
-    let port = await invoke('get_asset_port');
+    let port = await __TAURI__.invoke('get_asset_port');
     return `http://127.0.0.1:${port}/${video}`;
 }
-async function openRecordingsFolder() {
-    invoke('open_recordings_folder');
+
+function openRecordingsFolder() {
+    __TAURI__.invoke('open_recordings_folder');
 }
-function getRecordingsNames() {
-    return invoke('get_recordings_list');
+
+async function getRecordingsNames() {
+    return (await __TAURI__.invoke('get_recordings_list')).map(escape);
 }
+
 async function setRecordingsSize() {
-    let size = await invoke('get_recordings_size');
+    let size = await __TAURI__.invoke('get_recordings_size');
     recordingsSize.innerHTML = `Size: ${size.toString().substring(0, 4)} GB`;
 }
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
 async function getDefaultMarkerSettings() {
-    return await invoke('get_default_marker_flags');
+    return await __TAURI__.invoke('get_default_marker_flags');
 }
+
 async function getCurrentMarkerSettings() {
-    return await invoke('get_current_marker_flags');
+    return await __TAURI__.invoke('get_current_marker_flags');
 }
-async function setCurrentMarkerSettings(markers) {
-    return await invoke('set_current_marker_flags', { markerFlags: markers });
+
+function setCurrentMarkerSettings(markers) {
+    __TAURI__.invoke('set_current_marker_flags', {markerFlags: markers});
 }
+
 function clearData() {
     player.markers.removeAll();
     currentEvents = [];
     descriptionLeft.innerHTML = '';
     descriptionCenter.innerHTML = 'No Data';
 }
-async function setVideo(name) {
+
+function setVideo(name) {
     document.querySelector('.active')?.classList.remove('active');
     document.getElementById(name)?.classList.add('active');
 
-    if (!name) {
-        wmng.setTitle('League Record');
-        return;
+    if (name) {
+        tauriWindowManager.setTitle('League Record - ' + name);
     } else {
-        wmng.setTitle('League Record - ' + name);
+        tauriWindowManager.setTitle('League Record');
+        return;
     }
 
-    let md = await invoke('get_metadata', { video: name });
-    if (md) {
-        try {
-            currentEvents = md['events'];
+    __TAURI__.invoke('get_metadata', {video: name}).then(md => {
+        if (md) {
+            try {
+                currentEvents = md['events'];
 
-            let descLeft = `<span class="summoner-name">${md['gameInfo']['summonerName']}</span><br>`;
-            descLeft += `${md['gameInfo']['championName']} - ${md['stats']['kills']}/${md['stats']['deaths']}/${md['stats']['assists']}<br>`;
-            descLeft += `${md['stats']['creepScore']} CS | ${md['stats']['wardScore'].toString().substring(0, 4)} WS`;
-            // descLeft += `Map: ${md['gameInfo']['gameMode']}`;
-            descriptionLeft.innerHTML = descLeft;
+                let descLeft = `<span class="summoner-name">${escape(md['gameInfo']['summonerName'])}</span><br>`;
+                descLeft += `${escape(md['gameInfo']['championName'])} - ${escape(md['stats']['kills'])}/${escape(md['stats']['deaths'])}/${escape(md['stats']['assists'])}<br>`;
+                descLeft += `${escape(md['stats']['creepScore'])} CS | ${escape(md['stats']['wardScore'].toString().substring(0, 4))} WS`;
+                // descLeft += `Map: ${md['gameInfo']['gameMode']}`;
+                descriptionLeft.innerHTML = descLeft;
 
-            let descCenter = `Map: ${md['gameInfo']['gameMode']}<br>`;
-            if (md['win'] != null) {
-                descCenter += md['win'] ? '<span class="win">Victory</span><br>' : '<span class="loss">Defeat</span>';
+                let descCenter = `Map: ${escape(md['gameInfo']['gameMode'])}<br>`;
+                if (md['win'] != null) {
+                    descCenter += md['win'] ? '<span class="win">Victory</span><br>' : '<span class="loss">Defeat</span>';
+                }
+                descriptionCenter.innerHTML = descCenter;
+            } catch {
+                clearData();
             }
-            descriptionCenter.innerHTML = descCenter;
-        } catch {
+        } else {
             clearData();
         }
-    } else {
-        clearData();
-    }
+    });
 
-    let path = await getVideoPath(name);
-    player.src({ type: 'video/mp4', src: path });
+    getVideoPath(name).then(path => player.src({type: 'video/mp4', src: path}));
 }
+
 // ! possibly change this when moving back to Tauri Asset Protocol
 async function deleteVideo(video) {
     let deleteCurrentVideo = video === document.querySelector('.active').id;
@@ -233,9 +264,9 @@ async function deleteVideo(video) {
         await sleep(100);
     }
 
-    let ok = await invoke('delete_video', { 'video': video });
+    let ok = await __TAURI__.invoke('delete_video', {'video': video});
     if (ok) {
-        setRecordingsSize();
+        await setRecordingsSize();
         document.getElementById(video).remove();
 
         // only set new active video if old active video was deleted
@@ -249,10 +280,13 @@ async function deleteVideo(video) {
         showModal(content);
     }
 }
+
 function createSidebarElement(el) {
+    // call event.stopPropagation(); to stop the onclick event from also effecting the element under the clicked X button
     let deleteBtn = `<span class="delete" onclick="event.stopPropagation();showDeleteModal('${el}')">&times;</span>`;
-    return `<li id="${el}" onclick="setVideo('${el}')">${el.substring(0, el.length - 4)}${deleteBtn}</li>`;
+    return `<li id="${el}" onclick="setVideo('${el}')">${escape(el.substring(0, el.length - 4))}${deleteBtn}</li>`;
 }
+
 function changeMarkers() {
     player.markers.removeAll();
     let arr = [];
@@ -333,12 +367,12 @@ async function init() {
     await setRecordingsSize();
 
     await sleep(150); // delay so the initial blank screen when creating a window doesn't show
-    await invoke('show_app_window');
+    await __TAURI__.invoke('show_app_window');
 }
+
 // ------------------------------
 
 
 // MAIN -------------------------
-// load the inital content
-init();
-// ------------------------------
+// load the initial content
+init().then(() => console.log('window loaded'));
