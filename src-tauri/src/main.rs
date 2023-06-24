@@ -1,5 +1,9 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
+use commands::*;
+use handlers::*;
+use state::*;
+
 mod commands;
 mod fileserver;
 mod handlers;
@@ -7,18 +11,27 @@ mod helpers;
 mod recorder;
 mod state;
 
-use commands::*;
-use handlers::*;
-use state::*;
-use tauri::{generate_handler, Builder};
-
 fn main() {
-    let app = Builder::default()
+    // Only check if this is the only instance of LeagueRecord if the check succeeds (= true|false).
+    // It is better to accidentally open two instances instead of none because something went wrong
+    if let Ok(single_instance) = single_instance::SingleInstance::new("LEAGUE_RECORD_APPLICATION") {
+        if !single_instance.is_single() {
+            println!("An instance of LeagueRecord is already open!");
+            return;
+        }
+
+        // leak the SingleInstance so Drop doesn't get called which would destroy the underlying Mutex (on Windows)
+        Box::leak(Box::new(single_instance));
+    } else {
+        println!("Something went wrong when checking for other instances of LeagueRecord");
+    }
+
+    let app = tauri::Builder::default()
         .manage(WindowState::init())
         .manage(AssetPort::init())
         .manage(SettingsFile::default())
         .manage(Settings::default())
-        .invoke_handler(generate_handler![
+        .invoke_handler(tauri::generate_handler![
             show_app_window,
             get_default_marker_flags,
             get_current_marker_flags,

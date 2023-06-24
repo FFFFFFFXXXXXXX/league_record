@@ -1,13 +1,14 @@
-use common::{AudioSource, Framerate, Resolution};
-use port_check::free_local_port_in_range;
-use serde::{Deserialize, Serialize};
-use tauri::api::path::video_dir;
-
 use std::{
     fs,
     path::PathBuf,
     sync::{Mutex, RwLock},
 };
+
+use port_check::free_local_port_in_range;
+use serde::{Deserialize, Serialize};
+use tauri::api::path::video_dir;
+
+use common::{AudioSource, Framerate, Resolution};
 
 pub struct WindowState {
     pub size: Mutex<(f64, f64)>,

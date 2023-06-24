@@ -27,6 +27,7 @@ futures-util = "0.3.24"
 port_check = "0.1.5"
 bytes = "1.2.1"
 open = "4.1.0"
+single-instance = "0.3.3"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.34.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }

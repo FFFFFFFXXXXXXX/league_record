@@ -5,7 +5,7 @@ use tauri::{
         path::{app_config_dir, video_dir},
         shell,
     },
-    App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
+    App, AppHandle, Manager, RunEvent, Runtime, SystemTray, SystemTrayEvent, WindowEvent, Wry,
 };
 use windows::Win32::UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE};
 
@@ -28,7 +28,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
         }
         SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
             "settings" => {
-                // spawn a seperate thread to avoid blocking the main thread with .status()
+                // spawn a separate thread to avoid blocking the main thread with .status()
                 thread::spawn({
                     let app_handle = app_handle.clone();
                     move || {
@@ -82,7 +82,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 
                 // normally recorder should call app_handle.exit() after shutting down
                 // if that doesn't happen within 3s force shutdown here
-                std::thread::spawn({
+                thread::spawn({
                     let app_handle = app_handle.clone();
                     move || {
                         thread::sleep(Duration::from_secs(3));
@@ -112,11 +112,11 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
 
     let app_handle = app.app_handle();
 
-    let settings = app_handle.state::<Settings>();
-
     // get path to config directory
-    let mut settings_path = app_config_dir(app_handle.config().as_ref()).expect("Error getting app directory");
-    settings_path.push("settings.json");
+    let config_path = app_config_dir(app_handle.config().as_ref()).expect("Error getting app directory");
+
+    let settings_path = config_path.join("settings.json");
+    let settings = app_handle.state::<Settings>();
     // create settings.json file if missing
     ensure_settings_exist(&settings_path);
     // load settings and set state
