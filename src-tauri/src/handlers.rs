@@ -5,7 +5,7 @@ use tauri::{
         path::{app_config_dir, video_dir},
         shell,
     },
-    App, AppHandle, Manager, RunEvent, Runtime, SystemTray, SystemTrayEvent, WindowEvent, Wry,
+    App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
 };
 use windows::Win32::UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE};
 
