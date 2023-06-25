@@ -207,7 +207,7 @@ async function getCurrentMarkerSettings() {
 }
 
 function setCurrentMarkerSettings(markers) {
-    __TAURI__.invoke('set_current_marker_flags', {markerFlags: markers});
+    __TAURI__.invoke('set_current_marker_flags', { markerFlags: markers });
 }
 
 function clearData() {
@@ -228,7 +228,7 @@ function setVideo(name) {
         return;
     }
 
-    __TAURI__.invoke('get_metadata', {video: name}).then(md => {
+    __TAURI__.invoke('get_metadata', { video: name }).then(md => {
         if (md) {
             try {
                 currentEvents = md['events'];
@@ -252,7 +252,7 @@ function setVideo(name) {
         }
     });
 
-    getVideoPath(name).then(path => player.src({type: 'video/mp4', src: path}));
+    getVideoPath(name).then(path => player.src({ type: 'video/mp4', src: path }));
 }
 
 // ! possibly change this when moving back to Tauri Asset Protocol
@@ -264,7 +264,7 @@ async function deleteVideo(video) {
         await sleep(100);
     }
 
-    let ok = await __TAURI__.invoke('delete_video', {'video': video});
+    let ok = await __TAURI__.invoke('delete_video', { 'video': video });
     if (ok) {
         await setRecordingsSize();
         document.getElementById(video).remove();
