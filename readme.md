@@ -44,11 +44,11 @@ LeagueRecord takes up ~70MB of your disk space.
 
 On a system with a Ryzen 3600 CPU and RX5700 GPU these are the performance numbers measured with Windows Taskmanager.
 
-|                             | CPU  | RAM    | GPU   |
-| --------------------------- |:----:|:------:|:-----:|
-| idle                        | ~0%  | ~5.5MB |  0%   |
-| record                      | ~3%  | ~50MB  | ~4%   |
-| watch recording             | ~2.5%| ~160MB | ~2.5% |
+|                             |  CPU  |   RAM  |  GPU  |
+| --------------------------- |:-----:|:------:|:-----:|
+| idle                        |   ~0% |   ~5MB |    0% |
+| record                      |   ~3% |  ~50MB |   ~4% |
+| watch recording             | ~2.5% | ~160MB | ~2.5% |
 
 The high RAM usage when watching a recording is due to using a WebView2 Window for the UI, which basically is Chromium in disguise.
 This is just a rough estimate with the default settings so you can get a sense for how much resources LeagueRecord uses.
