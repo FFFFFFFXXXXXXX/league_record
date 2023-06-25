@@ -65,10 +65,7 @@ pub fn get_recordings_size(settings_state: State<'_, Settings>) -> f32 {
 pub fn get_recordings_list(settings_state: State<'_, Settings>) -> Vec<String> {
     let mut recordings = get_recordings(&settings_state.get_recordings_path());
     // sort by time created (index 0 is newest)
-    recordings.sort_by(|a, b| match compare_time(a, b) {
-        Ok(ordering) => ordering,
-        Err(_) => Ordering::Equal,
-    });
+    recordings.sort_by(|a, b| compare_time(a, b).unwrap_or(Ordering::Equal));
     let mut ret = Vec::<String>::new();
     for path in recordings {
         if let Some(os_str_ref) = path.file_name() {

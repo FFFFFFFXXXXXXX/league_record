@@ -34,14 +34,11 @@ pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
         }
     };
 
-    let result = match client.get(GITHUB_LATEST).send() {
-        Ok(r) => r,
-        Err(_) => {
-            if debug_log {
-                println!("couldn't GET http result in 'check_updates");
-            }
-            return;
+    let Ok(result) = client.get(GITHUB_LATEST).send() else {
+        if debug_log {
+            println!("couldn't GET http result in 'check_updates");
         }
+        return;
     };
 
     if result.status() == StatusCode::FOUND {
@@ -68,12 +65,15 @@ pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
 pub fn get_recordings(rec_folder: &Path) -> Vec<PathBuf> {
     // get all mp4 files in ~/Videos/%folder-name%
     let mut recordings = Vec::<PathBuf>::new();
-    let rd_dir = match rec_folder.read_dir() {
-        Ok(rd_dir) => rd_dir,
-        Err(_) => return vec![],
-    };
-    for entry in rd_dir.flatten() {
+    let Ok(read_dir) = rec_folder.read_dir() else { return vec![] };
+
+    for entry in read_dir.flatten() {
         let path = entry.path();
+
+        if !path.is_file() {
+            continue;
+        }
+
         if let Some(ext) = path.extension() {
             if ext == "mp4" {
                 recordings.push(path);
