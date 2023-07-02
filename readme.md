@@ -9,18 +9,20 @@ Currently only supports Windows.
 
 ## Keybindings
 
-| Key         | Function           |
-|:-----------:|:------------------:|
-| Space       | Play/Pause         |
-| Arrow Right | +5 seconds         |
-| Arrow Left  | -5 seconds         |
-| Arrow Up    | +10% volume        |
-| Arrow Down  | -10% volume        |
-| f           | toggle fullscreen  |
-| m           | toggle mute        |
-| >           | +0.25 playbackrate |
-| <           | -0.25 playbackrate |
-| Esc         | exit fullscreen    |
+| Key                 | Function           |
+|:-------------------:|:------------------:|
+| Space               | Play/Pause         |
+| Arrow Right         | +5 seconds         |
+| Arrow Left          | -5 seconds         |
+| Shift + Arrow Right | next event         |
+| Shift + Arrow Left  | previous event     |
+| Arrow Up            | +10% volume        |
+| Arrow Down          | -10% volume        |
+| f                   | toggle fullscreen  |
+| m                   | toggle mute        |
+| >                   | +0.25 playbackrate |
+| <                   | -0.25 playbackrate |
+| Esc                 | exit fullscreen    |
 
 ## Settings
 
