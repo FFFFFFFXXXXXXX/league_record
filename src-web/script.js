@@ -236,7 +236,6 @@ function setVideo(name) {
                 let descLeft = `<span class="summoner-name">${escape(md['gameInfo']['summonerName'])}</span><br>`;
                 descLeft += `${escape(md['gameInfo']['championName'])} - ${escape(md['stats']['kills'])}/${escape(md['stats']['deaths'])}/${escape(md['stats']['assists'])}<br>`;
                 descLeft += `${escape(md['stats']['creepScore'])} CS | ${escape(md['stats']['wardScore'].toString().substring(0, 4))} WS`;
-                // descLeft += `Map: ${md['gameInfo']['gameMode']}`;
                 descriptionLeft.innerHTML = descLeft;
 
                 let descCenter = `Map: ${escape(md['gameInfo']['gameMode'])}<br>`;
@@ -255,7 +254,6 @@ function setVideo(name) {
     getVideoPath(name).then(path => player.src({ type: 'video/mp4', src: path }));
 }
 
-// ! possibly change this when moving back to Tauri Asset Protocol
 async function deleteVideo(video) {
     let deleteCurrentVideo = video === document.querySelector('.active').id;
     if (deleteCurrentVideo) {
