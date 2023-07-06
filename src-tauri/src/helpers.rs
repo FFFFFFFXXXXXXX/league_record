@@ -45,6 +45,11 @@ pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
         let url = result.headers().get("location").unwrap();
         if let Ok(url) = url.to_str() {
             let new_version = url.rsplit_once("/v").unwrap().1;
+
+            if debug_log {
+                println!("Checking for update: {}/{} (current/newest)\n", version, new_version);
+            }
+
             if let Ok(res) = compare(version, new_version) {
                 if res == 1 {
                     let tray_menu = create_tray_menu()
