@@ -233,9 +233,10 @@ function setVideo(name) {
             try {
                 currentEvents = md['events'];
 
+                const stats = md['stats'];
                 let descLeft = `<span class="summoner-name">${escape(md['gameInfo']['summonerName'])}</span><br>`;
-                descLeft += `${escape(md['gameInfo']['championName'])} - ${escape(md['stats']['kills'])}/${escape(md['stats']['deaths'])}/${escape(md['stats']['assists'])}<br>`;
-                descLeft += `${escape(md['stats']['creepScore'])} CS | ${escape(md['stats']['wardScore'].toString().substring(0, 4))} WS`;
+                descLeft += `${escape(md['gameInfo']['championName'])} - ${escape(stats['kills'])}/${escape(stats['deaths'])}/${escape(stats['assists'])}<br>`;
+                descLeft += `${escape(stats['minionsKilled'] + stats['neutralMinionsKilled'])} CS | ${escape(stats['wardScore'].toString().substring(0, 4))} WS`;
                 descriptionLeft.innerHTML = descLeft;
 
                 let descCenter = `Map: ${escape(md['gameInfo']['gameMode'])}<br>`;
