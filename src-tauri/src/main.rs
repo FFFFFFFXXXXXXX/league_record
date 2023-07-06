@@ -12,6 +12,8 @@ mod recorder;
 mod state;
 
 fn main() {
+    println!("LeagueRecord v{}", env!("CARGO_PKG_VERSION"));
+
     // Only check if this is the only instance of LeagueRecord if the check succeeds (= true|false).
     // It is better to accidentally open two instances instead of none because something went wrong
     if let Ok(single_instance) = single_instance::SingleInstance::new("LEAGUE_RECORD_APPLICATION") {
