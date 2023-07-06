@@ -26,11 +26,17 @@ pub struct Stats {
     pub deaths: u64,
     #[serde(alias = "ASSISTS")]
     pub assists: u64,
-    #[serde(alias = "MINIONS_KILLED")]
-    pub creep_score: u64,
-    // add default value fallback since there is no ward score in some game modes like ARAM
-    #[serde(alias = "VISION_SCORE")]
+    /// lane minons killed
     #[serde(default)]
+    #[serde(alias = "MINIONS_KILLED")]
+    pub minions_killed: u64,
+    /// neutral objectives killed
+    #[serde(default)]
+    #[serde(alias = "NEUTRAL_MINIONS_KILLED")]
+    pub neutral_minions_killed: u64,
+    // add default value fallback since there is no ward score in some game modes like ARAM
+    #[serde(default)]
+    #[serde(alias = "VISION_SCORE")]
     pub ward_score: f64,
 }
 
