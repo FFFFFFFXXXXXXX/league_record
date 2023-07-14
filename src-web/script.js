@@ -239,7 +239,7 @@ function setVideo(name) {
                 descLeft += `${escape(stats['minionsKilled'] + stats['neutralMinionsKilled'])} CS | ${escape(stats['wardScore'].toString().substring(0, 4))} WS`;
                 descriptionLeft.innerHTML = descLeft;
 
-                let descCenter = `Map: ${escape(md['gameInfo']['gameMode'])}<br>`;
+                let descCenter = `Game Mode: ${escape(md['gameInfo']['gameMode'])}<br>`;
                 if (md['win'] != null) {
                     descCenter += md['win'] ? '<span class="win">Victory</span><br>' : '<span class="loss">Defeat</span>';
                 }
