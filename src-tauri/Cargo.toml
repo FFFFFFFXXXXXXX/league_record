@@ -5,29 +5,32 @@ description = "Record and Play League of Legends games"
 authors = ["FX"]
 license = "gpl-2.0"
 repository = "github.com/FFFFFFFXXXXXXX/league_record"
-default-run = "app"
 edition = "2021"
-
-[workspace]
-members = [
-    "common",
-    "lol_rec"
-]
+default-run = "app"
+# build = "build.rs"
 
 [dependencies]
-common = { path = "./common" }
+# dependencies for main app and UI
 tauri = { version = "1.1.1", features = ["process-command-api", "shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
-hyper = { version = "0.14.20", features = ["http1", "server", "stream", "tcp"] }
-tokio = { version = "1.21.1", features = ["fs", "io-util", "rt-multi-thread"] }
-tokio-util = { version = "0.7.4", features = ["io"] }
+single-instance = "0.3.3"
+port_check = "0.1.5"
+reqwest = { version = "0.11.10", features = ["blocking"] }
 serde = "1.0.137"
 serde_json = "1.0"
-reqwest = { version = "0.11.10", features = ["blocking"] }
-futures-util = "0.3.24"
-port_check = "0.1.5"
-bytes = "1.2.1"
 open = "4.1.0"
-single-instance = "0.3.3"
+# dependencies for the fileserver module
+hyper = { version = "0.14.20", features = ["http1", "server", "stream", "tcp"] }
+tokio = { version = "1.21.1", features = ["fs", "io-util", "rt-multi-thread", "macros"] }
+tokio-util = { version = "0.7.4", features = ["io"] }
+futures-util = "0.3.24"
+bytes = "1.2.1"
+# dependencies for the recorder module
+# artifact/binary dependencies still require using 'cargo +nightly -Z bindeps {cmd}'
+libobs-recorder = { path = "C:/Users/felix/Documents/Meine Dokumente/CS Projekte/Rust/libobs-recorder", artifact = "bin:extprocess_recorder", lib = true }
+#libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", features = ["full", "serde"] }
+shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
+futures = "0.3.26"
+chrono = "0.4.19"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.34.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }
@@ -37,7 +40,7 @@ windows = { version = "0.34.0", features = ["Win32_Foundation", "Win32_UI_Window
 # todo
 
 [build-dependencies]
-tauri-build = { version = "1.1.1", features = [] }
+tauri-build = { version = "1.1.1" }
 
 [features]
 # by default Tauri runs in production mode
