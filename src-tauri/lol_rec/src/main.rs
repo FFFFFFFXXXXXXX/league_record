@@ -39,13 +39,14 @@ fn main() -> anyhow::Result<()> {
     let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
 
     // init Recorder
-    let libobs_data_path = Some(String::from("./libobs/data/libobs/"));
-    let plugin_bin_path = Some(String::from("./libobs/obs-plugins/64bit/"));
-    let plugin_data_path = Some(String::from("./libobs/data/obs-plugins/%module%/"));
-    match Recorder::init(libobs_data_path, plugin_bin_path, plugin_data_path) {
-        Ok(enc) => {
+    let libobs_data_path = Some("./libobs/data/libobs/");
+    let plugin_bin_path = Some("./libobs/obs-plugins/64bit/");
+    let plugin_data_path = Some("./libobs/data/obs-plugins/%module%/");
+    let mut recorder = match Recorder::new(libobs_data_path, plugin_bin_path, plugin_data_path) {
+        Ok(rec) => {
             println!("recorder init successful");
-            println!("available encoders: {:?}", enc);
+            // println!("available encoders: {:?}", recorder.);
+            rec
         }
         Err(e) => return Err(anyhow!("{e}")),
     };
@@ -76,11 +77,7 @@ fn main() -> anyhow::Result<()> {
 
         settings
     };
-    let mut recorder = match Recorder::get(settings) {
-        Ok(rec) => rec,
-        Err(e) => return Err(anyhow!("{e}")),
-    };
-    println!("recorder created");
+    recorder.set(&settings);
 
     // wait 2 seconds to make sure the Recorder is ready / initialized
     // else we get a few seconds of a completely black screen at the start of the recording
