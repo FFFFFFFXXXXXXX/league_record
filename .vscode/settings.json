@@ -1,0 +1,7 @@
+{
+    "rust-analyzer.cargoRunner": null,
+    "rust-analyzer.cargo.extraArgs": [
+        "-Z",
+        "bindeps"
+    ]
+}

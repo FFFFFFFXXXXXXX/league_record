@@ -46,6 +46,9 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                                 .expect("failed to start text editor");
                             // update markerflags in UI
                             settings.load_from_file(&path);
+                            if settings.debug_log() {
+                                println!("Settings updated: {:?}\n", settings.inner());
+                            }
 
                             let marker_flags = settings.get_marker_flags();
                             let recordings_path = settings.get_recordings_path();
@@ -74,18 +77,27 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
             }
             "open" => create_window(app_handle),
             "quit" => {
+                // close UI window
                 if let Some(main) = app_handle.windows().get("main") {
                     _ = main.close();
                 }
+
+                // setup event listeners
+                let (tx1, rx1) = tokio::sync::oneshot::channel::<()>();
+                let (tx2, rx2) = tokio::sync::oneshot::channel::<()>();
+                app_handle.once_global("fileserver_shutdown", |_| _ = tx1.send(()));
+                app_handle.once_global("recorder_shutdown", |_| _ = tx2.send(()));
+
+                // trigger shutdown
                 app_handle.trigger_global("shutdown_fileserver", None);
                 app_handle.trigger_global("shutdown_recorder", None);
 
-                // normally recorder should call app_handle.exit() after shutting down
-                // if that doesn't happen within 3s force shutdown here
-                thread::spawn({
+                // await shutdown of fileserver and recorder modules or timeout
+                tauri::async_runtime::spawn({
                     let app_handle = app_handle.clone();
-                    move || {
-                        thread::sleep(Duration::from_secs(3));
+                    async move {
+                        let timeout = Duration::from_secs(3);
+                        let _ = tokio::join!(tokio::time::timeout(timeout, rx1), tokio::time::timeout(timeout, rx2));
                         app_handle.exit(0);
                     }
                 });
@@ -128,7 +140,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     println!("debug_log: {}\n", if debug_log { "enabled" } else { "disabled" });
 
     if debug_log {
-        println!("Settings: {:?}\n", settings);
+        println!("Settings: {:?}\n", settings.inner());
     }
 
     if settings.check_for_updates() {

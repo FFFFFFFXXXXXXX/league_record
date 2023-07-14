@@ -5,8 +5,9 @@ edition = "2021"
 
 [dependencies]
 common = { path = "../common" }
-libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", features = ["full", "serde"] }
-shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco", rev = "f617eac" }
+libobs-recorder = { path = "C:/Users/felix/Documents/Meine Dokumente/CS Projekte/Rust/libobs-recorder", artifact = "bin:extprocess_recorder", lib = true }
+# libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", features = ["full", "serde"] }
+shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
 reqwest = { version = "0.11.10", features = ["json", "blocking"] }
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0"
