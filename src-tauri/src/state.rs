@@ -8,12 +8,13 @@ use port_check::free_local_port_in_range;
 use serde::{Deserialize, Serialize};
 use tauri::api::path::video_dir;
 
-use common::{AudioSource, Framerate, Resolution};
+use libobs_recorder::settings::{AudioSource, Framerate, Resolution};
 
 pub struct WindowState {
     pub size: Mutex<(f64, f64)>,
     pub position: Mutex<(f64, f64)>,
 }
+
 impl WindowState {
     pub fn init() -> Self {
         Self {
@@ -101,7 +102,9 @@ pub struct Settings(RwLock<SettingsInner>);
 
 impl Settings {
     pub fn load_from_file(&self, settings_path: &PathBuf) {
-        let Ok(json) = fs::read_to_string(settings_path) else { return };
+        let Ok(json) = fs::read_to_string(settings_path) else {
+            return;
+        };
         let mut settings = serde_json::from_str::<SettingsInner>(json.as_str()).unwrap_or_default();
 
         // if recordings_folder is absolute the whole path gets replaced by the absolute path
@@ -125,6 +128,26 @@ impl Settings {
         self.0.read().unwrap().recordings_folder.clone()
     }
 
+    pub fn get_filename_format(&self) -> String {
+        self.0.read().unwrap().filename_format.clone()
+    }
+
+    pub fn get_encoding_quality(&self) -> u32 {
+        self.0.read().unwrap().encoding_quality
+    }
+
+    pub fn get_output_resolution(&self) -> Resolution {
+        self.0.read().unwrap().output_resolution
+    }
+
+    pub fn get_framerate(&self) -> Framerate {
+        self.0.read().unwrap().framerate
+    }
+
+    pub fn get_audio_source(&self) -> AudioSource {
+        self.0.read().unwrap().record_audio
+    }
+
     pub fn check_for_updates(&self) -> bool {
         self.0.read().unwrap().check_for_updates
     }
@@ -142,23 +165,23 @@ impl Settings {
         self.0.read().unwrap().debug_log || debug.is_some()
     }
 
-    pub fn create_lol_rec_cfg(&self, window_size: (u32, u32)) -> String {
-        let settings = self.0.read().unwrap();
+    // pub fn create_lol_rec_cfg(&self, window_size: (u32, u32)) -> String {
+    //     let settings = self.0.read().unwrap();
 
-        let config = common::Config {
-            recordings_folder: settings.recordings_folder.clone(),
-            filename_format: settings.filename_format.clone(),
-            window_size: common::Size::new(window_size.0, window_size.1),
-            encoding_quality: settings.encoding_quality,
-            output_resolution: settings.output_resolution,
-            framerate: settings.framerate,
-            record_audio: settings.record_audio,
-        };
+    //     let config = common::Config {
+    //         recordings_folder: settings.recordings_folder.clone(),
+    //         filename_format: settings.filename_format.clone(),
+    //         window_size: Size::new(window_size.0, window_size.1),
+    //         encoding_quality: settings.encoding_quality,
+    //         output_resolution: settings.output_resolution,
+    //         framerate: settings.framerate,
+    //         record_audio: settings.record_audio,
+    //     };
 
-        let mut cfg = serde_json::to_string(&config).expect("error serializing lol_rec config");
-        cfg.push('\n'); // so the receiving end knows when the line ends
-        cfg
-    }
+    //     let mut cfg = serde_json::to_string(&config).expect("error serializing lol_rec config");
+    //     cfg.push('\n'); // so the receiving end knows when the line ends
+    //     cfg
+    // }
 }
 
 impl Default for Settings {
