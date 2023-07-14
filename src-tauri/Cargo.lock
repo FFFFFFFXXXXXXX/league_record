@@ -67,14 +67,17 @@ name = "app"
 version = "1.13.1"
 dependencies = [
  "bytes",
- "common",
+ "chrono",
+ "futures",
  "futures-util",
  "hyper",
+ "libobs-recorder",
  "open 4.2.0",
  "port_check",
  "reqwest",
  "serde",
  "serde_json",
+ "shaco",
  "single-instance",
  "tauri",
  "tauri-build",
@@ -408,15 +411,6 @@ checksum = "35ed6e9d84f0b51a7f52daf1c7d71dd136fd7a3f41a8462b8cdb8c78d920fad4"
 dependencies = [
  "bytes",
  "memchr",
-]
-
-[[package]]
-name = "common"
-version = "0.1.0"
-dependencies = [
- "libobs-recorder",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -1493,6 +1487,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "intprocess-recorder"
+version = "0.1.0"
+dependencies = [
+ "libobs-sys",
+ "serde",
+]
+
+[[package]]
 name = "io-lifetimes"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1501,6 +1503,16 @@ dependencies = [
  "hermit-abi",
  "libc",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "ipc-link"
+version = "0.1.0"
+dependencies = [
+ "intprocess-recorder",
+ "serde",
+ "serde_json",
+ "wait-timeout",
 ]
 
 [[package]]
@@ -1671,17 +1683,14 @@ dependencies = [
 [[package]]
 name = "libobs-recorder"
 version = "2.0.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder#6e3b958119f9113536bdcace1a452a27492fa2fb"
 dependencies = [
- "libobs-sys",
- "serde",
- "windows 0.48.0",
+ "intprocess-recorder",
+ "ipc-link",
 ]
 
 [[package]]
 name = "libobs-sys"
 version = "0.1.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder#6e3b958119f9113536bdcace1a452a27492fa2fb"
 dependencies = [
  "bindgen",
 ]
@@ -1716,23 +1725,6 @@ name = "log"
 version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
-
-[[package]]
-name = "lol_rec"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "common",
- "futures",
- "libobs-recorder",
- "reqwest",
- "serde",
- "serde_json",
- "shaco",
- "tokio",
- "tokio-util",
-]
 
 [[package]]
 name = "loom"
@@ -3683,9 +3675,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.19.14"
+version = "0.19.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8123f27e969974a3dfba720fdb560be359f57b44302d280ba72e76a74480e8a"
+checksum = "5f8751d9c1b03c6500c387e96f81f815a4f8e72d142d2d4a9ffa6fedd51ddee7"
 dependencies = [
  "indexmap 2.0.0",
  "serde",
@@ -3904,6 +3896,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3b17ae1f6c8a2b28506cd96d412eebf83b4a0ff2cbefeeb952f2f9dfa44ba18"
 dependencies = [
  "cc",
+ "libc",
+]
+
+[[package]]
+name = "wait-timeout"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f200f5b12eb75f8c1ed65abd4b2db8a6e1b138a20de009dacee265a2498f3f6"
+dependencies = [
  "libc",
 ]
 

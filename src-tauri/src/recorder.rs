@@ -4,11 +4,11 @@ use std::{
     time::Duration,
 };
 
-use tauri::{
-    api::process::{Command, CommandEvent, TerminatedPayload},
-    AppHandle, Manager, Runtime,
+use libobs_recorder::{
+    settings::{RateControl, Resolution, Size, Window},
+    Recorder, RecorderSettings,
 };
-use tokio::sync::mpsc::error::TryRecvError;
+use tauri::{AppHandle, Manager, Runtime};
 #[cfg(target_os = "windows")]
 use windows::{
     core::PCSTR,
@@ -22,6 +22,7 @@ use crate::state::Settings;
 
 const WINDOW_TITLE: &str = "League of Legends (TM) Client";
 const WINDOW_CLASS: &str = "RiotWindowClass";
+const WINDOW_PROCESS: &str = "League of Legends.exe";
 
 fn set_recording_tray_item<R: Runtime>(app_handle: &AppHandle<R>, recording: bool) {
     let item = app_handle.tray_handle().get_item("rec");
@@ -49,11 +50,11 @@ fn get_lol_window() -> Option<HWND> {
 }
 
 #[cfg(target_os = "windows")]
-fn get_window_size(hwnd: HWND) -> Result<(u32, u32), ()> {
+fn get_window_size(hwnd: HWND) -> Result<Size, ()> {
     let mut rect = RECT::default();
     let ok = unsafe { GetClientRect(hwnd, &mut rect as _).as_bool() };
     if ok && rect.right > 0 && rect.bottom > 0 {
-        Ok((rect.right as u32, rect.bottom as u32))
+        Ok(Size::new(rect.right as u32, rect.bottom as u32))
     } else {
         Err(())
     }
@@ -68,92 +69,71 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
         });
 
         // get owned copy of settings so we can change window_size
-        let settings = app_handle.state::<Settings>();
-        let debug_log = settings.debug_log();
-        let mut ingame = false;
+        let settings_state = app_handle.state::<Settings>();
+        let debug_log = settings_state.debug_log();
+
+        let mut recorder: Option<Recorder> = None;
 
         loop {
-            // if window exists && we get data from the API && we are not recording => start recording
             match get_lol_window() {
-                Some(hwnd) if !ingame => {
-                    ingame = true;
-
+                Some(window_handle) if recorder.is_none() => {
                     if debug_log {
                         println!("LoL Window found");
                     }
 
-                    let (mut rcv, mut child) = Command::new_sidecar("lol_rec")
-                        .expect("missing lol_rec")
-                        .spawn()
-                        .expect("error spawing lol_rec");
+                    let Ok(mut rec) = Recorder::new(None, None, None) else {
+                        continue;
+                    };
 
-                    // write serialized config to child
-                    let size = get_window_size(hwnd).unwrap_or_default();
-                    _ = child.write(settings.create_lol_rec_cfg(size).as_bytes());
+                    let mut settings = RecorderSettings::new();
+                    settings.set_window(Window::new(
+                        WINDOW_TITLE,
+                        Some(WINDOW_CLASS.into()),
+                        Some(WINDOW_PROCESS.into()),
+                    ));
+                    settings.set_input_size(
+                        get_window_size(window_handle).unwrap_or_else(|_| Resolution::_1080p.get_size()),
+                    );
+                    settings.set_output_resolution(settings_state.get_output_resolution());
+                    settings.set_framerate(settings_state.get_framerate());
+                    settings.set_rate_control(RateControl::CQP(settings_state.get_encoding_quality()));
+                    settings.record_audio(settings_state.get_audio_source());
+                    let mut output_path = settings_state.get_recordings_path();
+                    output_path.push(format!(
+                        "{}",
+                        chrono::Local::now().format(&settings_state.get_filename_format())
+                    ));
+                    settings.set_output_path(output_path.to_str().expect("error converting video_path to &str"));
+                    rec.configure(&settings);
 
-                    if debug_log {
-                        println!("lol_rec started");
-                    }
-
-                    // receive messages
-                    loop {
-                        match rcv.try_recv() {
-                            Ok(CommandEvent::Stdout(line) | CommandEvent::Stderr(line) | CommandEvent::Error(line)) => {
-                                if line == "recording started" {
-                                    set_recording_tray_item(&app_handle, true);
-                                }
-                                if debug_log {
-                                    println!("lol_rec: {}", line);
-                                }
-                            }
-                            result @ (Ok(CommandEvent::Terminated(_)) | Err(TryRecvError::Disconnected)) => {
-                                set_recording_tray_item(&app_handle, false);
-                                _ = app_handle.emit_all("new_recording", ());
-
-                                if debug_log {
-                                    match result {
-                                        Ok(CommandEvent::Terminated(TerminatedPayload {
-                                            code: Some(exitcode),
-                                            ..
-                                        })) => {
-                                            println!("lol_rec: Exitcode: {}", exitcode)
-                                        }
-                                        Err(TryRecvError::Disconnected) => println!("lol_rec: Exitcode: ?"),
-                                        _ => println!("lol_rec: Exitcode: -1"),
-                                    }
-                                }
-                                break;
-                            }
-                            _ => {}
-                        }
-
-                        // break if stop event received or sender disconnected
-                        match rx.recv_timeout(Duration::from_secs(1)) {
-                            Ok(_) | Err(RecvTimeoutError::Disconnected) => {
-                                if child.write(b"stop").is_err() {
-                                    _ = child.kill();
-                                }
-                                break;
-                            }
-                            Err(RecvTimeoutError::Timeout) => {}
-                        }
-                    }
-
-                    if debug_log {
-                        println!(); //formatting: empty line after lol_rec output
+                    if rec.start_recording() {
+                        recorder = Some(rec);
+                        set_recording_tray_item(&app_handle, true);
                     }
                 }
-                None => ingame = false,
-                _ => {}
+                None => {
+                    if let Some(mut rec) = recorder.take() {
+                        rec.stop_recording();
+                        _ = rec.shutdown();
+                    };
+                }
+                _ => { /* do nothing while recording */ }
             }
 
             // break if stop event received or sender disconnected
-            match rx.recv_timeout(Duration::from_secs(3)) {
-                Ok(_) | Err(RecvTimeoutError::Disconnected) => break,
+            match rx.recv_timeout(Duration::from_secs(1)) {
+                Ok(_) | Err(RecvTimeoutError::Disconnected) => {
+                    // stop recorder if running
+                    if let Some(mut rec) = recorder {
+                        rec.stop_recording();
+                        _ = rec.shutdown();
+                    }
+                    break;
+                }
                 Err(RecvTimeoutError::Timeout) => {}
             }
         }
 
-        app_handle.exit(0);
+        app_handle.trigger_global("recorder_shutdown", None);
     });
 }
