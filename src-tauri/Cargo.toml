@@ -26,7 +26,7 @@ futures-util = "0.3.24"
 bytes = "1.2.1"
 # dependencies for the recorder module
 # artifact/binary dependencies still require using 'cargo +nightly -Z bindeps {cmd}'
-libobs-recorder = { path = "C:/Users/felix/Documents/Meine Dokumente/CS Projekte/Rust/libobs-recorder", artifact = "bin:extprocess_recorder", lib = true }
+libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", branch = "rewrite", artifact = "bin:extprocess_recorder", lib = true }
 #libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", features = ["full", "serde"] }
 shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
 futures = "0.3.26"
