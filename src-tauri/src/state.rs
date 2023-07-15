@@ -164,24 +164,6 @@ impl Settings {
         let debug = std::env::args().find(|e| e == "-d" || e == "--debug");
         self.0.read().unwrap().debug_log || debug.is_some()
     }
-
-    // pub fn create_lol_rec_cfg(&self, window_size: (u32, u32)) -> String {
-    //     let settings = self.0.read().unwrap();
-
-    //     let config = common::Config {
-    //         recordings_folder: settings.recordings_folder.clone(),
-    //         filename_format: settings.filename_format.clone(),
-    //         window_size: Size::new(window_size.0, window_size.1),
-    //         encoding_quality: settings.encoding_quality,
-    //         output_resolution: settings.output_resolution,
-    //         framerate: settings.framerate,
-    //         record_audio: settings.record_audio,
-    //     };
-
-    //     let mut cfg = serde_json::to_string(&config).expect("error serializing lol_rec config");
-    //     cfg.push('\n'); // so the receiving end knows when the line ends
-    //     cfg
-    // }
 }
 
 impl Default for Settings {
