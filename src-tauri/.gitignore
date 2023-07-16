@@ -1,6 +1,5 @@
 /target/
 /WixTools/
 /win-capture/
-/static-file-server.exe
-/libobs/obs-ffmpeg-mux.exe
+/libobs/extprocess_recorder*
 /lol_rec-x86_64-pc-windows-msvc.exe

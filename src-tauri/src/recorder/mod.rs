@@ -1,6 +1,7 @@
 mod data;
 
 use std::{
+    path::Path,
     sync::{
         mpsc::{channel, RecvTimeoutError},
         Arc, Mutex,
@@ -98,7 +99,9 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                         println!("LoL Window found");
                     }
 
-                    let Ok(mut rec) = Recorder::new(None, None, None) else {
+                    let Ok(mut rec) =
+                        Recorder::new_with_paths(Some(Path::new("./libobs/extprocess_recorder.exe")), None, None, None)
+                    else {
                         continue;
                     };
 
