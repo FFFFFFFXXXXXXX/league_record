@@ -21,16 +21,8 @@
         "icons/icon.ico"
       ],
       "resources": [
-        "./libobs/data/",
-        "./libobs/obs-plugins/",
+        "./libobs/",
         "./licenses/*"
-      ],
-      "externalBin": [
-        "./libobs/obs-amf-test",
-        "./libobs/obs-nvenc-test",
-        "./libobs/obs-qsv-test",
-        "./libobs/obs-ffmpeg-mux",
-        "./lol_rec"
       ],
       "copyright": "gpl-2.0",
       "category": "Utility",
