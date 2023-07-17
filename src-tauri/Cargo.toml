@@ -9,6 +9,13 @@ edition = "2021"
 default-run = "app"
 build = "build.rs"
 
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.34.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }
+[target.'cfg(target_os = "linux")'.dependencies]
+# todo
+[target.'cfg(target_os = "macos")'.dependencies]
+# todo
+
 [dependencies]
 # dependencies for main app and UI
 tauri = { version = "1.1.1", features = ["shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
@@ -25,22 +32,14 @@ tokio-util = { version = "0.7.4", features = ["io"] }
 futures-util = "0.3.24"
 bytes = "1.2.1"
 # dependencies for the recorder module
-# artifact/binary dependencies still require using 'cargo +nightly -Z bindeps {cmd}'
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", branch = "rewrite" }
-#libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", features = ["full", "serde"] }
 shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
 futures = "0.3.26"
 chrono = "0.4.19"
 
-[target.'cfg(target_os = "windows")'.dependencies]
-windows = { version = "0.34.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }
-[target.'cfg(target_os = "linux")'.dependencies]
-# todo
-[target.'cfg(target_os = "macos")'.dependencies]
-# todo
-
 [build-dependencies]
 tauri-build = { version = "1.1.1" }
+# artifact/binary dependencies still require using 'cargo +nightly -Z bindeps {cmd}'
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", branch = "rewrite", artifact = "bin:extprocess_recorder" }
 glob = "0.3.1"
 fs_extra = "1.3.0"

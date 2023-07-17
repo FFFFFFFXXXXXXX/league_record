@@ -1,3 +1,6 @@
+// 'windows_subsystem = "windows/console"' decides if the executable should launch in a console window or not
+// but only add this for release builds (debug_assertions disabled)
+// gets ignored on all other targets
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 use commands::*;
