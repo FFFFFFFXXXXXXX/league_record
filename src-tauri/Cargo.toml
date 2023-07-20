@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "1.13.1"
+version = "1.14.0"
 description = "Record and Play League of Legends games"
 authors = ["FX"]
 license = "gpl-2.0"
@@ -51,6 +51,7 @@ default = ["custom-protocol"]
 # this feature is used used for production builds where `devPath` points to the filesystem
 # DO NOT remove this
 custom-protocol = ["tauri/custom-protocol"]
+debug = ["libobs-recorder/debug"]
 
 [profile.release]
 opt-level = 3

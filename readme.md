@@ -66,7 +66,7 @@ Build with `cargo tauri build` to create an installer.
 In order to build a standalone archive, package everything up with
 
 ```bash
-tar -cvzf LeagueRecord.tar.gz -C src-tauri licenses libobs/data libobs/obs-plugins -C libobs *.dll obs-ffmpeg-mux.exe obs-amf-test.exe obs-nvenc-test.exe obs-qsv-test.exe -C ../target/release LeagueRecord.exe lol_rec.exe
+tar -cvzf LeagueRecord.tar.gz -C src-tauri/ licenses libobs -C target/release/ LeagueRecord.exe
 ```
 
 (assuming that you have all your obs .dll's and the data/plugin folders in src-tauri/libobs/)
