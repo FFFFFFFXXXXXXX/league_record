@@ -164,7 +164,9 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
 
                         // don't record spectator games
                         if let Ok(true) = ingame_client.is_spectator_mode().await {
-                            println!("spectator game detected");
+                            if debug_log {
+                                println!("spectator game detected");
+                            }
                             return;
                         }
 
@@ -208,7 +210,9 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                         while let Some(event) = tokio::select! { event = ingame_events.next() => event, _ = cancel_subtoken.cancelled() => None }
                         {
                             let time = recording_start.elapsed().as_secs_f64();
-                            println!("[{}]: {:?}", time, event);
+                            if debug_log {
+                                println!("[{}]: {:?}", time, event);
+                            }
 
                             let event_name = match event {
                                 GameEvent::BaronKill(_) => Some("Baron"),
@@ -273,7 +277,9 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                             _ = cancel_subtoken.cancelled() => (),
                             event = tokio::time::timeout(Duration::from_secs(30), ws_client.next()) => {
                                 if let Ok(Some(mut event)) = event {
-                                    println!("EOG stats: {:?}", event.data);
+                                    if debug_log {
+                                        println!("EOG stats: {:?}", event.data);
+                                    }
 
                                     let json_stats = event.data["localPlayer"]["stats"].take();
 
@@ -291,9 +297,13 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
 
                                     match serde_json::from_value(json_stats) {
                                         Ok(stats) => game_data.stats = stats,
-                                        Err(e) => println!("Error deserializing end of game stats: {:?}", e),
+                                        Err(e) => {
+                                            if debug_log {
+                                                println!("Error deserializing end of game stats: {:?}", e)
+                                            }
+                                        }
                                     }
-                                } else {
+                                } else if debug_log {
                                     println!("LCU event listener timed out");
                                 }
                             }
@@ -303,7 +313,9 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                             // serde_json requires a std::fs::File
                             if let Ok(file) = std::fs::File::create(&outfile) {
                                 _ = serde_json::to_writer(file, &game_data);
-                                println!("metadata saved");
+                                if debug_log {
+                                    println!("metadata saved");
+                                }
                             }
                         });
                     });
@@ -332,7 +344,10 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                                 Err(_) => cancel_token.cancel(),
                             }
                             // abort task if it still hasn't stopped after 15s
-                            if let Err(_) = tokio::time::timeout(Duration::from_secs(15), &mut handle).await {
+                            if tokio::time::timeout(Duration::from_secs(15), &mut handle)
+                                .await
+                                .is_err()
+                            {
                                 handle.abort();
                             }
                         });
