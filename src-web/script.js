@@ -71,9 +71,11 @@ addEventListener('keydown', event => {
             player.volume(player.volume() - 0.1)
             break;
         case 'f':
+        case 'F':
             player.isFullscreen() ? player.exitFullscreen() : player.requestFullscreen();
             break;
         case 'm':
+        case 'M':
             player.muted(!player.muted());
             break;
         case '<':
