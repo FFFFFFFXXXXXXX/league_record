@@ -1451,7 +1451,7 @@ dependencies = [
 [[package]]
 name = "intprocess-recorder"
 version = "0.1.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder?branch=rewrite#f87e94dc05f801b39feaae529af60ce8cb5a85e8"
+source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder#f87e94dc05f801b39feaae529af60ce8cb5a85e8"
 dependencies = [
  "libobs-sys",
  "serde",
@@ -1460,7 +1460,7 @@ dependencies = [
 [[package]]
 name = "ipc-link"
 version = "0.1.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder?branch=rewrite#f87e94dc05f801b39feaae529af60ce8cb5a85e8"
+source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder#f87e94dc05f801b39feaae529af60ce8cb5a85e8"
 dependencies = [
  "intprocess-recorder",
  "serde",
@@ -1630,7 +1630,7 @@ dependencies = [
 [[package]]
 name = "libobs-recorder"
 version = "2.0.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder?branch=rewrite#f87e94dc05f801b39feaae529af60ce8cb5a85e8"
+source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder#f87e94dc05f801b39feaae529af60ce8cb5a85e8"
 dependencies = [
  "intprocess-recorder",
  "ipc-link",
@@ -1639,7 +1639,7 @@ dependencies = [
 [[package]]
 name = "libobs-sys"
 version = "0.1.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder?branch=rewrite#f87e94dc05f801b39feaae529af60ce8cb5a85e8"
+source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder#f87e94dc05f801b39feaae529af60ce8cb5a85e8"
 
 [[package]]
 name = "line-wrap"
