@@ -47,7 +47,7 @@ futures-util = "0.3.24"
 bytes = "1.2.1"
 # dependencies for the recorder module
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder" }
-shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
+shaco = { git = "https://github.com/Leastrio/Shaco" }
 futures = "0.3.26"
 chrono = "0.4.19"
 
