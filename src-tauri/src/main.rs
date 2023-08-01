@@ -19,14 +19,14 @@ fn main() {
 
     // Only check if this is the only instance of LeagueRecord if the check succeeds (= true|false).
     // It is better to accidentally open two instances instead of none because something went wrong
-    if let Ok(single_instance) = single_instance::SingleInstance::new("LEAGUE_RECORD_APPLICATION") {
+    //
+    // Keep SingleInstance around until the end of main()
+    let single_instance = single_instance::SingleInstance::new("LEAGUE_RECORD_APPLICATION");
+    if let Ok(single_instance) = single_instance.as_ref() {
         if !single_instance.is_single() {
             println!("An instance of LeagueRecord is already open!");
             return;
         }
-
-        // leak the SingleInstance so Drop doesn't get called which would destroy the underlying Mutex (on Windows)
-        Box::leak(Box::new(single_instance));
     } else {
         println!("Something went wrong when checking for other instances of LeagueRecord");
     }
