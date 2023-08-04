@@ -44,7 +44,7 @@ It is possible to adjust the settings via the settings button in the tray menu. 
 
 ## Resources and Performance
 
-LeagueRecord takes up ~70MB of your disk space.
+LeagueRecord takes up ~70MB of your disk space with most of that coming from the libobs dependency.
 
 On a system with a Ryzen 3600 CPU and RX5700 GPU these are the performance numbers measured with Windows Taskmanager.
 
@@ -54,7 +54,8 @@ On a system with a Ryzen 3600 CPU and RX5700 GPU these are the performance numbe
 | record                      |   ~3% |  ~50MB |   ~4% |
 | watch recording             | ~2.5% | ~160MB | ~2.5% |
 
-The high RAM usage when watching a recording is due to using a WebView2 Window for the UI, which basically is Chromium in disguise.
+The high RAM usage when watching a recording is due to using a WebView2 Window for the UI, which basically is a Chromium version that is pre-installed on most windows PCs. UIs are easy to make with HTML + some CSS. It also keeps the program size small and the common case - running hidden in the taskbar - efficient.
+
 This is just a rough estimate with the default settings so you can get a sense for how much resources LeagueRecord uses.
 
 ## Release / Build
