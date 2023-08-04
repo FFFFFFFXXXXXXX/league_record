@@ -5,7 +5,7 @@
 LeagueRecord automatically detects when a League of Legends game is running and records it. \
 Currently only supports Windows.
 
-![screenshot1](https://user-images.githubusercontent.com/37913466/187545060-f97961f2-346d-48b7-bf1b-c453cbd86776.png)
+<!-- ![screenshot1](https://user-images.githubusercontent.com/37913466/187545060-f97961f2-346d-48b7-bf1b-c453cbd86776.png) -->
 
 ![screenshot2](https://github.com/FFFFFFFXXXXXXX/league_record/assets/37913466/d7d13b3f-53b2-4b04-9ce0-655e57c46b8e)
 
