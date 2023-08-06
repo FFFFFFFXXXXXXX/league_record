@@ -1,11 +1,14 @@
 use std::{
-    fs,
+    fmt, fs,
     path::PathBuf,
     sync::{Mutex, RwLock},
 };
 
 use port_check::free_local_port_in_range;
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{MapAccess, Visitor},
+    Deserialize, Serialize,
+};
 use tauri::api::path::video_dir;
 
 use libobs_recorder::settings::{AudioSource, Framerate, Resolution};
@@ -49,24 +52,74 @@ impl SettingsFile {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq)]
+#[derive(Serialize, Debug, Clone, Eq)]
 pub struct MarkerFlags {
-    #[serde(default = "default_true")]
     kill: bool,
-    #[serde(default = "default_true")]
     death: bool,
-    #[serde(default = "default_true")]
     assist: bool,
-    #[serde(default = "default_true")]
     turret: bool,
-    #[serde(default = "default_true")]
     inhibitor: bool,
-    #[serde(default = "default_true")]
     dragon: bool,
-    #[serde(default = "default_true")]
     herald: bool,
-    #[serde(default = "default_true")]
     baron: bool,
+}
+
+// Infallible
+impl<'de> Deserialize<'de> for MarkerFlags {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct MarkerFlagsVisitor;
+        impl<'de> Visitor<'de> for MarkerFlagsVisitor {
+            type Value = MarkerFlags;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct MarkerFlags")
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<MarkerFlags, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut marker_flags = MarkerFlags::default();
+
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        "kill" => {
+                            marker_flags.kill = map.next_value().unwrap_or(true);
+                        }
+                        "death" => {
+                            marker_flags.death = map.next_value().unwrap_or(true);
+                        }
+                        "assist" => {
+                            marker_flags.assist = map.next_value().unwrap_or(true);
+                        }
+                        "turret" => {
+                            marker_flags.turret = map.next_value().unwrap_or(true);
+                        }
+                        "inhibitor" => {
+                            marker_flags.inhibitor = map.next_value().unwrap_or(true);
+                        }
+                        "dragon" => {
+                            marker_flags.dragon = map.next_value().unwrap_or(true);
+                        }
+                        "herald" => {
+                            marker_flags.herald = map.next_value().unwrap_or(true);
+                        }
+                        "baron" => {
+                            marker_flags.baron = map.next_value().unwrap_or(true);
+                        }
+                        _ => { /* ignored */ }
+                    }
+                }
+
+                Ok(marker_flags)
+            }
+        }
+
+        deserializer.deserialize_map(MarkerFlagsVisitor)
+    }
 }
 
 impl Default for MarkerFlags {
@@ -117,6 +170,9 @@ impl Settings {
         }
 
         *self.0.write().unwrap() = settings;
+        // write parsed settings back to file so the internal settings and the content of the file stay in sync
+        // to avoid confusing the user when editing the file
+        self.write_to_file(settings_path);
     }
 
     pub fn write_to_file(&self, settings_path: &PathBuf) {
@@ -162,7 +218,7 @@ impl Settings {
 
     pub fn debug_log(&self) -> bool {
         let debug = std::env::args().find(|e| e == "-d" || e == "--debug");
-        self.0.read().unwrap().debug_log || debug.is_some()
+        debug.is_some() || self.0.read().unwrap().debug_log
     }
 }
 
@@ -172,71 +228,116 @@ impl Default for Settings {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsInner {
     // only used in the tauri application
-    #[serde(default)]
     marker_flags: MarkerFlags,
-    #[serde(default = "default_true")]
     check_for_updates: bool,
-    #[serde(default)]
     debug_log: bool,
     // these get passed to lol_rec
-    #[serde(default = "default_recordings_folder")]
     recordings_folder: PathBuf,
-    #[serde(default = "default_filename_format")]
     filename_format: String,
-    #[serde(default = "default_encoding_quality")]
     encoding_quality: u32,
-    #[serde(default = "default_output_resolution")]
     output_resolution: Resolution,
-    #[serde(default = "default_framerate")]
     framerate: Framerate,
-    #[serde(default = "default_record_audio")]
     record_audio: AudioSource,
+}
+
+const DEFAULT_UPDATE_CHECK: bool = true;
+const DEFAULT_DEBUG_LOG: bool = false;
+const DEFAULT_ENCODING_QUALITY: u32 = 30;
+const DEFAULT_OUTPUT_RESOLUTION: Resolution = Resolution::_1080p;
+const DEFAULT_RECORD_AUDIO: AudioSource = AudioSource::APPLICATION;
+
+#[inline]
+fn default_recordings_folder() -> PathBuf {
+    PathBuf::from("league_recordings")
+}
+
+#[inline]
+fn default_filename_format() -> String {
+    String::from("%Y-%m-%d_%H-%M.mp4")
+}
+
+#[inline]
+fn default_framerate() -> Framerate {
+    Framerate::new(30, 1)
 }
 
 impl Default for SettingsInner {
     fn default() -> Self {
         Self {
-            check_for_updates: true,
+            check_for_updates: DEFAULT_UPDATE_CHECK,
             marker_flags: MarkerFlags::default(),
-            debug_log: false,
-            recordings_folder: PathBuf::default(),
+            debug_log: DEFAULT_DEBUG_LOG,
+            recordings_folder: default_recordings_folder(),
             filename_format: default_filename_format(),
-            encoding_quality: default_encoding_quality(),
-            output_resolution: default_output_resolution(),
+            encoding_quality: DEFAULT_ENCODING_QUALITY,
+            output_resolution: DEFAULT_OUTPUT_RESOLUTION,
             framerate: default_framerate(),
-            record_audio: AudioSource::APPLICATION,
+            record_audio: DEFAULT_RECORD_AUDIO,
         }
     }
 }
 
-fn default_true() -> bool {
-    true
-}
+impl<'de> Deserialize<'de> for SettingsInner {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct SettingsVisitor;
+        impl<'de> Visitor<'de> for SettingsVisitor {
+            type Value = SettingsInner;
 
-fn default_recordings_folder() -> PathBuf {
-    PathBuf::from("league_recordings")
-}
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct SettingsInner")
+            }
 
-fn default_filename_format() -> String {
-    String::from("%Y-%m-%d_%H-%M.mp4")
-}
+            fn visit_map<V>(self, mut map: V) -> Result<SettingsInner, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut settings = SettingsInner::default();
 
-fn default_encoding_quality() -> u32 {
-    30
-}
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        "checkForUpdates" => {
+                            settings.check_for_updates = map.next_value().unwrap_or(DEFAULT_UPDATE_CHECK);
+                        }
+                        "markerFlags" => {
+                            settings.marker_flags = map
+                                .next_value()
+                                .expect("MarkerFlags deserialization should be Infallible");
+                        }
+                        "debugLog" => settings.debug_log = map.next_value().unwrap_or(DEFAULT_DEBUG_LOG),
+                        "recordingsFolder" => {
+                            settings.recordings_folder =
+                                map.next_value().unwrap_or_else(|_| default_recordings_folder());
+                        }
+                        "filenameFormat" => {
+                            settings.filename_format = map.next_value().unwrap_or_else(|_| default_filename_format());
+                        }
+                        "encodingQuality" => {
+                            settings.encoding_quality = map.next_value().unwrap_or(DEFAULT_ENCODING_QUALITY);
+                        }
+                        "outputResolution" => {
+                            settings.output_resolution = map.next_value().unwrap_or(DEFAULT_OUTPUT_RESOLUTION);
+                        }
+                        "framerate" => {
+                            settings.framerate = map.next_value().unwrap_or_else(|_| default_framerate());
+                        }
+                        "recordAudio" => {
+                            settings.record_audio = map.next_value().unwrap_or(DEFAULT_RECORD_AUDIO);
+                        }
+                        _ => { /* ignored */ }
+                    }
+                }
 
-fn default_output_resolution() -> Resolution {
-    Resolution::_1080p
-}
+                Ok(settings)
+            }
+        }
 
-fn default_framerate() -> Framerate {
-    Framerate::new(30, 1)
-}
-
-fn default_record_audio() -> AudioSource {
-    AudioSource::APPLICATION
+        deserializer.deserialize_map(SettingsVisitor)
+    }
 }

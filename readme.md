@@ -5,9 +5,35 @@
 LeagueRecord automatically detects when a League of Legends game is running and records it. \
 Currently only supports Windows.
 
+## Usage
+
 <!-- ![screenshot1](https://user-images.githubusercontent.com/37913466/187545060-f97961f2-346d-48b7-bf1b-c453cbd86776.png) -->
 
+LeagueRecord launches minimized to the windows tray to get out of your way.\
+LeagueRecord automatically detects when a League of Legends game is running and records it as long as it is running.
+
+![screenshot-tray](https://user-images.githubusercontent.com/37913466/258589092-9ae83506-799f-4a8f-a553-067fcfb94ab8.png)
+
+Right-clicking the LeagueRecord tray item opens a menu.
+
+![screenshot-tray-menu](https://user-images.githubusercontent.com/37913466/258588802-c91c5cee-4192-4398-8582-bad709760e48.png)
+
+1. The topmost grayed out "Recording" entry is just the recording status. While LeagueRecord is recording there is a checkmark next to the text.
+2. The 'Settings' button opens the LeagueRecord settings in the windows text editor. See [Settings](#settings) for more information.
+3. The 'Open' button opens a window that shows you all your recordings.
+
+Double left-clicking the LeagueRecord tray icon or clicking the 'Open' button in the tray menu opens a window that shows all your recordings.
+
 ![screenshot2](https://github.com/FFFFFFFXXXXXXX/league_record/assets/37913466/d7d13b3f-53b2-4b04-9ce0-655e57c46b8e)
+
+There are 3 parts to the window.
+
+1. At the top left there is a small info that shows you how much space your recordings take up as well as a box with a button to open the folder in which your recordings are stored.
+2. On the left side under the info box there is a list of all you recordings. The name of each recording is the timestamp of the game.
+    Clicking on a recording shows it in the right part of the window.
+3. The right part of the window shows the currently selected recording with some information about the game at the bottom.
+    The timeline of the video includes markers for the most important events that happened in the game.
+    In case you don't want to see ALL events because they clutter the timeline you can enable/disable them by clicking the corresponding checkbox on the bottom right.
 
 ## Keybindings
 
@@ -28,19 +54,22 @@ Currently only supports Windows.
 
 ## Settings
 
-It is possible to adjust the settings via the settings button in the tray menu. Changed settings are require a restart to apply.
+It is possible to adjust the settings via the settings button in the tray menu.
+It opens the settings file in the windows text editor.\
+Settings get applied as soon as you save and close the text editor.
+If you write an invalid setting or delete an entry it gets reset to the default value. 
 
-|       Name       |                                              Value                                              | Description                                                                                                                                                                                                                                                                                |
-|:----------------:|:-----------------------------------------------------------------------------------------------:| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| recordingsFolder |                          String (only valid symbols for a foldername)                           | The name of the folder in which the recordings are stored                                                                                                                                                                                                                                  |
-|  filenameFormat  |                               String (with special placeholders)                                | Format string for naming new recordings. Can contain [special placeholders](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) in order to make each name unique. If a new recording has the same name as an already existing recording, the old recording gets overwritten! | 
-| encodingQuality  |                                positive whole number from 0-50                                  | Determines the size vs. quality tradeoff for the mp4 files. Zero means best encoding quality with a big filesize. 50 means heavily compressed with a small filesize.                                                                                                                       |
-| outputResolution |                      ['480p', '720p', '1080p', '1440p', '2160p', '4320p']                       | Sets the output resolution of the recordings.                                                                                                                                                                                                                                              |
-| outputFramerate  |                              [whole number > 0, whole number > 0]                               | Sets the framerate of the recordings as a fraction (numerator/denominator). <br> e.g. [30, 1] => 30fps, [30, 2] => 15fps                                                                                                                                                                   |
-|   recordAudio    |                           'NONE' \| 'APPLICATION' \| 'SYSTEM' \| ALL                            | Determines what audio gets recorded. 'NONE' records no audio. 'APPLICATION' records only LoL sounds. 'SYSTEM' records all sound output of your pc (e.g music in the background). 'ALL' records everything that 'SYSTEM' records but also your microphone input.                            |
-|   markerFlags    |{ 'kill', 'death', 'assist', 'turret', 'inhibitor', 'dragon', 'herald', 'baron' } : true \| false| Choose which events are shown by default in the timeline when playing a recording.                                                                                                                                                                                                         |
-|check for updates |                                          true \| false                                          | Determines if on start LeagueRecord checks for new releases on GitHub                                                                                                                                                                                                                      |
-|    debug log     |                                          true \| false                                          | If true prints logs to stdout                                                                                                                                                                                                                                                              |
+|       Name        |                                               Value                                               |                 Default                 | Description                                                                                                                                                                                                                                                                                |
+|:-----------------:|:-------------------------------------------------------------------------------------------------:|:---------------------------------------:| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| recordingsFolder  |                           String (only valid symbols for a foldername)                            | {System Video Folder}/league_recordings | The name of the folder in which the recordings are stored. Relative paths are appended to your default video folder.                                                                                                                                                                       |
+|  filenameFormat   |                                String (with special placeholders)                                 |           %Y-%m-%d_%H-%M.mp4            | Format string for naming new recordings. Can contain [special placeholders](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) in order to make each name unique. If a new recording has the same name as an already existing recording, the old recording gets overwritten! |
+|  encodingQuality  |                                  positive whole number from 0-50                                  |                   30                    | Determines the size vs. quality tradeoff for the mp4 files. Zero means best encoding quality with a big filesize. 50 means heavily compressed with a small filesize.                                                                                                                       |
+| outputResolution  |                       ['480p', '720p', '1080p', '1440p', '2160p', '4320p']                        |                  1080p                  | Sets the output resolution of the recordings.                                                                                                                                                                                                                                              |
+|  outputFramerate  |                               [whole number > 0, whole number > 0]                                |                   30                    | Sets the framerate of the recordings as a fraction (numerator/denominator). e.g. [30, 1] => 30fps, [30, 2] => 15fps                                                                                                                                                                        |
+|    recordAudio    |                            'NONE' \| 'APPLICATION' \| 'SYSTEM' \| ALL                             |               APPLICATION               | Determines what audio gets recorded. 'NONE' records no audio. 'APPLICATION' records only LoL sounds. 'SYSTEM' records all sound output of your pc (e.g music in the background). 'ALL' records everything that 'SYSTEM' records but also your microphone input.                            |
+|    markerFlags    | { 'kill', 'death', 'assist', 'turret', 'inhibitor', 'dragon', 'herald', 'baron' } : true \| false |                all true                 | Choose which events are shown by default in the timeline when playing a recording.                                                                                                                                                                                                         |
+| check for updates |                                           true \| false                                           |                  true                   | Determines if on start LeagueRecord checks for new releases on GitHub                                                                                                                                                                                                                      |
+|     debug log     |                                           true \| false                                           |                  false                  | If true prints logs to stdout                                                                                                                                                                                                                                                              |
 
 ## Resources and Performance
 

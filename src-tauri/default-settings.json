@@ -1,23 +1,23 @@
 {
-    "recordingsFolder": "league_recordings",
-    "filenameFormat": "%Y-%m-%d_%H-%M.mp4",
-    "encodingQuality": 30,
-    "outputResolution": "_1080p",
-    "framerate": [
-        30,
-        1
-    ],
-    "recordAudio": "APPLICATION",
-    "markerFlags": {
-        "kill": true,
-        "death": true,
-        "assist": true,
-        "turret": true,
-        "inhibitor": true,
-        "dragon": true,
-        "herald": true,
-        "baron": true
-    },
-    "checkForUpdates": true,
-    "debugLog": false
+  "markerFlags": {
+    "kill": true,
+    "death": true,
+    "assist": true,
+    "turret": true,
+    "inhibitor": true,
+    "dragon": true,
+    "herald": true,
+    "baron": true
+  },
+  "checkForUpdates": true,
+  "debugLog": false,
+  "recordingsFolder": "league_recordings",
+  "filenameFormat": "%Y-%m-%d_%H-%M.mp4",
+  "encodingQuality": 30,
+  "outputResolution": "_1080p",
+  "framerate": [
+    30,
+    1
+  ],
+  "recordAudio": "APPLICATION"
 }
