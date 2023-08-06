@@ -5,14 +5,22 @@
 LeagueRecord automatically detects when a League of Legends game is running and records it. \
 Currently only supports Windows.
 
+## Table of Contents
+
+- [Usage](#usage)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Settings](#settings)
+- [Resources and Performance](#resources-and-performance)
+- [Release / Build](#release--build)
+- [License](#license)
+
 ## Usage
 
 <!-- ![screenshot1](https://user-images.githubusercontent.com/37913466/187545060-f97961f2-346d-48b7-bf1b-c453cbd86776.png) -->
 
 LeagueRecord launches minimized to the windows tray to get out of your way.\
-LeagueRecord automatically detects when a League of Legends game is running and records it as long as it is running.
 
-![screenshot-tray](https://user-images.githubusercontent.com/37913466/258589092-9ae83506-799f-4a8f-a553-067fcfb94ab8.png)
+![screenshot-tray](https://user-images.githubusercontent.com/37913466/258664950-89779fd8-293a-42ed-be8c-95443bde2490.png)
 
 Right-clicking the LeagueRecord tray item opens a menu.
 
@@ -21,6 +29,7 @@ Right-clicking the LeagueRecord tray item opens a menu.
 1. The topmost grayed out "Recording" entry is just the recording status. While LeagueRecord is recording there is a checkmark next to the text.
 2. The 'Settings' button opens the LeagueRecord settings in the windows text editor. See [Settings](#settings) for more information.
 3. The 'Open' button opens a window that shows you all your recordings.
+4. The 'Quit' button stops LeagueRecord completely.
 
 Double left-clicking the LeagueRecord tray icon or clicking the 'Open' button in the tray menu opens a window that shows all your recordings.
 
@@ -30,12 +39,14 @@ There are 3 parts to the window.
 
 1. At the top left there is a small info that shows you how much space your recordings take up as well as a box with a button to open the folder in which your recordings are stored.
 2. On the left side under the info box there is a list of all you recordings. The name of each recording is the timestamp of the game.
-    Clicking on a recording shows it in the right part of the window.
+    Clicking on a recording shows it in the right part of the window. Next to the recording name there is a button to delete the recording.
 3. The right part of the window shows the currently selected recording with some information about the game at the bottom.
     The timeline of the video includes markers for the most important events that happened in the game.
     In case you don't want to see ALL events because they clutter the timeline you can enable/disable them by clicking the corresponding checkbox on the bottom right.
 
-## Keybindings
+Closing the window doesn't stop LeagueRecord. In order to completely stop LeagueRecord you have to close it via the 'Quit' button in the tray menu.
+
+## Keyboard Shortcuts
 
 | Key                 | Function           |
 |:-------------------:|:------------------:|
