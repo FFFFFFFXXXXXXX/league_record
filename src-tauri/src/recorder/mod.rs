@@ -132,11 +132,11 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
 
                     rec.configure(&settings);
 
-                    *recorder.lock().unwrap() = Some(rec)
+                    *recorder.lock().unwrap() = Some(rec);
 
-                    // wait 2 seconds before continuing to make sure the Recorder is ready / initialized
+                    // wait somewhere between 1-2 seconds before continuing to make sure the Recorder is ready / initialized
                     // else we get a completely black screen at the start of the recording
-                    // std::thread::sleep(Duration::from_secs(2));
+                    std::thread::sleep(Duration::from_millis(1500));
                 }
                 // initialize game_data, previous match branch garuantees recorder to be Some
                 Some(_) if game_data_thread.is_none() => {
