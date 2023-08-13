@@ -103,18 +103,41 @@ This is just a rough estimate with the default settings so you can get a sense f
 There is a release for Windows-x64, but you can build the project on your own.
 This project relies on libobs-recorder (and indirectly libobs) to record the game.
 For build prerequisites look at [libobs-recorder](https://github.com/FFFFFFFXXXXXXX/libobs-recorder)
+
+> Because the libobs-recorder dependency requires the `bindeps` nightly feature and `Tauri` does currently not support using 
+> nightly features the build process is a little weird.
+>
+> The easy way is to not create an installer via `cargo tauri build` but to manually compile and copy the files to an
+> output directory.
+>
+> The third line in build.rs (`tauri_build::build();`) causes the build errors. 
+> So comment out the third line in `build.rs` and compile the project with `cargo +nightly build -Z bindeps --release`.
+>
+> Now copy `./libobs/` and `./target/release/app.exe` into a seperate folder. If you want, rename `app.exe` to `LeagueRecord.exe` and you're done!
+>
+> Alternatively you could also run
+>
+> ```bash
+> 7z a -tzip LeagueRecord.zip ./licenses/ ./libobs/ ./target/release/app.exe; # create archive
+> 7z rn ./LeagueRecord.zip target/release/app.exe LeagueRecord.exe; # move .exe to correct position
+> ```
+>
+> to create a .zip file with all the required files.
+
+### Build process when cargo bindeps are stable
+
 Build with `cargo tauri build` to create an installer.
-In order to build a standalone archive, package everything up with
+In order to pack the compiles files into a standalone archive, run
 
 ```bash
-tar -cvzf LeagueRecord.tar.gz -C src-tauri/ licenses libobs -C target/release/ LeagueRecord.exe
+tar -cvzf LeagueRecord.tar.gz -C ./src-tauri/ ./licenses/ ./libobs/ -C ./target/release/ ./LeagueRecord.exe
 ```
 
 or
 
 ```bash
-7z a -tzip LeagueRecord.zip licenses libobs target/release/LeagueRecord.exe; # create archive
-7z rn LeagueRecord.zip target/release/LeagueRecord.exe LeagueRecord.exe; # move .exe to correct position
+7z a -tzip LeagueRecord.zip ./licenses/ ./libobs/ ./target/release/LeagueRecord.exe; # create archive
+7z rn ./LeagueRecord.zip target/release/LeagueRecord.exe LeagueRecord.exe; # move .exe to correct position
 ```
 
 (assuming that you have all your obs .dll's and the data/plugin folders in src-tauri/libobs/)
