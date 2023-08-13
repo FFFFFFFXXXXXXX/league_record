@@ -110,6 +110,13 @@ In order to build a standalone archive, package everything up with
 tar -cvzf LeagueRecord.tar.gz -C src-tauri/ licenses libobs -C target/release/ LeagueRecord.exe
 ```
 
+or
+
+```bash
+7z a -tzip LeagueRecord.zip licenses libobs target/release/LeagueRecord.exe; # create archive
+7z rn LeagueRecord.zip target/release/LeagueRecord.exe LeagueRecord.exe; # move .exe to correct position
+```
+
 (assuming that you have all your obs .dll's and the data/plugin folders in src-tauri/libobs/)
 
 ## License
