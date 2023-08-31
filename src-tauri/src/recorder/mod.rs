@@ -143,6 +143,8 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                     let configured = rec.configure(&settings);
                     if debug_log {
                         println!("recorder configured: {configured:?}");
+                        println!("Available encoders: {:?}", rec.available_encoders());
+                        println!("Selected encoder: {:?}", rec.selected_encoder());
                     }
                     if configured.is_err() {
                         continue;

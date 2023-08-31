@@ -1,6 +1,5 @@
 {
     "rust-analyzer.cargoRunner": null,
-    "rust-analyzer.cargo.buildScripts.enable": false,
     "rust-analyzer.cargo.extraArgs": [
         "-Z",
         "bindeps"

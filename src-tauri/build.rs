@@ -11,7 +11,7 @@ fn copy_libobs_recorder_dependencies() {
         // target path
         let manifest_path = std::env::var_os("CARGO_MANIFEST_DIR").unwrap();
         let manifest_path = std::path::Path::new(&manifest_path);
-        let target_path = std::path::Path::new(&manifest_path).join("libobs/extprocess_recorder.exe");
+        let target_path = manifest_path.join("libobs/extprocess_recorder.exe");
 
         // copy
         std::fs::copy(extprocess_recorder_path, target_path).expect("copying extprocess_recorder artifact failed");
