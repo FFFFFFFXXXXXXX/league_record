@@ -47,7 +47,7 @@ There are 3 parts to the window.
 Closing the window doesn't stop LeagueRecord. In order to completely stop LeagueRecord you have to close it via the 'Quit' button in the tray menu.
 
 > [!NOTE]
-> In case LeagueRecord only records a black screen instead of the game try running the software as Admin. That should fix the Problem!
+> In case LeagueRecord only records a black screen instead of the game, try running the software as Admin. That should fix the Problem!
 
 ## Keyboard Shortcuts
 
