@@ -87,9 +87,9 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
         let debug_log = settings_state.debug_log();
 
         // use Options to 'store' values between loops
-        let recorder: Arc<Mutex<Option<Recorder>>> = Arc::new(Mutex::new(None));
+        let recorder = Arc::new(Mutex::new(None));
         let mut filename = None;
-        let mut game_data_thread: Option<(async_runtime::JoinHandle<()>, CancellationToken)> = None;
+        let mut game_data_thread = None;
 
         loop {
             match get_lol_window() {
@@ -99,10 +99,20 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                         println!("LoL Window found");
                     }
 
-                    let Ok(mut rec) =
-                        Recorder::new_with_paths(Some(Path::new("./libobs/extprocess_recorder.exe")), None, None, None)
-                    else {
-                        continue;
+                    let mut rec = match Recorder::new_with_paths(
+                        Some(Path::new("./libobs/extprocess_recorder.exe")),
+                        None,
+                        None,
+                        None,
+                        debug_log,
+                    ) {
+                        Ok(rec) => rec,
+                        Err(e) => {
+                            if debug_log {
+                                println!("failed to create recorder: {e}");
+                            }
+                            continue;
+                        }
                     };
 
                     let mut settings = RecorderSettings::new();
@@ -130,7 +140,13 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                     settings.set_output_path(filename_path.to_str().expect("error converting filename path to &str"));
                     filename.replace(filename_path);
 
-                    rec.configure(&settings);
+                    let configured = rec.configure(&settings);
+                    if debug_log {
+                        println!("recorder configured: {configured:?}");
+                    }
+                    if configured.is_err() {
+                        continue;
+                    }
 
                     *recorder.lock().unwrap() = Some(rec);
 
@@ -190,9 +206,18 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
 
                         // if initial game_data is successfull => start recording
                         if let Some(rec) = recorder.lock().unwrap().as_mut() {
-                            if !rec.start_recording() {
+                            let start_recording = rec.start_recording();
+
+                            if debug_log {
+                                println!("start recording: {start_recording:?}");
+                            }
+
+                            if start_recording.is_err() {
                                 // if recording start failed stop recording just in case and retry next loop
-                                rec.stop_recording();
+                                let stop_recording = rec.stop_recording();
+                                if debug_log {
+                                    println!("start failed - stop recording: {stop_recording:?}");
+                                }
                                 return;
                             }
                         } else {
@@ -275,8 +300,8 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
 
                         tokio::select! {
                             _ = cancel_subtoken.cancelled() => (),
-                            event = tokio::time::timeout(Duration::from_secs(30), ws_client.next()) => {
-                                if let Ok(Some(mut event)) = event {
+                            event = ws_client.next() => {
+                                if let Some(mut event) = event {
                                     if debug_log {
                                         println!("EOG stats: {:?}", event.data);
                                     }
@@ -320,14 +345,20 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                         });
                     });
 
-                    game_data_thread.replace((handle, cancel_token));
+                    game_data_thread = Some((handle, cancel_token));
                 }
                 Some(_) => { /* do nothing while recording is active */ }
                 None => {
                     // stop recorder
                     if let Some(mut rec) = recorder.lock().unwrap().take() {
-                        rec.stop_recording();
-                        _ = rec.shutdown();
+                        let stopped = rec.stop_recording();
+                        let shutdown = rec.shutdown();
+
+                        if debug_log {
+                            println!("recorder stopped: {stopped:?}");
+                            println!("recorder shutdown: {shutdown:?}");
+                        }
+
                         set_recording_tray_item(&app_handle, false);
                     };
 
@@ -338,16 +369,13 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                         }
 
                         async_runtime::spawn(async move {
-                            // wait for 30s for EOG lobby before cancelling the task
-                            match tokio::time::timeout(Duration::from_secs(30), &mut handle).await {
+                            // wait for 90s for EOG lobby before trying to cancel the task
+                            match tokio::time::timeout(Duration::from_secs(90), &mut handle).await {
                                 Ok(_) => return,
                                 Err(_) => cancel_token.cancel(),
                             }
-                            // abort task if it still hasn't stopped after 15s
-                            if tokio::time::timeout(Duration::from_secs(15), &mut handle)
-                                .await
-                                .is_err()
-                            {
+                            // abort task if the cancel_token didn't stop the it (after 5s)
+                            if tokio::time::timeout(Duration::from_secs(5), &mut handle).await.is_err() {
                                 handle.abort();
                             }
                         });
@@ -360,8 +388,15 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                 Ok(_) | Err(RecvTimeoutError::Disconnected) => {
                     // stop recorder if running
                     if let Some(mut rec) = recorder.lock().unwrap().take() {
-                        rec.stop_recording();
-                        _ = rec.shutdown();
+                        let stopped = rec.stop_recording();
+                        let shutdown = rec.shutdown();
+
+                        if debug_log {
+                            println!("app exit");
+                            println!("recorder stopped: {stopped:?}");
+                            println!("recorder shutdown: {shutdown:?}");
+                        }
+
                         set_recording_tray_item(&app_handle, false);
                     };
 
