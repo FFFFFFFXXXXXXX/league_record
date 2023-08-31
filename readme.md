@@ -18,7 +18,7 @@ Currently only supports Windows.
 
 <!-- ![screenshot1](https://user-images.githubusercontent.com/37913466/187545060-f97961f2-346d-48b7-bf1b-c453cbd86776.png) -->
 
-LeagueRecord launches minimized to the windows tray to get out of your way.\
+LeagueRecord launches minimized to the windows tray to get out of your way.
 
 ![screenshot-tray](https://user-images.githubusercontent.com/37913466/258664950-89779fd8-293a-42ed-be8c-95443bde2490.png)
 
