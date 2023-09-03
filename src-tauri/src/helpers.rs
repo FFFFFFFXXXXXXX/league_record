@@ -5,7 +5,9 @@ use std::{
 };
 
 use reqwest::{blocking::Client, redirect::Policy, StatusCode};
-use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem, Window};
+use tauri::{
+    api::version::compare, AppHandle, CustomMenuItem, Manager, Runtime, SystemTrayMenu, SystemTrayMenuItem, Window,
+};
 
 use crate::state::{Settings, WindowState};
 
@@ -18,6 +20,14 @@ pub fn create_tray_menu() -> SystemTrayMenu {
         .add_item(CustomMenuItem::new("settings", "Settings"))
         .add_item(CustomMenuItem::new("open", "Open"))
         .add_item(CustomMenuItem::new("quit", "Quit"))
+}
+
+pub fn set_recording_tray_item<R: Runtime>(app_handle: &AppHandle<R>, recording: bool) {
+    let item = app_handle.tray_handle().get_item("rec");
+    // set selected only updates the tray menu when open if the menu item is enabled
+    _ = item.set_enabled(true);
+    _ = item.set_selected(recording);
+    _ = item.set_enabled(false);
 }
 
 pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
@@ -70,7 +80,9 @@ pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
 pub fn get_recordings(rec_folder: &Path) -> Vec<PathBuf> {
     // get all mp4 files in ~/Videos/%folder-name%
     let mut recordings = Vec::<PathBuf>::new();
-    let Ok(read_dir) = rec_folder.read_dir() else { return vec![] };
+    let Ok(read_dir) = rec_folder.read_dir() else {
+        return vec![];
+    };
 
     for entry in read_dir.flatten() {
         let path = entry.path();
@@ -151,11 +163,17 @@ pub fn save_window_state(app_handle: &AppHandle, window: &Window) {
 pub fn ensure_settings_exist(settings_file: &PathBuf) -> bool {
     if !settings_file.is_file() {
         // get directory of settings file
-        let Some(parent) = settings_file.parent() else { return false };
+        let Some(parent) = settings_file.parent() else {
+            return false;
+        };
         // create the whole settings_file to the directory
-        let Ok(_) = fs::create_dir_all(parent) else { return false };
+        let Ok(_) = fs::create_dir_all(parent) else {
+            return false;
+        };
         // create the settings file with the default settings json
-        let Ok(_) = fs::write(settings_file, include_str!("../default-settings.json")) else { return false };
+        let Ok(_) = fs::write(settings_file, include_str!("../default-settings.json")) else {
+            return false;
+        };
     }
     true
 }

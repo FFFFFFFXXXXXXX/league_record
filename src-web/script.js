@@ -350,9 +350,10 @@ function changeMarkers() {
 }
 
 async function init() {
-    let rec = await getRecordingsNames();
-    sidebar.innerHTML = '';
-    rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
+    let filenames = await getRecordingsNames();
+    let sidebarHtml = '';
+    for (file of filenames) sidebarHtml += createSidebarElement(file);
+    sidebar.innerHTML = sidebarHtml;
     setVideo(rec[0]);
 
     let settings = await getCurrentMarkerSettings() ?? await getDefaultMarkerSettings();
