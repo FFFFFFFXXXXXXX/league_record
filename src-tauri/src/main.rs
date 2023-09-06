@@ -9,6 +9,7 @@ use state::*;
 
 mod commands;
 mod fileserver;
+mod filewatcher;
 mod handlers;
 mod helpers;
 mod recorder;
@@ -36,6 +37,7 @@ fn main() {
         .manage(AssetPort::init())
         .manage(SettingsFile::default())
         .manage(Settings::default())
+        .manage(FileWatcher::default())
         .invoke_handler(tauri::generate_handler![
             show_app_window,
             get_default_marker_flags,

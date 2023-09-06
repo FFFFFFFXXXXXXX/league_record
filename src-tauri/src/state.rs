@@ -65,6 +65,7 @@ pub struct MarkerFlags {
 }
 
 // Infallible
+// custom deserializer that uses default values on deserialization errors instead of failing
 impl<'de> Deserialize<'de> for MarkerFlags {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -192,7 +193,7 @@ impl Settings {
         self.0.read().unwrap().encoding_quality
     }
 
-    pub fn get_output_resolution(&self) -> Resolution {
+    pub fn get_output_resolution(&self) -> Option<Resolution> {
         self.0.read().unwrap().output_resolution
     }
 
@@ -239,15 +240,15 @@ pub struct SettingsInner {
     recordings_folder: PathBuf,
     filename_format: String,
     encoding_quality: u32,
-    output_resolution: Resolution,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    output_resolution: Option<Resolution>,
     framerate: Framerate,
     record_audio: AudioSource,
 }
 
 const DEFAULT_UPDATE_CHECK: bool = true;
 const DEFAULT_DEBUG_LOG: bool = false;
-const DEFAULT_ENCODING_QUALITY: u32 = 30;
-const DEFAULT_OUTPUT_RESOLUTION: Resolution = Resolution::_1080p;
+const DEFAULT_ENCODING_QUALITY: u32 = 25;
 const DEFAULT_RECORD_AUDIO: AudioSource = AudioSource::APPLICATION;
 
 #[inline]
@@ -274,13 +275,14 @@ impl Default for SettingsInner {
             recordings_folder: default_recordings_folder(),
             filename_format: default_filename_format(),
             encoding_quality: DEFAULT_ENCODING_QUALITY,
-            output_resolution: DEFAULT_OUTPUT_RESOLUTION,
+            output_resolution: None,
             framerate: default_framerate(),
             record_audio: DEFAULT_RECORD_AUDIO,
         }
     }
 }
 
+// custom deserializer that uses default values on deserialization errors instead of failing
 impl<'de> Deserialize<'de> for SettingsInner {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -322,7 +324,7 @@ impl<'de> Deserialize<'de> for SettingsInner {
                             settings.encoding_quality = map.next_value().unwrap_or(DEFAULT_ENCODING_QUALITY);
                         }
                         "outputResolution" => {
-                            settings.output_resolution = map.next_value().unwrap_or(DEFAULT_OUTPUT_RESOLUTION);
+                            settings.output_resolution = map.next_value().ok();
                         }
                         "framerate" => {
                             settings.framerate = map.next_value().unwrap_or_else(|_| default_framerate());
@@ -339,5 +341,14 @@ impl<'de> Deserialize<'de> for SettingsInner {
         }
 
         deserializer.deserialize_map(SettingsVisitor)
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct FileWatcher(Mutex<Option<notify::RecommendedWatcher>>);
+
+impl FileWatcher {
+    pub fn set(&self, watcher: notify::RecommendedWatcher) {
+        *self.0.lock().unwrap() = Some(watcher);
     }
 }

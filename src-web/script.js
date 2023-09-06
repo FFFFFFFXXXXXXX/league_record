@@ -9,7 +9,7 @@ const tauriWindowManager = new __TAURI__.window.WindowManager();
 const modal = document.getElementById('modal');
 const modalContent = document.getElementById('modal-content');
 const sidebar = document.getElementById('sidebar-content');
-const recordingsSize = document.getElementById('size');
+const recordingsSize = document.getElementById('size-inner');
 const descriptionLeft = document.getElementById('description-left');
 const descriptionCenter = document.getElementById('description-center');
 
@@ -116,17 +116,8 @@ addEventListener('focusin', event => {
 });
 
 // listen for new recordings
-__TAURI__.event.listen('new_recording', async () => {
-    let activeVideo = document.querySelector('.active')?.id;
-
-    let rec = await getRecordingsNames();
-    sidebar.innerHTML = '';
-    rec.forEach(el => sidebar.innerHTML += createSidebarElement(el));
-
-    document.getElementById(activeVideo)?.classList.add('active');
-
-    await setRecordingsSize();
-});
+__TAURI__.event.listen('reload_recordings', partialReloadFiles);
+__TAURI__.event.listen('new_recording', partialReloadFiles);
 
 // listen for settings change
 __TAURI__.event.listen('reload_ui', async () => {
@@ -157,6 +148,13 @@ function escape(string) {
 function resetPlayer() {
     player.reset();
     player.tech_.contentEl().onloadedmetadata = changeMarkers;
+    player.bigPlayButton.hide();
+    player.markers.removeAll();
+
+    descriptionLeft.innerHTML = '';
+    descriptionCenter.innerHTML = 'No recording selected!';
+
+    document.querySelector('.active')?.classList.remove('active');
 }
 
 function showDeleteModal(video) {
@@ -188,12 +186,13 @@ function openRecordingsFolder() {
 }
 
 async function getRecordingsNames() {
+    console.log('get_recordings_list');
     return (await __TAURI__.invoke('get_recordings_list')).map(escape);
 }
 
 async function setRecordingsSize() {
     let size = await __TAURI__.invoke('get_recordings_size');
-    recordingsSize.innerHTML = `Size: ${size.toString().substring(0, 4)} GB`;
+    recordingsSize.innerHTML = size.toString().substring(0, 4);
 }
 
 function sleep(ms) {
@@ -221,12 +220,13 @@ function clearData() {
 
 function setVideo(name) {
     document.querySelector('.active')?.classList.remove('active');
-    document.getElementById(name)?.classList.add('active');
+    document.getElementById(name).classList.add('active');
 
     if (name) {
         tauriWindowManager.setTitle('League Record - ' + name);
     } else {
         tauriWindowManager.setTitle('League Record');
+        resetPlayer();
         return;
     }
 
@@ -254,28 +254,21 @@ function setVideo(name) {
         }
     });
 
-    getVideoPath(name).then(path => player.src({ type: 'video/mp4', src: path }));
+    getVideoPath(name).then(path => {
+        player.src({ type: 'video/mp4', src: path });
+        player.bigPlayButton.show();
+    });
 }
 
 async function deleteVideo(video) {
-    let deleteCurrentVideo = video === document.querySelector('.active').id;
-    if (deleteCurrentVideo) {
+    if (video === document.querySelector('.active')?.id) {
         // make sure the video is not in use before deleting it
         resetPlayer();
-        await sleep(100);
+        await sleep(250);
     }
 
     let ok = await __TAURI__.invoke('delete_video', { 'video': video });
-    if (ok) {
-        await setRecordingsSize();
-        document.getElementById(video).remove();
-
-        // only set new active video if old active video was deleted
-        if (deleteCurrentVideo) {
-            let remainingVideos = sidebar.querySelectorAll('li');
-            if (remainingVideos.length > 0) setVideo(remainingVideos[0].id);
-        }
-    } else {
+    if (!ok) {
         let content = '<p>Error deleting video!</p>';
         content += '<p><button class="btn" onclick="hideModal();">Close</button></p>';
         showModal(content);
@@ -349,12 +342,33 @@ function changeMarkers() {
     });
 }
 
-async function init() {
-    let filenames = await getRecordingsNames();
+async function partialReloadFiles() {
+    const activeVideoId = document.querySelector('.active')?.id;
+
+    const filenames = await getRecordingsNames();
     let sidebarHtml = '';
     for (file of filenames) sidebarHtml += createSidebarElement(file);
     sidebar.innerHTML = sidebarHtml;
-    setVideo(rec[0]);
+
+    if (activeVideoId) {
+        // check if previously active video still exists after update
+        const newActiveVideo = document.getElementById(activeVideoId);
+        if (newActiveVideo) {
+            newActiveVideo.classList.add('active');
+        } else {
+            resetPlayer();
+        }
+    }
+
+    await setRecordingsSize();
+}
+
+async function init() {
+    const filenames = await getRecordingsNames();
+    let sidebarHtml = '';
+    for (file of filenames) sidebarHtml += createSidebarElement(file);
+    sidebar.innerHTML = sidebarHtml;
+    setVideo(filenames[0]);
 
     let settings = await getCurrentMarkerSettings() ?? await getDefaultMarkerSettings();
     checkboxKill.checked = settings.kill;
@@ -376,5 +390,5 @@ async function init() {
 
 
 // MAIN -------------------------
-// load the initial content
+// load the initial content via function since top level async is not allowed (yet?)
 init().then(() => console.log('window loaded'));

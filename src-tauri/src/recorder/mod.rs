@@ -25,7 +25,7 @@ use shaco::{
 };
 use tauri::{
     async_runtime::{self, JoinHandle},
-    AppHandle, Manager, Runtime,
+    AppHandle, Manager,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -44,7 +44,21 @@ const WINDOW_TITLE: &str = "League of Legends (TM) Client";
 const WINDOW_CLASS: &str = "RiotWindowClass";
 const WINDOW_PROCESS: &str = "League of Legends.exe";
 
-pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
+const DEFAULT_RESOLUTIONS_FOR_ASPECT_RATIOS: [(f64, Resolution); 9] = [
+    (4.0 / 3.0, Resolution::_1600x1200p),
+    (5.0 / 4.0, Resolution::_1280x1024p),
+    (16.0 / 9.0, Resolution::_1920x1080p),
+    (16.0 / 10.0, Resolution::_1920x1200p),
+    (21.0 / 9.0, Resolution::_2560x1080p),
+    (43.0 / 18.0, Resolution::_2580x1080p),
+    (24.0 / 10.0, Resolution::_3840x1600p),
+    (32.0 / 9.0, Resolution::_3840x1080p),
+    (32.0 / 10.0, Resolution::_3840x1200p),
+];
+
+pub fn start(app_handle: &AppHandle) {
+    let app_handle = app_handle.clone();
+
     thread::spawn(move || {
         // send stop to channel on "shutdown" event
         let (tx, rx) = channel::<_>();
@@ -73,10 +87,52 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                         break 'inner;
                     };
 
-                    // initialize recorder
                     if debug_log {
                         println!("LoL Window found");
                     }
+
+                    let Ok(window_size) = get_window_size(window_handle) else {
+                        if debug_log {
+                            println!("unable to get window size of League of Legends.exe");
+                        }
+                        break 'inner;
+                    };
+
+                    // either get the explicitly set resolution or choose the default resolution for the LoL window aspect ratio
+                    let output_resolution = settings_state.get_output_resolution().unwrap_or_else(|| {
+                        // u32 fits into f64
+                        let aspect_ratio = window_size.width() as f64 / window_size.height() as f64;
+                        // sort difference of aspect_ratio to comparison by absolute values => most similar aspect ratio is at index 0
+                        let mut aspect_ratios =
+                            DEFAULT_RESOLUTIONS_FOR_ASPECT_RATIOS.map(|r| (r.0 - aspect_ratio, r.1));
+                        aspect_ratios.sort_by(|a, b| a.0.abs().partial_cmp(&b.0.abs()).unwrap());
+                        let default_resolution = aspect_ratios.first().unwrap().1;
+
+                        if debug_log {
+                            println!("Using default resolution ({default_resolution:?}) for window ({window_size:?})");
+                        }
+
+                        default_resolution
+                    });
+
+                    let mut filename_path = settings_state.get_recordings_path();
+                    filename_path.push(format!(
+                        "{}",
+                        chrono::Local::now().format(&settings_state.get_filename_format())
+                    ));
+
+                    let mut settings = RecorderSettings::new();
+                    settings.set_window(Window::new(
+                        WINDOW_TITLE,
+                        Some(WINDOW_CLASS.into()),
+                        Some(WINDOW_PROCESS.into()),
+                    ));
+                    settings.set_input_resolution(window_size);
+                    settings.set_output_resolution(output_resolution);
+                    settings.set_framerate(settings_state.get_framerate());
+                    settings.set_rate_control(RateControl::CQP(settings_state.get_encoding_quality()));
+                    settings.record_audio(settings_state.get_audio_source());
+                    settings.set_output_path(filename_path.to_str().expect("error converting filename path to &str"));
 
                     let mut rec = match Recorder::new_with_paths(
                         Some(Path::new("./libobs/extprocess_recorder.exe")),
@@ -94,30 +150,6 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                         }
                     };
 
-                    let mut settings = RecorderSettings::new();
-
-                    settings.set_window(Window::new(
-                        WINDOW_TITLE,
-                        Some(WINDOW_CLASS.into()),
-                        Some(WINDOW_PROCESS.into()),
-                    ));
-
-                    settings.set_input_size(
-                        get_window_size(window_handle).unwrap_or_else(|_| Resolution::_1080p.get_size()),
-                    );
-
-                    settings.set_output_resolution(settings_state.get_output_resolution());
-                    settings.set_framerate(settings_state.get_framerate());
-                    settings.set_rate_control(RateControl::CQP(settings_state.get_encoding_quality()));
-                    settings.record_audio(settings_state.get_audio_source());
-
-                    let mut filename_path = settings_state.get_recordings_path();
-                    filename_path.push(format!(
-                        "{}",
-                        chrono::Local::now().format(&settings_state.get_filename_format())
-                    ));
-                    settings.set_output_path(filename_path.to_str().expect("error converting filename path to &str"));
-
                     let configured = rec.configure(&settings);
                     if debug_log {
                         println!("recorder configured: {configured:?}");
@@ -127,12 +159,13 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
                     if configured.is_err() {
                         break 'inner;
                     }
+
                     *recorder.lock().unwrap() = Some(rec);
 
                     // --- ingame data collection ---
                     let cancel_token = CancellationToken::new();
+                    let app_handle = app_handle.clone();
                     let handle = async_runtime::spawn({
-                        let app_handle = app_handle.clone();
                         let cancel_subtoken = cancel_token.child_token();
                         let recorder = Arc::clone(&recorder);
 
@@ -223,8 +256,8 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>) {
     });
 }
 
-async fn collect_ingame_data<R: Runtime>(
-    app_handle: AppHandle<R>,
+async fn collect_ingame_data(
+    app_handle: AppHandle,
     cancel_subtoken: CancellationToken,
     recorder: Arc<Mutex<Option<Recorder>>>,
     outfile: PathBuf,

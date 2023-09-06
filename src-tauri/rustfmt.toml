@@ -1,1 +1,5 @@
 max_width = 120
+use_small_heuristics = "Default"
+struct_lit_single_line = true
+struct_lit_width = 30
+single_line_let_else_max_width = 80

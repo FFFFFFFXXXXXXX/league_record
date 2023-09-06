@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "1.14.2"
+version = "1.14.3"
 description = "Record and Play League of Legends games"
 authors = ["FX"]
 license = "gpl-2.0"
@@ -18,12 +18,14 @@ reqwest = { version = "0.11.10", features = ["blocking"] }
 serde = "1.0.137"
 serde_json = "1.0"
 open = "4.1.0"
+notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
 # dependencies for the fileserver module
 hyper = { version = "0.14.20", features = ["http1", "server", "stream", "tcp"] }
 tokio = { version = "1.21.1", features = ["fs", "io-util", "rt-multi-thread", "macros"] }
 tokio-util = { version = "0.7.4", features = ["io"] }
 futures-util = "0.3.24"
 bytes = "1.2.1"
+percent-encoding = "2.3.0"
 # dependencies for the recorder module
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder" }
 shaco = { git = "https://github.com/Leastrio/Shaco" }
@@ -40,7 +42,7 @@ windows = { version = "0.34.0", features = ["Win32_Foundation", "Win32_UI_Window
 [build-dependencies]
 tauri-build = { version = "1.1.1" }
 # artifact/binary dependencies still require using 'cargo +nightly -Z bindeps {cmd}'
-# libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", artifact = "bin:extprocess_recorder" }
+libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", artifact = "bin:extprocess_recorder" }
 
 [features]
 # by default Tauri runs in production mode

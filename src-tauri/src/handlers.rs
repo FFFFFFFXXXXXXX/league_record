@@ -10,7 +10,7 @@ use tauri::{
 use windows::Win32::UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE};
 
 use crate::{
-    fileserver,
+    fileserver, filewatcher,
     helpers::{check_updates, create_tray_menu, create_window, ensure_settings_exist, save_window_state},
     recorder,
     state::{Settings, SettingsFile},
@@ -36,6 +36,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 
                         if ensure_settings_exist(&path) {
                             let settings = app_handle.state::<Settings>();
+                            let debug_log = settings.debug_log();
                             let old_recordings_path = settings.get_recordings_path();
                             let old_marker_flags = settings.get_marker_flags();
 
@@ -46,7 +47,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                                 .expect("failed to start text editor");
                             // update markerflags in UI
                             settings.load_from_file(&path);
-                            if settings.debug_log() {
+                            if debug_log {
                                 println!("Settings updated: {:?}\n", settings.inner());
                             }
 
@@ -63,7 +64,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                                     let app_handle = app_handle.clone();
                                     move |_| {
                                         let port = app_handle.state::<AssetPort>().get();
-                                        fileserver::start(app_handle, recordings_path, port);
+                                        fileserver::start(&app_handle, recordings_path, port);
                                     }
                                 });
                             }
@@ -161,17 +162,17 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
         _ = window.close();
     }
 
-    // launch static-file-server as a replacement for the broken asset protocol
-    let port = app_handle.state::<AssetPort>().get();
     let recordings_path = settings.get_recordings_path();
-
+    let port = app_handle.state::<AssetPort>().get();
     if debug_log {
         println!("video folder: {:?}\n", recordings_path);
         println!("fileserver port: {}\n", port);
     }
 
-    fileserver::start(app_handle.clone(), recordings_path, port);
-    recorder::start(app_handle);
+    filewatcher::replace_filewatcher(&app_handle, &recordings_path);
+    // launch static-file-server as a replacement for the broken asset protocol
+    fileserver::start(&app_handle, recordings_path, port);
+    recorder::start(&app_handle);
     Ok(())
 }
 

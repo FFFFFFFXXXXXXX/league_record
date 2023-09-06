@@ -5,9 +5,7 @@ use std::{
 };
 
 use reqwest::{blocking::Client, redirect::Policy, StatusCode};
-use tauri::{
-    api::version::compare, AppHandle, CustomMenuItem, Manager, Runtime, SystemTrayMenu, SystemTrayMenuItem, Window,
-};
+use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem, Window};
 
 use crate::state::{Settings, WindowState};
 
@@ -22,7 +20,7 @@ pub fn create_tray_menu() -> SystemTrayMenu {
         .add_item(CustomMenuItem::new("quit", "Quit"))
 }
 
-pub fn set_recording_tray_item<R: Runtime>(app_handle: &AppHandle<R>, recording: bool) {
+pub fn set_recording_tray_item(app_handle: &AppHandle, recording: bool) {
     let item = app_handle.tray_handle().get_item("rec");
     // set selected only updates the tray menu when open if the menu item is enabled
     _ = item.set_enabled(true);
@@ -88,6 +86,12 @@ pub fn get_recordings(rec_folder: &Path) -> Vec<PathBuf> {
         let path = entry.path();
 
         if !path.is_file() {
+            continue;
+        }
+
+        // skip files that can't be renamed which means they are being written to - only works on windows
+        #[cfg(target_os = "windows")]
+        if std::fs::rename(&path, &path).is_err() {
             continue;
         }
 

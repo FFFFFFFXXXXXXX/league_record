@@ -1,15 +1,16 @@
 /*
     Shamelessly yoinked from https://github.com/joseluisq/static-web-server
-    Since it was the most responsive implementation I found when jumping around in the recordings
+    Since it was the most responsive implementation for skipping around in a video
 */
 
+use percent_encoding::percent_decode_str;
 use std::{
     cmp,
     convert::Infallible,
     future::{ready, Future, Ready},
     io,
     net::SocketAddr,
-    path::{Path, PathBuf},
+    path::PathBuf,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -20,7 +21,7 @@ use futures_util::{
     ready, stream, FutureExt, Stream, StreamExt,
 };
 use hyper::{service::Service, Body, Request, Response, Server, StatusCode};
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Manager};
 use tokio::{fs::File, io::AsyncSeekExt};
 use tokio_util::io::poll_read_buf;
 
@@ -28,8 +29,11 @@ use crate::state::Settings;
 
 static BUFFER_SIZE: usize = 8192;
 
-pub fn start<R: Runtime>(app_handle: AppHandle<R>, folder: PathBuf, port: u16) {
+pub fn start(app_handle: &AppHandle, folder: PathBuf, port: u16) {
+    let app_handle = app_handle.clone();
+
     tauri::async_runtime::spawn(async move {
+        let debug_log = app_handle.state::<Settings>().debug_log();
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
         let (tx, rx) = tokio::sync::oneshot::channel::<()>();
@@ -38,27 +42,26 @@ pub fn start<R: Runtime>(app_handle: AppHandle<R>, folder: PathBuf, port: u16) {
         });
 
         let server = Server::bind(&addr)
-            .serve(MakeFileService::new(folder))
+            .serve(MakeFileService::new(folder, debug_log))
             .with_graceful_shutdown(async {
                 _ = rx.await;
             });
 
-        let debug = app_handle.state::<Settings>().debug_log();
         if let Err(e) = server.await {
-            if debug {
+            if debug_log {
                 eprintln!("fileserver error: {}", e)
             }
-        } else if debug {
+        } else if debug_log {
             println!("fileserver gracefully shutdown")
         }
         app_handle.trigger_global("fileserver_shutdown", None);
     });
 }
 
-pub(crate) struct MakeFileService(PathBuf);
+struct MakeFileService(PathBuf, bool);
 impl MakeFileService {
-    pub fn new(folder: PathBuf) -> Self {
-        Self(folder)
+    fn new(folder: PathBuf, debug_log: bool) -> Self {
+        Self(folder, debug_log)
     }
 }
 
@@ -72,11 +75,11 @@ impl<T: Send + 'static> Service<&T> for MakeFileService {
     }
 
     fn call(&mut self, _: &T) -> Self::Future {
-        ready(Ok(FileService(self.0.clone())))
+        ready(Ok(FileService(self.0.clone(), self.1)))
     }
 }
 
-pub(crate) struct FileService(PathBuf);
+struct FileService(PathBuf, bool);
 impl Service<Request<Body>> for FileService {
     type Response = Response<Body>;
     type Error = String;
@@ -87,12 +90,12 @@ impl Service<Request<Body>> for FileService {
     }
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
-        Box::pin(response(req, self.0.clone()))
+        Box::pin(response(req, self.0.clone(), self.1))
     }
 }
 
 #[inline]
-async fn response(req: Request<Body>, mut folder: PathBuf) -> Result<Response<Body>, String> {
+async fn response(req: Request<Body>, mut folder: PathBuf, debug_log: bool) -> Result<Response<Body>, String> {
     let headers = req.headers();
 
     // only allow connections from localhost
@@ -109,7 +112,9 @@ async fn response(req: Request<Body>, mut folder: PathBuf) -> Result<Response<Bo
     }
 
     // skip first '/' of uri to make a relative path
-    let uri = &req.uri().path()[1..];
+    let Ok(uri) = percent_decode_str(&req.uri().path()[1..]).decode_utf8() else {
+        return Ok(response_from_statuscode(StatusCode::BAD_REQUEST));
+    };
     let content_type = if uri.ends_with(".mp4") {
         "video/mp4"
     } else if uri.ends_with(".json") {
@@ -118,7 +123,11 @@ async fn response(req: Request<Body>, mut folder: PathBuf) -> Result<Response<Bo
         return Ok(response_from_statuscode(StatusCode::FORBIDDEN));
     };
 
-    folder.push(Path::new(uri));
+    folder.push(uri.as_ref());
+    if debug_log {
+        println!("fileserver file requested: {folder:?}");
+    }
+
     let Ok(file) = File::open(folder).await else {
         return Ok(response_from_statuscode(StatusCode::NOT_FOUND));
     };
@@ -140,7 +149,6 @@ async fn response(req: Request<Body>, mut folder: PathBuf) -> Result<Response<Bo
         None => (0, file_size, file_size),
     };
 
-    // assume well formed response
     let mut response = Response::builder()
         .header("Cache-Control", "public, max-age=31536000")
         .header("Content-Type", content_type)
@@ -152,7 +160,7 @@ async fn response(req: Request<Body>, mut folder: PathBuf) -> Result<Response<Bo
             .header("Content-Range", content_range(start, end - 1, file_size));
     };
 
-    let buf_size = cmp::min(BUFFER_SIZE, len as usize);
+    let buf_size = cmp::min(BUFFER_SIZE, len.try_into().unwrap());
     let response = response
         .body(Body::wrap_stream(file_stream(file, buf_size, (start, end))))
         .unwrap();
