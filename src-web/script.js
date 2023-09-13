@@ -34,18 +34,32 @@ const player = videojs('video_player', {
     'playbackRates': [0.5, 1, 1.5, 2],
     'autoplay': false,
     'controls': true,
-    'preload': 'auto'
+    'preload': 'auto',
+    'userActions': {
+        'click': clickPlayPauseHandler,
+        'doubleClick': doubleClickFullscreenHandler
+    }
 });
 
 // set marker settings
 player.markers({
     'markerTip': {
         'display': true,
-        'text': (marker) => marker.text,
-        'time': (marker) => marker.time,
+        'text': marker => marker.text,
+        'time': marker => marker.time,
     },
     'markers': []
 });
+
+// disable onclick eventhandlers while no video is selected
+function clickPlayPauseHandler(_event) {
+    if (!document.querySelector('.active')) return;
+    this.paused() ? this.play() : this.pause();
+}
+function doubleClickFullscreenHandler(_event) {
+    if (!document.querySelector('.active')) return;
+    this.isFullscreen() ? this.exitFullscreen() : this.requestFullscreen();
+}
 
 // listen to fullscreenchange and set window fullscreen
 addEventListener('fullscreenchange', () => {
@@ -54,6 +68,8 @@ addEventListener('fullscreenchange', () => {
 });
 
 addEventListener('keydown', event => {
+    if (!document.querySelector('.active')) return;
+
     switch (event.key) {
         case ' ':
             player.paused() ? player.play() : player.pause();
@@ -92,9 +108,6 @@ addEventListener('keydown', event => {
     }
     event.preventDefault();
 });
-
-// set event markers on video load
-player.tech_.contentEl().onloadedmetadata = changeMarkers;
 
 // add events to html elements
 document.getElementById('vid-folder-btn').onclick = openRecordingsFolder;
@@ -147,9 +160,9 @@ function escape(string) {
 
 function resetPlayer() {
     player.reset();
-    player.tech_.contentEl().onloadedmetadata = changeMarkers;
     player.bigPlayButton.hide();
     player.markers.removeAll();
+    player.controlBar.hide();
 
     descriptionLeft.innerHTML = '';
     descriptionCenter.innerHTML = 'No recording selected!';
@@ -255,8 +268,10 @@ function setVideo(name) {
     });
 
     getVideoPath(name).then(path => {
+        player.on('loadedmetadata', changeMarkers);
         player.src({ type: 'video/mp4', src: path });
         player.bigPlayButton.show();
+        player.controlBar.show();
     });
 }
 
