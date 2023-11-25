@@ -351,4 +351,8 @@ impl FileWatcher {
     pub fn set(&self, watcher: notify::RecommendedWatcher) {
         *self.0.lock().unwrap() = Some(watcher);
     }
+
+    pub fn drop(&self) {
+        *self.0.lock().unwrap() = None;
+    }
 }

@@ -83,6 +83,9 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                     _ = main.close();
                 }
 
+                // stop filewatcher
+                app_handle.state::<FileWatcher>().drop();
+
                 // setup event listeners
                 let (tx1, rx1) = tokio::sync::oneshot::channel::<()>();
                 let (tx2, rx2) = tokio::sync::oneshot::channel::<()>();

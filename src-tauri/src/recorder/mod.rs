@@ -79,7 +79,7 @@ pub fn start(app_handle: &AppHandle) {
         let recorder: Arc<Mutex<Option<Recorder>>> = Arc::new(Mutex::new(None));
         let mut game_data_thread: Option<(JoinHandle<()>, CancellationToken)> = None;
 
-        loop {
+        'recorder: loop {
             match state {
                 State::Idle => 'inner: {
                     // --- initialize recorder if LoL window is found ---
@@ -231,28 +231,31 @@ pub fn start(app_handle: &AppHandle) {
                         let shutdown = rec.shutdown();
 
                         if debug_log {
-                            println!("app exit");
-                            println!("recorder stopped: {stopped:?}");
-                            println!("recorder shutdown: {shutdown:?}");
+                            println!("recorder stopped: {stopped:?}|{shutdown:?}");
                         }
 
                         set_recording_tray_item(&app_handle, false);
                     };
 
-                    // spawn async thread to cleanup the game_data_thread if it doesn't exit by itself
+                    // cleanup the game_data_thread if it doesn't exit by itself
                     if let Some((handle, cancel_token)) = game_data_thread.take() {
                         cancel_token.cancel();
                         // give the task a little bit of time to complete a fs::write or sth
                         std::thread::sleep(Duration::from_millis(250));
                         handle.abort();
                     }
-                    break;
+
+                    break 'recorder;
                 }
                 Err(RecvTimeoutError::Timeout) => {}
             }
         }
 
         app_handle.trigger_global("recorder_shutdown", None);
+
+        if debug_log {
+            println!("recorder shutdown");
+        }
     });
 }
 
