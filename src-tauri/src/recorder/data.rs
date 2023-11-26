@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Default)]
+#[derive(Debug, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct GameData {
     pub win: Option<bool>,
@@ -9,7 +9,7 @@ pub struct GameData {
     pub events: Vec<GameEvent>,
 }
 
-#[derive(Serialize, Default)]
+#[derive(Debug, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct GameInfo {
     pub game_mode: String,
@@ -40,7 +40,7 @@ pub struct Stats {
     pub ward_score: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameEvent {
     pub name: &'static str,

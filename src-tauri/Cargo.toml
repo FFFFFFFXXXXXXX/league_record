@@ -11,13 +11,13 @@ build = "build.rs"
 
 [dependencies]
 # dependencies for main app and UI
-tauri = { version = "1.1.1", features = ["shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
+tauri = { version = "1.5.2", features = ["shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
 single-instance = "0.3.3"
 port_check = "0.1.5"
 reqwest = { version = "0.11.10", features = ["blocking"] }
 serde = "1.0.137"
 serde_json = "1.0"
-open = "4.1.0"
+open = "5.0.1"
 notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
 # dependencies for the fileserver module
 hyper = { version = "0.14.20", features = ["http1", "server", "stream", "tcp"] }
@@ -33,7 +33,7 @@ futures = "0.3.26"
 chrono = "0.4.19"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows = { version = "0.34.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }
+windows = { version = "0.52.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }
 [target.'cfg(target_os = "linux")'.dependencies]
 # todo
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -42,7 +42,7 @@ windows = { version = "0.34.0", features = ["Win32_Foundation", "Win32_UI_Window
 [build-dependencies]
 tauri-build = { version = "1.1.1" }
 # artifact/binary dependencies still require using 'cargo +nightly -Z bindeps {cmd}'
-libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", artifact = "bin:extprocess_recorder" }
+# libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", artifact = "bin:extprocess_recorder" }
 
 [features]
 # by default Tauri runs in production mode

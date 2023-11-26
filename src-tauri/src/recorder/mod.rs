@@ -1,6 +1,5 @@
-mod data;
-
 use std::{
+    cmp::Ordering,
     path::{Path, PathBuf},
     sync::{
         mpsc::{channel, RecvTimeoutError},
@@ -28,7 +27,6 @@ use tauri::{
     AppHandle, Manager,
 };
 use tokio_util::sync::CancellationToken;
-
 #[cfg(target_os = "windows")]
 use windows::{
     core::PCSTR,
@@ -40,21 +38,32 @@ use windows::{
 
 use crate::{helpers::set_recording_tray_item, state::Settings};
 
-const WINDOW_TITLE: &str = "League of Legends (TM) Client";
-const WINDOW_CLASS: &str = "RiotWindowClass";
-const WINDOW_PROCESS: &str = "League of Legends.exe";
+mod data;
 
-const DEFAULT_RESOLUTIONS_FOR_ASPECT_RATIOS: [(f64, Resolution); 9] = [
-    (4.0 / 3.0, Resolution::_1600x1200p),
-    (5.0 / 4.0, Resolution::_1280x1024p),
-    (16.0 / 9.0, Resolution::_1920x1080p),
-    (16.0 / 10.0, Resolution::_1920x1200p),
-    (21.0 / 9.0, Resolution::_2560x1080p),
-    (43.0 / 18.0, Resolution::_2580x1080p),
-    (24.0 / 10.0, Resolution::_3840x1600p),
-    (32.0 / 9.0, Resolution::_3840x1080p),
-    (32.0 / 10.0, Resolution::_3840x1200p),
+const WINDOW_TITLE: &'static str = "League of Legends (TM) Client";
+const WINDOW_CLASS: &'static str = "RiotWindowClass";
+const WINDOW_PROCESS: &'static str = "League of Legends.exe";
+
+const DEFAULT_RESOLUTIONS_FOR_ASPECT_RATIOS: [(Resolution, f64); 9] = [
+    (Resolution::_1600x1200p, 4.0 / 3.0),
+    (Resolution::_1280x1024p, 5.0 / 4.0),
+    (Resolution::_1920x1080p, 16.0 / 9.0),
+    (Resolution::_1920x1200p, 16.0 / 10.0),
+    (Resolution::_2560x1080p, 21.0 / 9.0),
+    (Resolution::_2580x1080p, 43.0 / 18.0),
+    (Resolution::_3840x1600p, 24.0 / 10.0),
+    (Resolution::_3840x1080p, 32.0 / 9.0),
+    (Resolution::_3840x1200p, 32.0 / 10.0),
 ];
+
+fn closest_resolution_to_size(window_size: &Size) -> Resolution {
+    let aspect_ratio = f64::from(window_size.width()) / f64::from(window_size.height());
+    // sort difference of aspect_ratio to comparison by absolute values => most similar aspect ratio is at index 0
+    let mut aspect_ratios =
+        DEFAULT_RESOLUTIONS_FOR_ASPECT_RATIOS.map(|(res, ratio)| (res, f64::abs(ratio - aspect_ratio)));
+    aspect_ratios.sort_by(|(_, ratio1), (_, ratio2)| ratio1.partial_cmp(&ratio2).or(Some(Ordering::Equal)).unwrap());
+    aspect_ratios.first().unwrap().0
+}
 
 pub fn start(app_handle: &AppHandle) {
     let app_handle = app_handle.clone();
@@ -99,21 +108,13 @@ pub fn start(app_handle: &AppHandle) {
                     };
 
                     // either get the explicitly set resolution or choose the default resolution for the LoL window aspect ratio
-                    let output_resolution = settings_state.get_output_resolution().unwrap_or_else(|| {
-                        // u32 fits into f64
-                        let aspect_ratio = window_size.width() as f64 / window_size.height() as f64;
-                        // sort difference of aspect_ratio to comparison by absolute values => most similar aspect ratio is at index 0
-                        let mut aspect_ratios =
-                            DEFAULT_RESOLUTIONS_FOR_ASPECT_RATIOS.map(|r| (r.0 - aspect_ratio, r.1));
-                        aspect_ratios.sort_by(|a, b| a.0.abs().partial_cmp(&b.0.abs()).unwrap());
-                        let default_resolution = aspect_ratios.first().unwrap().1;
+                    let output_resolution = settings_state
+                        .get_output_resolution()
+                        .unwrap_or_else(|| closest_resolution_to_size(&window_size));
 
-                        if debug_log {
-                            println!("Using default resolution ({default_resolution:?}) for window ({window_size:?})");
-                        }
-
-                        default_resolution
-                    });
+                    if debug_log {
+                        println!("Using resolution ({output_resolution:?}) for window ({window_size:?})");
+                    }
 
                     let mut filename_path = settings_state.get_recordings_path();
                     filename_path.push(format!(
@@ -176,6 +177,9 @@ pub fn start(app_handle: &AppHandle) {
                             collect_ingame_data(app_handle, cancel_subtoken, recorder, outfile, debug_log).await;
                         }
                     });
+                    if debug_log {
+                        println!("ingame task spawned: {handle:?}");
+                    }
 
                     game_data_thread = Some((handle, cancel_token));
                     state = State::Recording;
@@ -269,6 +273,10 @@ async fn collect_ingame_data(
     // IngameClient::new() never actually returns Err()
     let ingame_client = IngameClient::new().unwrap();
 
+    if debug_log {
+        println!("waiting for game to start");
+    }
+
     let mut timer = tokio::time::interval(Duration::from_millis(500));
     while !ingame_client.active_game().await {
         // busy wait for API
@@ -282,9 +290,11 @@ async fn collect_ingame_data(
     // don't record spectator games
     if let Ok(true) = ingame_client.is_spectator_mode().await {
         if debug_log {
-            println!("spectator game detected");
+            println!("spectator game detected - aborting");
         }
         return;
+    } else if debug_log {
+        println!("game started")
     }
 
     let mut game_data = data::GameData::default();
@@ -305,7 +315,11 @@ async fn collect_ingame_data(
             .unwrap();
     }
 
-    // if initial game_data is successfull => start recording
+    if debug_log {
+        println!("initial data collected: {game_data:?}");
+    }
+
+    // if initial game_data is successful => start recording
     if let Some(rec) = recorder.lock().unwrap().as_mut() {
         let start_recording = rec.start_recording();
 
@@ -322,6 +336,9 @@ async fn collect_ingame_data(
             return;
         }
     } else {
+        if debug_log {
+            println!("error getting recorder from Mutex - aborting");
+        }
         return;
     }
 
@@ -332,6 +349,10 @@ async fn collect_ingame_data(
     // get values from Options that are always Some
     let mut ingame_events = EventStream::from_ingame_client(ingame_client, None);
     let recording_start = recording_start.as_ref().unwrap();
+
+    if debug_log {
+        println!("Started EventStream - listening to ingame events");
+    }
 
     while let Some(event) =
         tokio::select! { event = ingame_events.next() => event, _ = cancel_subtoken.cancelled() => None }
@@ -385,19 +406,40 @@ async fn collect_ingame_data(
         }
     }
 
+    if debug_log {
+        println!("Ingame window has closed");
+    }
+
     // after the game client closes wait for LCU websocket End Of Game event
-    let Ok(mut ws_client) = LcuWebsocketClient::connect().await else {
-        return;
+    let mut ws_client = match LcuWebsocketClient::connect().await {
+        Ok(ws_client) => ws_client,
+        Err(e) => {
+            if debug_log {
+                println!("unable to connect to LoL client ({e:?}) - aborting");
+            }
+            return;
+        }
     };
-    let subscription = ws_client
+    let subscription_result = ws_client
         .subscribe(JsonApiEvent("lol-end-of-game/v1/eog-stats-block".to_string()))
         .await;
-    if subscription.is_err() {
+    if let Err(e) = subscription_result {
+        if debug_log {
+            println!("unable to subscribe to LoL client post game stats ({e:?}) - aborting");
+        }
         return;
     }
 
+    if debug_log {
+        println!("waiting for post game stats");
+    }
+
     tokio::select! {
-        _ = cancel_subtoken.cancelled() => (),
+        _ = cancel_subtoken.cancelled() => {
+            if debug_log {
+                println!("canceled waiting for post game stats");
+            }
+        }
         event = ws_client.next() => {
             if let Some(mut event) = event {
                 if debug_log {
@@ -419,7 +461,12 @@ async fn collect_ingame_data(
                 }
 
                 match serde_json::from_value(json_stats) {
-                    Ok(stats) => game_data.stats = stats,
+                    Ok(stats) => {
+                        if debug_log {
+                            println!("collected post game stats successfully");
+                        }
+                        game_data.stats = stats;
+                    }
                     Err(e) => {
                         if debug_log {
                             println!("Error deserializing end of game stats: {:?}", e)
@@ -433,11 +480,15 @@ async fn collect_ingame_data(
     }
 
     async_runtime::spawn_blocking(move || {
+        if debug_log {
+            println!("writing game metadata to file: {outfile:?}");
+        }
+
         // serde_json requires a std::fs::File
         if let Ok(file) = std::fs::File::create(&outfile) {
-            _ = serde_json::to_writer(file, &game_data);
+            let result = serde_json::to_writer(file, &game_data);
             if debug_log {
-                println!("metadata saved");
+                println!("metadata saved: {result:?}");
             }
         }
     });
@@ -454,17 +505,18 @@ fn get_lol_window() -> Option<HWND> {
     let class = PCSTR(window_class.as_ptr());
 
     let hwnd = unsafe { FindWindowA(class, title) };
-    if hwnd.is_invalid() {
-        return None;
+    if hwnd.0 == 0 {
+        None
+    } else {
+        Some(hwnd)
     }
-    Some(hwnd)
 }
 
 #[cfg(target_os = "windows")]
 fn get_window_size(hwnd: HWND) -> Result<Size, ()> {
     let mut rect = RECT::default();
-    let ok = unsafe { GetClientRect(hwnd, &mut rect as _).as_bool() };
-    if ok && rect.right > 0 && rect.bottom > 0 {
+    unsafe { GetClientRect(hwnd, &mut rect as _) }.map_err(|_| ())?;
+    if rect.right > 0 && rect.bottom > 0 {
         Ok(Size::new(rect.right as u32, rect.bottom as u32))
     } else {
         Err(())
