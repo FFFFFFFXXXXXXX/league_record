@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "1.14.3"
+version = "1.14.4"
 description = "Record and Play League of Legends games"
 authors = ["FX"]
 license = "gpl-2.0"
