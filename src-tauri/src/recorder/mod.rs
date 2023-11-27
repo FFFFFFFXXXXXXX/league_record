@@ -299,6 +299,10 @@ async fn collect_ingame_data(
 
     let mut game_data = data::GameData::default();
     if let Ok(data) = ingame_client.all_game_data(None).await {
+        if debug_log {
+            println!("initial data recieved: {data:?}");
+        }
+
         game_data.game_info.game_mode = data.game_data.game_mode.to_string();
         // unwrap because active player always exists in livegame which we check for above
         game_data.game_info.summoner_name = data.active_player.unwrap().summoner_name;
@@ -316,7 +320,7 @@ async fn collect_ingame_data(
     }
 
     if debug_log {
-        println!("initial data collected: {game_data:?}");
+        println!("initial data parsed: {game_data:?}");
     }
 
     // if initial game_data is successful => start recording
