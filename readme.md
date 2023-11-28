@@ -121,8 +121,8 @@ For build prerequisites look at [libobs-recorder](https://github.com/FFFFFFFXXXX
 > Alternatively you could also run
 >
 > ```bash
-> 7z a -tzip LeagueRecord.zip ./licenses/ ./libobs/ ./target/release/app.exe; # create archive
-> 7z rn ./LeagueRecord.zip target/release/app.exe LeagueRecord.exe; # move .exe to correct position
+> 7z a -tzip LeagueRecord.zip ./licenses/ ./libobs/ ./target/release/LeagueRecord.exe; # create archive
+> 7z rn ./LeagueRecord.zip target/release/LeagueRecord.exe LeagueRecord.exe; # move .exe to correct position
 > ```
 >
 > to create a .zip file with all the required files.
