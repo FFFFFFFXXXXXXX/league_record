@@ -26,6 +26,10 @@ use tauri::{
 };
 use tokio::time::timeout;
 use tokio_util::sync::CancellationToken;
+use windows::Win32::UI::HiDpi::{
+    GetAwarenessFromDpiAwarenessContext, GetDpiFromDpiAwarenessContext, GetThreadDpiAwarenessContext,
+    SetThreadDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE,
+};
 #[cfg(target_os = "windows")]
 use windows::{
     core::PCSTR,
@@ -68,13 +72,29 @@ pub fn start(app_handle: &AppHandle) {
     let app_handle = app_handle.clone();
 
     thread::spawn(move || {
-        // send stop to channel on "shutdown" event
-        let (tx, rx) = channel::<_>();
-        app_handle.once_global("shutdown_recorder", move |_| _ = tx.send(()));
-
         // get owned copy of settings so we can change window_size
         let settings_state = app_handle.state::<Settings>();
         let debug_log = settings_state.debug_log();
+
+        #[cfg(target_os = "windows")]
+        unsafe {
+            // Get correct window size from get_lol_window() / GetClientRect
+            let result = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+            if debug_log {
+                let dpi_awareness_context = GetThreadDpiAwarenessContext();
+                println!(
+                    "SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE): {:?} | {:?} | {:?} | {:?}",
+                    result,
+                    dpi_awareness_context,
+                    GetAwarenessFromDpiAwarenessContext(dpi_awareness_context),
+                    GetDpiFromDpiAwarenessContext(dpi_awareness_context),
+                )
+            }
+        };
+
+        // send stop to channel on "shutdown" event
+        let (tx, rx) = channel::<_>();
+        app_handle.once_global("shutdown_recorder", move |_| _ = tx.send(()));
 
         enum State {
             Idle,

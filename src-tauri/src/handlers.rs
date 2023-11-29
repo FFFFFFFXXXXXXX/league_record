@@ -7,7 +7,6 @@ use tauri::{
     },
     App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
 };
-use windows::Win32::UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE};
 
 use crate::{
     fileserver, filewatcher,
@@ -120,13 +119,6 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 }
 
 pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
-    #[cfg(target_os = "windows")]
-    unsafe {
-        // TODO: doesn't work
-        // Get correct window size from GetClientRect
-        _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
-    };
-
     let app_handle = app.app_handle();
 
     // get path to config directory
