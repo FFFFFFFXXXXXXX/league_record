@@ -20,7 +20,7 @@ use futures_util::{
     future::{self, Either},
     ready, stream, FutureExt, Stream, StreamExt,
 };
-use hyper::{service::Service, Body, Request, Response, Server, StatusCode};
+use hyper::{header::HeaderValue, service::Service, Body, Request, Response, Server, StatusCode};
 use tauri::{AppHandle, Manager};
 use tokio::{fs::File, io::AsyncSeekExt};
 use tokio_util::io::poll_read_buf;
@@ -99,28 +99,23 @@ async fn response(req: Request<Body>, mut folder: PathBuf, debug_log: bool) -> R
     let headers = req.headers();
 
     // only allow connections from localhost
-    let mut local_conn = false;
-    if let Some(host) = headers.get("host") {
-        if let Ok(host_str) = host.to_str() {
-            if let Some((domain, _port)) = host_str.rsplit_once(':') {
-                local_conn = domain == "127.0.0.1";
-            }
-        }
-    }
-    if !local_conn {
-        return Ok(response_from_statuscode(StatusCode::FORBIDDEN));
+    if !headers
+        .get("host")
+        .is_some_and(|host_header| host_header == HeaderValue::from_static("127.0.0.1"))
+    {
+        return response_from_statuscode(StatusCode::FORBIDDEN);
     }
 
     // skip first '/' of uri to make a relative path
     let Ok(uri) = percent_decode_str(&req.uri().path()[1..]).decode_utf8() else {
-        return Ok(response_from_statuscode(StatusCode::BAD_REQUEST));
+        return response_from_statuscode(StatusCode::BAD_REQUEST);
     };
     let content_type = if uri.ends_with(".mp4") {
         "video/mp4"
     } else if uri.ends_with(".json") {
         "application/json"
     } else {
-        return Ok(response_from_statuscode(StatusCode::FORBIDDEN));
+        return response_from_statuscode(StatusCode::FORBIDDEN);
     };
 
     folder.push(uri.as_ref());
@@ -129,24 +124,25 @@ async fn response(req: Request<Body>, mut folder: PathBuf, debug_log: bool) -> R
     }
 
     let Ok(file) = File::open(folder).await else {
-        return Ok(response_from_statuscode(StatusCode::NOT_FOUND));
+        return response_from_statuscode(StatusCode::NOT_FOUND);
     };
     let file_size = match file.metadata().await {
         Ok(md) => md.len(),
-        Err(_) => return Ok(response_from_statuscode(StatusCode::INTERNAL_SERVER_ERROR)),
+        Err(_) => return response_from_statuscode(StatusCode::INTERNAL_SERVER_ERROR),
     };
 
     // assume well formed range header
-    let (start, end, len) = match headers.get("Range") {
-        Some(range) => {
-            let range_str = range.to_str().unwrap();
-            let (_, range) = range_str.split_once('=').unwrap();
-            let (start, end) = range.split_once('-').unwrap();
-            let start: u64 = start.parse().unwrap_or(0);
-            let end: u64 = end.parse().unwrap_or(file_size);
-            (start, end, end - start)
-        }
-        None => (0, file_size, file_size),
+
+    let Some((start, end, len)) = headers
+        .get("Range")
+        .and_then(|range_header| range_header.to_str().ok())
+        .and_then(|str| str.split_once('='))
+        .and_then(|(_, range)| range.split_once('-'))
+        .and_then(|(start, end)| Some((start.parse().unwrap_or(0u64), end.parse().unwrap_or(file_size))))
+        .or(Some((0, file_size)))
+        .map(|(start, end)| (start, end, end - start))
+    else {
+        return response_from_statuscode(StatusCode::BAD_REQUEST);
     };
 
     let mut response = Response::builder()
@@ -160,7 +156,7 @@ async fn response(req: Request<Body>, mut folder: PathBuf, debug_log: bool) -> R
             .header("Content-Range", content_range(start, end - 1, file_size));
     };
 
-    let buf_size = cmp::min(BUFFER_SIZE, len.try_into().unwrap());
+    let buf_size = cmp::min(BUFFER_SIZE, usize::try_from(len).unwrap_or(BUFFER_SIZE));
     let response = response
         .body(Body::wrap_stream(file_stream(file, buf_size, (start, end))))
         .unwrap();
@@ -168,8 +164,8 @@ async fn response(req: Request<Body>, mut folder: PathBuf, debug_log: bool) -> R
 }
 
 #[inline]
-fn response_from_statuscode(statuscode: StatusCode) -> Response<Body> {
-    Response::builder().status(statuscode).body(Body::empty()).unwrap()
+fn response_from_statuscode(statuscode: StatusCode) -> Result<Response<Body>, String> {
+    Ok(Response::builder().status(statuscode).body(Body::empty()).unwrap())
 }
 
 #[inline]
