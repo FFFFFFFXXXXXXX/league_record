@@ -186,7 +186,7 @@ pub fn start(app_handle: &AppHandle) {
                         outfile.set_extension("json");
 
                         // actual task
-                        async move { collect_ingame_data(&app_handle, cancel_subtoken, recorder, outfile, debug_log).await }
+                        async move { collect_ingame_data(app_handle, cancel_subtoken, recorder, outfile, debug_log).await }
                     });
                     if debug_log {
                         println!("ingame task spawned: {handle:?}");
@@ -258,7 +258,7 @@ pub fn start(app_handle: &AppHandle) {
 }
 
 async fn collect_ingame_data(
-    app_handle: &AppHandle,
+    app_handle: AppHandle,
     cancel_subtoken: CancellationToken,
     mut recorder: Recorder,
     outfile: PathBuf,
@@ -359,6 +359,28 @@ async fn collect_ingame_data(
     let recording_start = Instant::now();
     set_recording_tray_item(&app_handle, true);
 
+    // prepare LcuWebsocketClient subscription for post game stats
+    // if we do this after the ingame window closes we could technically miss the event
+    let ws_client = match LcuWebsocketClient::connect().await {
+        Ok(mut ws_client) => {
+            let subscription_result = ws_client
+                .subscribe(JsonApiEvent("lol-end-of-game/v1/eog-stats-block".to_string()))
+                .await;
+            if let Err(e) = subscription_result {
+                if debug_log {
+                    println!("unable to subscribe to LoL client post game stats ({e:?})");
+                }
+            }
+            Some(ws_client)
+        }
+        Err(e) => {
+            if debug_log {
+                println!("unable to connect to LoL client ({e:?})");
+            }
+            None
+        }
+    };
+
     if debug_log {
         println!("Starting EventStream - listening to ingame events");
     }
@@ -428,71 +450,53 @@ async fn collect_ingame_data(
     }
     set_recording_tray_item(&app_handle, false);
 
-    // after the game client closes wait for LCU websocket End Of Game event
-    let mut ws_client = match LcuWebsocketClient::connect().await {
-        Ok(ws_client) => ws_client,
-        Err(e) => {
-            if debug_log {
-                println!("unable to connect to LoL client ({e:?}) - aborting");
-            }
-            return;
-        }
-    };
-    let subscription_result = ws_client
-        .subscribe(JsonApiEvent("lol-end-of-game/v1/eog-stats-block".to_string()))
-        .await;
-    if let Err(e) = subscription_result {
-        if debug_log {
-            println!("unable to subscribe to LoL client post game stats ({e:?}) - aborting");
-        }
-        return;
-    }
-
     if debug_log {
         println!("waiting for post game stats");
     }
 
-    tokio::select! {
-        _ = cancel_subtoken.cancelled() => {
-            if debug_log {
-                println!("canceled waiting for post game stats");
-            }
-        }
-        event = ws_client.next() => {
-            if let Some(mut event) = event {
+    if let Some(mut ws_client) = ws_client {
+        tokio::select! {
+            _ = cancel_subtoken.cancelled() => {
                 if debug_log {
-                    println!("EOG stats: {:?}", event.data);
+                    println!("canceled waiting for post game stats");
                 }
-
-                let json_stats = event.data["localPlayer"]["stats"].take();
-
-                if game_data.win.is_none() {
-                    // on win the data contains a "WIN" key with a value of '1'
-                    // on lose the data contains a "LOSE" key with a value of '1'
-                    // So if json_stats["WIN"] is not null => WIN
-                    // and if json_stats["LOSE"] is not null => LOSE
-                    if !json_stats["WIN"].is_null() {
-                        game_data.win = Some(true);
-                    } else if !json_stats["LOSE"].is_null() {
-                        game_data.win = Some(false);
+            }
+            event = ws_client.next() => {
+                if let Some(mut event) = event {
+                    if debug_log {
+                        println!("EOG stats: {:?}", event.data);
                     }
-                }
 
-                match serde_json::from_value(json_stats) {
-                    Ok(stats) => {
-                        if debug_log {
-                            println!("collected post game stats successfully");
-                        }
-                        game_data.stats = stats;
-                    }
-                    Err(e) => {
-                        if debug_log {
-                            println!("Error deserializing end of game stats: {:?}", e)
+                    let json_stats = event.data["localPlayer"]["stats"].take();
+
+                    if game_data.win.is_none() {
+                        // on win the data contains a "WIN" key with a value of '1'
+                        // on lose the data contains a "LOSE" key with a value of '1'
+                        // So if json_stats["WIN"] is not null => WIN
+                        // and if json_stats["LOSE"] is not null => LOSE
+                        if !json_stats["WIN"].is_null() {
+                            game_data.win = Some(true);
+                        } else if !json_stats["LOSE"].is_null() {
+                            game_data.win = Some(false);
                         }
                     }
+
+                    match serde_json::from_value(json_stats) {
+                        Ok(stats) => {
+                            if debug_log {
+                                println!("collected post game stats successfully");
+                            }
+                            game_data.stats = stats;
+                        }
+                        Err(e) => {
+                            if debug_log {
+                                println!("Error deserializing end of game stats: {:?}", e)
+                            }
+                        }
+                    }
+                } else if debug_log {
+                    println!("LCU event listener timed out");
                 }
-            } else if debug_log {
-                println!("LCU event listener timed out");
             }
         }
     }
