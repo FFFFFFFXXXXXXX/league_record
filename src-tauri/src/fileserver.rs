@@ -20,7 +20,7 @@ use futures_util::{
     future::{self, Either},
     ready, stream, FutureExt, Stream, StreamExt,
 };
-use hyper::{header::HeaderValue, service::Service, Body, Request, Response, Server, StatusCode};
+use hyper::{service::Service, Body, Request, Response, Server, StatusCode};
 use tauri::{AppHandle, Manager};
 use tokio::{fs::File, io::AsyncSeekExt};
 use tokio_util::io::poll_read_buf;
@@ -101,7 +101,9 @@ async fn response(req: Request<Body>, mut folder: PathBuf, debug_log: bool) -> R
     // only allow connections from localhost
     if !headers
         .get("host")
-        .is_some_and(|host_header| host_header == HeaderValue::from_static("127.0.0.1"))
+        .and_then(|host_header| host_header.to_str().ok())
+        .and_then(|host_str| host_str.rsplit_once(':'))
+        .is_some_and(|(domain, _port)| domain == "127.0.0.1")
     {
         return response_from_statuscode(StatusCode::FORBIDDEN);
     }
