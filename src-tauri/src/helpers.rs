@@ -6,6 +6,7 @@ use std::{
 
 use reqwest::{blocking::Client, redirect::Policy, StatusCode};
 use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem, Window};
+use tauri_plugin_autostart::AutoLaunchManager;
 
 use crate::state::{Settings, WindowState};
 
@@ -72,6 +73,35 @@ pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
 
     if debug_log {
         println!("Error somewhere in the HTTP response from {}", GITHUB_LATEST);
+    }
+}
+
+pub fn sync_autostart(app_handle: &AppHandle) {
+    let settings = app_handle.state::<Settings>();
+    let autostart_manager = app_handle.state::<AutoLaunchManager>();
+
+    let debug_log = settings.debug_log();
+
+    match autostart_manager.is_enabled() {
+        Ok(autostart_enabled) => {
+            if settings.autostart() != autostart_enabled {
+                let result = if settings.autostart() {
+                    autostart_manager.enable()
+                } else {
+                    autostart_manager.disable()
+                };
+
+                if let Err(error) = result {
+                    if debug_log {
+                        println!("failed to set autostart to {}: {error:?}", settings.autostart());
+                    }
+                }
+            }
+        }
+        Err(error) if debug_log => {
+            println!("unable to get current autostart state: {error:?}");
+        }
+        _ => {}
     }
 }
 

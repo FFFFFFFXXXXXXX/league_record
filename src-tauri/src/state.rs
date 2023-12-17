@@ -217,6 +217,10 @@ impl Settings {
         self.0.write().unwrap().marker_flags = marker_flags;
     }
 
+    pub fn autostart(&self) -> bool {
+        self.0.read().unwrap().autostart
+    }
+
     pub fn debug_log(&self) -> bool {
         let debug = std::env::args().find(|e| e == "-d" || e == "--debug");
         debug.is_some() || self.0.read().unwrap().debug_log
@@ -244,12 +248,14 @@ pub struct SettingsInner {
     output_resolution: Option<Resolution>,
     framerate: Framerate,
     record_audio: AudioSource,
+    autostart: bool,
 }
 
 const DEFAULT_UPDATE_CHECK: bool = true;
 const DEFAULT_DEBUG_LOG: bool = false;
 const DEFAULT_ENCODING_QUALITY: u32 = 25;
 const DEFAULT_RECORD_AUDIO: AudioSource = AudioSource::APPLICATION;
+const DEFAULT_AUTOSTART: bool = false;
 
 #[inline]
 fn default_recordings_folder() -> PathBuf {
@@ -278,6 +284,7 @@ impl Default for SettingsInner {
             output_resolution: None,
             framerate: default_framerate(),
             record_audio: DEFAULT_RECORD_AUDIO,
+            autostart: false,
         }
     }
 }
@@ -331,6 +338,9 @@ impl<'de> Deserialize<'de> for SettingsInner {
                         }
                         "recordAudio" => {
                             settings.record_audio = map.next_value().unwrap_or(DEFAULT_RECORD_AUDIO);
+                        }
+                        "autostart" => {
+                            settings.autostart = map.next_value().unwrap_or(DEFAULT_AUTOSTART);
                         }
                         _ => { /* ignored */ }
                     }

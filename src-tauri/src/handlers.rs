@@ -10,7 +10,9 @@ use tauri::{
 
 use crate::{
     fileserver, filewatcher,
-    helpers::{check_updates, create_tray_menu, create_window, ensure_settings_exist, save_window_state},
+    helpers::{
+        check_updates, create_tray_menu, create_window, ensure_settings_exist, save_window_state, sync_autostart,
+    },
     recorder,
     state::{FileWatcher, Settings, SettingsFile},
     AssetPort,
@@ -44,12 +46,17 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                                 .arg(&path)
                                 .status()
                                 .expect("failed to start text editor");
-                            // update markerflags in UI
+
+                            // reload settings from settings.json
                             settings.load_from_file(&path);
                             if debug_log {
                                 println!("Settings updated: {:?}\n", settings.inner());
                             }
 
+                            // check and update autostart if necessary
+                            sync_autostart(&app_handle);
+
+                            // check if fileserver needs to be restarted
                             let marker_flags = settings.get_marker_flags();
                             let recordings_path = settings.get_recordings_path();
                             let marker_flags_changed = marker_flags != old_marker_flags;
@@ -68,6 +75,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                                 });
                             }
 
+                            // check if UI window needs to be updated
                             if marker_flags_changed || recordings_path_changed {
                                 _ = app_handle.emit_all("reload_ui", ());
                             }
@@ -143,6 +151,8 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     if settings.check_for_updates() {
         check_updates(&app_handle, debug_log);
     }
+
+    sync_autostart(&app_handle);
 
     // only start app if video directory exists
     if video_dir().is_none() {

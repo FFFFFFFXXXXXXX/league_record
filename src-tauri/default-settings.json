@@ -19,5 +19,6 @@
     30,
     1
   ],
-  "recordAudio": "APPLICATION"
+  "recordAudio": "APPLICATION",
+  "autostart": false
 }

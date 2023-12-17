@@ -33,6 +33,10 @@ fn main() {
     }
 
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .manage(WindowState::init())
         .manage(AssetPort::init())
         .manage(SettingsFile::default())
