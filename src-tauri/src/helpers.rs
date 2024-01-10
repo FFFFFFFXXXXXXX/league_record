@@ -29,24 +29,20 @@ pub fn set_recording_tray_item(app_handle: &AppHandle, recording: bool) {
     _ = item.set_enabled(false);
 }
 
-pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
+pub fn check_updates(app_handle: &AppHandle) {
     let config = app_handle.config();
     let version = config.package.version.as_ref().unwrap();
 
     let client = match Client::builder().redirect(Policy::none()).build() {
         Ok(c) => c,
         Err(_) => {
-            if debug_log {
-                println!("Error creating HTTP Client in 'check_updates'");
-            }
+            log::warn!("Error creating HTTP Client in 'check_updates'");
             return;
         }
     };
 
     let Ok(result) = client.get(GITHUB_LATEST).send() else {
-        if debug_log {
-            println!("couldn't GET http result in 'check_updates");
-        }
+        log::warn!("couldn't GET http result in 'check_updates");
         return;
     };
 
@@ -55,9 +51,7 @@ pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
         if let Ok(url) = url.to_str() {
             let new_version = url.rsplit_once("/v").unwrap().1;
 
-            if debug_log {
-                println!("Checking for update: {}/{} (current/newest)\n", version, new_version);
-            }
+            log::info!("Checking for update: {}/{} (current/newest)", version, new_version);
 
             if let Ok(res) = compare(version, new_version) {
                 if res == 1 {
@@ -71,16 +65,12 @@ pub fn check_updates(app_handle: &AppHandle, debug_log: bool) {
         }
     }
 
-    if debug_log {
-        println!("Error somewhere in the HTTP response from {}", GITHUB_LATEST);
-    }
+    log::warn!("Error somewhere in the HTTP response from {}", GITHUB_LATEST);
 }
 
 pub fn sync_autostart(app_handle: &AppHandle) {
     let settings = app_handle.state::<Settings>();
     let autostart_manager = app_handle.state::<AutoLaunchManager>();
-
-    let debug_log = settings.debug_log();
 
     match autostart_manager.is_enabled() {
         Ok(autostart_enabled) => {
@@ -92,16 +82,13 @@ pub fn sync_autostart(app_handle: &AppHandle) {
                 };
 
                 if let Err(error) = result {
-                    if debug_log {
-                        println!("failed to set autostart to {}: {error:?}", settings.autostart());
-                    }
+                    log::warn!("failed to set autostart to {}: {error:?}", settings.autostart());
                 }
             }
         }
-        Err(error) if debug_log => {
-            println!("unable to get current autostart state: {error:?}");
+        Err(error) => {
+            log::warn!("unable to get current autostart state: {error:?}");
         }
-        _ => {}
     }
 }
 
@@ -172,7 +159,6 @@ pub fn create_window(app_handle: &AppHandle) {
 }
 
 pub fn save_window_state(app_handle: &AppHandle, window: &Window) {
-    let debug_log = app_handle.state::<Settings>().debug_log();
     let scale_factor = window.scale_factor().expect("Error getting window scale factor");
     let window_state = app_handle.state::<WindowState>();
 
@@ -180,17 +166,13 @@ pub fn save_window_state(app_handle: &AppHandle, window: &Window) {
         let size = ((size.width as f64) / scale_factor, (size.height as f64) / scale_factor);
         *window_state.size.lock().expect("win-state mutex error") = size;
 
-        if debug_log {
-            println!("saved window size: {}x{}", size.0, size.1);
-        }
+        log::info!("saved window size: {}x{}", size.0, size.1);
     }
     if let Ok(position) = window.outer_position() {
         let position = ((position.x as f64) / scale_factor, (position.y as f64) / scale_factor);
         *window_state.position.lock().expect("win-state mutex error") = position;
 
-        if debug_log {
-            println!("saved window position: {}x {}y", position.0, position.1);
-        }
+        log::info!("saved window position: {}x {}y", position.0, position.1);
     }
 }
 

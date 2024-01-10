@@ -167,7 +167,7 @@ impl Settings {
             .expect("video_dir doesn't exist")
             .join(settings.recordings_folder);
         if fs::create_dir_all(settings.recordings_folder.as_path()).is_err() && settings.debug_log {
-            println!("Unable to create recordings_folder");
+            log::error!("Unable to create recordings_folder");
         }
 
         *self.0.write().unwrap() = settings;
@@ -222,8 +222,7 @@ impl Settings {
     }
 
     pub fn debug_log(&self) -> bool {
-        let debug = std::env::args().find(|e| e == "-d" || e == "--debug");
-        debug.is_some() || self.0.read().unwrap().debug_log
+        self.0.read().unwrap().debug_log || std::env::args().find(|e| e == "-d" || e == "--debug").is_some()
     }
 }
 

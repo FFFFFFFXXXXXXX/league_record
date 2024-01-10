@@ -16,8 +16,6 @@ mod recorder;
 mod state;
 
 fn main() {
-    println!("LeagueRecord v{}", env!("CARGO_PKG_VERSION"));
-
     // Only check if this is the only instance of LeagueRecord if the check succeeds (= true|false).
     // It is better to accidentally open two instances instead of none because something went wrong
     //
@@ -25,7 +23,7 @@ fn main() {
     let single_instance = single_instance::SingleInstance::new("LEAGUE_RECORD_APPLICATION");
     if let Ok(single_instance) = single_instance.as_ref() {
         if !single_instance.is_single() {
-            println!("An instance of LeagueRecord is already open!");
+            println!("There is already an instance of LeagueRecord running!");
             return;
         }
     } else {

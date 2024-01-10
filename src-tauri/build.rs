@@ -1,6 +1,6 @@
 fn main() {
     copy_libobs_recorder_dependencies();
-    tauri_build::build();
+    // tauri_build::build();
 }
 
 fn copy_libobs_recorder_dependencies() {

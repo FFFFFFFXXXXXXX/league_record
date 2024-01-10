@@ -3,17 +3,13 @@ use std::path::PathBuf;
 use notify::Watcher;
 use tauri::{AppHandle, Manager};
 
-use crate::state::{FileWatcher, Settings};
+use crate::state::FileWatcher;
 
 pub fn replace_filewatcher(app_handle: &AppHandle, recordings_path: &PathBuf) {
-    let debug_log = app_handle.state::<Settings>().debug_log();
-
     let watcher = notify::recommended_watcher({
         let app_handle = app_handle.clone();
         move |res: notify::Result<notify::Event>| {
-            if debug_log {
-                println!("filewatcher event: {:?}", res);
-            }
+            log::info!("filewatcher event: {:?}", res);
 
             // only trigger UI reload if one of the changed paths is a video (.mp4) file
             if let Ok(event) = res {
@@ -38,7 +34,6 @@ pub fn replace_filewatcher(app_handle: &AppHandle, recordings_path: &PathBuf) {
             // also drop old watcher
             app_handle.state::<FileWatcher>().set(watcher);
         }
-        Err(e) if debug_log => println!("failed to start filewatcher: {e}"),
-        _ => {}
+        Err(e) => log::error!("failed to start filewatcher: {e}"),
     }
 }

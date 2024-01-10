@@ -1,5 +1,6 @@
 use std::{error::Error, process::Command, thread, time::Duration};
 
+use log::LevelFilter;
 use tauri::{
     api::{
         path::{app_config_dir, video_dir},
@@ -7,6 +8,7 @@ use tauri::{
     },
     App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
 };
+use tauri_plugin_log::LogTarget;
 
 use crate::{
     fileserver, filewatcher,
@@ -37,7 +39,6 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 
                         if ensure_settings_exist(&path) {
                             let settings = app_handle.state::<Settings>();
-                            let debug_log = settings.debug_log();
                             let old_recordings_path = settings.get_recordings_path();
                             let old_marker_flags = settings.get_marker_flags();
 
@@ -49,9 +50,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 
                             // reload settings from settings.json
                             settings.load_from_file(&path);
-                            if debug_log {
-                                println!("Settings updated: {:?}\n", settings.inner());
-                            }
+                            log::info!("Settings updated: {:?}", settings.inner());
 
                             // check and update autostart if necessary
                             sync_autostart(&app_handle);
@@ -142,23 +141,32 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
 
     let debug_log = settings.debug_log();
 
-    println!("debug_log: {}\n", if debug_log { "enabled" } else { "disabled" });
-
     if debug_log {
-        println!("Settings: {:?}\n", settings.inner());
+        app_handle.plugin(
+            tauri_plugin_log::Builder::default()
+                .targets([LogTarget::LogDir, LogTarget::Stdout])
+                .log_name(format!("{}", chrono::Local::now().format("%Y-%m-%d")))
+                .level(LevelFilter::Info)
+                .format(|out, msg, record| out.finish(format_args!("[{}]:\t{}", record.level(), msg)))
+                .build(),
+        )?;
     }
+
+    log::info!("LeagueRecord v{}", env!("CARGO_PKG_VERSION"));
+    log::info!("{}", chrono::Local::now().format("%d-%m-%Y %H:%M"));
+    log::info!("debug_log: {}", if debug_log { "enabled" } else { "disabled" });
 
     if settings.check_for_updates() {
-        check_updates(&app_handle, debug_log);
+        check_updates(&app_handle);
     }
+
+    log::info!("Settings: {:?}", settings.inner());
 
     sync_autostart(&app_handle);
 
     // only start app if video directory exists
     if video_dir().is_none() {
-        if debug_log {
-            println!("Error: No video folder available");
-        }
+        log::error!("Error: No video folder available");
         app_handle.exit(-1);
     }
 
@@ -170,10 +178,8 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
 
     let recordings_path = settings.get_recordings_path();
     let port = app_handle.state::<AssetPort>().get();
-    if debug_log {
-        println!("video folder: {:?}\n", recordings_path);
-        println!("fileserver port: {}\n", port);
-    }
+    log::info!("video folder: {:?}", recordings_path);
+    log::info!("fileserver port: {}", port);
 
     filewatcher::replace_filewatcher(&app_handle, &recordings_path);
     // launch static-file-server as a replacement for the broken asset protocol

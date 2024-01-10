@@ -13,6 +13,8 @@ build = "build.rs"
 # dependencies for main app and UI
 tauri = { version = "1.5.2", features = ["shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
 tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
+tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
+log = "0.4.20"
 single-instance = "0.3.3"
 port_check = "0.1.5"
 reqwest = { version = "0.11.10", features = ["blocking"] }
@@ -43,7 +45,7 @@ windows = { version = "0.52.0", features = ["Win32_Foundation", "Win32_UI_Window
 [build-dependencies]
 tauri-build = { version = "1.1.1" }
 # artifact/binary dependencies still require using 'cargo +nightly -Z bindeps {cmd}'
-libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", artifact = "bin:extprocess_recorder" }
+# libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", artifact = "bin:extprocess_recorder" }
 
 [features]
 # by default Tauri runs in production mode

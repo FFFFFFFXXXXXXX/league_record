@@ -25,15 +25,12 @@ use tauri::{AppHandle, Manager};
 use tokio::{fs::File, io::AsyncSeekExt};
 use tokio_util::io::poll_read_buf;
 
-use crate::state::Settings;
-
 static BUFFER_SIZE: usize = 8192;
 
 pub fn start(app_handle: &AppHandle, folder: PathBuf, port: u16) {
     let app_handle = app_handle.clone();
 
     tauri::async_runtime::spawn(async move {
-        let debug_log = app_handle.state::<Settings>().debug_log();
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
         let (tx, rx) = tokio::sync::oneshot::channel::<()>();
@@ -42,26 +39,24 @@ pub fn start(app_handle: &AppHandle, folder: PathBuf, port: u16) {
         });
 
         let server = Server::bind(&addr)
-            .serve(MakeFileService::new(folder, debug_log))
+            .serve(MakeFileService::new(folder))
             .with_graceful_shutdown(async {
                 _ = rx.await;
             });
 
         if let Err(e) = server.await {
-            if debug_log {
-                eprintln!("fileserver error: {}", e)
-            }
-        } else if debug_log {
-            println!("fileserver gracefully shutdown")
+            log::error!("fileserver error: {e}")
+        } else {
+            log::info!("fileserver gracefully shutdown")
         }
         app_handle.trigger_global("fileserver_shutdown", None);
     });
 }
 
-struct MakeFileService(PathBuf, bool);
+struct MakeFileService(PathBuf);
 impl MakeFileService {
-    fn new(folder: PathBuf, debug_log: bool) -> Self {
-        Self(folder, debug_log)
+    fn new(folder: PathBuf) -> Self {
+        Self(folder)
     }
 }
 
@@ -75,11 +70,11 @@ impl<T: Send + 'static> Service<&T> for MakeFileService {
     }
 
     fn call(&mut self, _: &T) -> Self::Future {
-        ready(Ok(FileService(self.0.clone(), self.1)))
+        ready(Ok(FileService(self.0.clone())))
     }
 }
 
-struct FileService(PathBuf, bool);
+struct FileService(PathBuf);
 impl Service<Request<Body>> for FileService {
     type Response = Response<Body>;
     type Error = String;
@@ -90,12 +85,12 @@ impl Service<Request<Body>> for FileService {
     }
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
-        Box::pin(response(req, self.0.clone(), self.1))
+        Box::pin(response(req, self.0.clone()))
     }
 }
 
 #[inline]
-async fn response(req: Request<Body>, mut folder: PathBuf, debug_log: bool) -> Result<Response<Body>, String> {
+async fn response(req: Request<Body>, mut folder: PathBuf) -> Result<Response<Body>, String> {
     let headers = req.headers();
 
     // only allow connections from localhost
@@ -121,9 +116,7 @@ async fn response(req: Request<Body>, mut folder: PathBuf, debug_log: bool) -> R
     };
 
     folder.push(uri.as_ref());
-    if debug_log {
-        println!("fileserver file requested: {folder:?}");
-    }
+    log::info!("fileserver file requested: {folder:?}");
 
     let Ok(file) = File::open(folder).await else {
         return response_from_statuscode(StatusCode::NOT_FOUND);
