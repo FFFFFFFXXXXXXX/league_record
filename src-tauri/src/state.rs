@@ -222,7 +222,7 @@ impl Settings {
     }
 
     pub fn debug_log(&self) -> bool {
-        self.0.read().unwrap().debug_log || std::env::args().find(|e| e == "-d" || e == "--debug").is_some()
+        self.0.read().unwrap().debug_log || std::env::args().any(|e| e == "-d" || e == "--debug")
     }
 }
 

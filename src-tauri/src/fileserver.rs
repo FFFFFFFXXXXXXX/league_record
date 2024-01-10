@@ -133,7 +133,7 @@ async fn response(req: Request<Body>, mut folder: PathBuf) -> Result<Response<Bo
         .and_then(|range_header| range_header.to_str().ok())
         .and_then(|str| str.split_once('='))
         .and_then(|(_, range)| range.split_once('-'))
-        .and_then(|(start, end)| Some((start.parse().unwrap_or(0u64), end.parse().unwrap_or(file_size))))
+        .map(|(start, end)| (start.parse().unwrap_or(0u64), end.parse().unwrap_or(file_size)))
         .or(Some((0, file_size)))
         .map(|(start, end)| (start, end, end - start))
     else {

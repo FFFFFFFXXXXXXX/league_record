@@ -145,9 +145,9 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
         app_handle.plugin(
             tauri_plugin_log::Builder::default()
                 .targets([LogTarget::LogDir, LogTarget::Stdout])
-                .log_name(format!("{}", chrono::Local::now().format("%Y-%m-%d")))
+                .log_name(format!("{}", chrono::Local::now().format("%Y-%m-%d %H:%M")))
                 .level(LevelFilter::Info)
-                .format(|out, msg, record| out.finish(format_args!("[{}]:\t{}", record.level(), msg)))
+                .format(|out, msg, record| out.finish(format_args!("[{}]: {}", record.metadata().level(), msg)))
                 .build(),
         )?;
     }

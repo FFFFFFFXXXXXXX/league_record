@@ -43,9 +43,9 @@ use crate::{helpers::set_recording_tray_item, state::Settings};
 
 mod data;
 
-const WINDOW_TITLE: &'static str = "League of Legends (TM) Client";
-const WINDOW_CLASS: &'static str = "RiotWindowClass";
-const WINDOW_PROCESS: &'static str = "League of Legends.exe";
+const WINDOW_TITLE: &str = "League of Legends (TM) Client";
+const WINDOW_CLASS: &str = "RiotWindowClass";
+const WINDOW_PROCESS: &str = "League of Legends.exe";
 
 const DEFAULT_RESOLUTIONS_FOR_ASPECT_RATIOS: [(Resolution, f64); 9] = [
     (Resolution::_1600x1200p, 4.0 / 3.0),
@@ -64,7 +64,7 @@ fn closest_resolution_to_size(window_size: &Size) -> Resolution {
     // sort difference of aspect_ratio to comparison by absolute values => most similar aspect ratio is at index 0
     let mut aspect_ratios =
         DEFAULT_RESOLUTIONS_FOR_ASPECT_RATIOS.map(|(res, ratio)| (res, f64::abs(ratio - aspect_ratio)));
-    aspect_ratios.sort_by(|(_, ratio1), (_, ratio2)| ratio1.partial_cmp(&ratio2).or(Some(Ordering::Equal)).unwrap());
+    aspect_ratios.sort_by(|(_, ratio1), (_, ratio2)| ratio1.partial_cmp(ratio2).unwrap_or(Ordering::Equal));
     aspect_ratios.first().unwrap().0
 }
 
@@ -140,8 +140,23 @@ pub fn start(app_handle: &AppHandle) {
                     settings.record_audio(settings_state.get_audio_source());
                     settings.set_output_path(filename_path.to_str().expect("error converting filename path to &str"));
 
+                    // if LeagueRecord gets launched by Windows Autostart the CWD is system32 instead of the installation folder
+                    // get directory to current executable so we can locate extprocess_recorder.exe
+                    let exe_dir = match std::env::current_exe()
+                        .ok()
+                        .and_then(|exe| exe.parent().map(|a| a.to_path_buf()))
+                    {
+                        Some(exe_dir) => {
+                            log::info!("executable directory: {:?}", exe_dir);
+                            exe_dir
+                        }
+                        None => {
+                            log::warn!("unable to get executable directory - trying relative path instead");
+                            PathBuf::from("./")
+                        }
+                    };
                     let mut recorder = match Recorder::new_with_paths(
-                        Some(Path::new("./libobs/extprocess_recorder.exe")),
+                        Some(exe_dir.join(Path::new("libobs/extprocess_recorder.exe")).as_path()),
                         None,
                         None,
                         None,

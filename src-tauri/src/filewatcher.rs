@@ -1,11 +1,11 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use notify::Watcher;
 use tauri::{AppHandle, Manager};
 
 use crate::state::FileWatcher;
 
-pub fn replace_filewatcher(app_handle: &AppHandle, recordings_path: &PathBuf) {
+pub fn replace_filewatcher(app_handle: &AppHandle, recordings_path: &Path) {
     let watcher = notify::recommended_watcher({
         let app_handle = app_handle.clone();
         move |res: notify::Result<notify::Event>| {
@@ -16,8 +16,7 @@ pub fn replace_filewatcher(app_handle: &AppHandle, recordings_path: &PathBuf) {
                 let contains_mp4_path = event
                     .paths
                     .iter()
-                    .find(|p| p.extension().is_some_and(|ext| ext == "mp4"))
-                    .is_some();
+                    .any(|p| p.extension().is_some_and(|ext| ext == "mp4"));
 
                 if contains_mp4_path {
                     _ = app_handle.emit_all("reload_recordings", ());
@@ -28,7 +27,7 @@ pub fn replace_filewatcher(app_handle: &AppHandle, recordings_path: &PathBuf) {
 
     match watcher {
         Ok(mut watcher) => {
-            _ = watcher.watch(&recordings_path, notify::RecursiveMode::NonRecursive);
+            _ = watcher.watch(recordings_path, notify::RecursiveMode::NonRecursive);
 
             // store Watcher so it doesn't drop and stop watching
             // also drop old watcher
