@@ -33,7 +33,7 @@ hr {
 
 #sidebar {
     height: 100%;
-    width: 289px;
+    width: 305px;
     position: fixed;
     z-index: 1;
     top: 0;
@@ -101,7 +101,7 @@ hr {
 }
 
 #main {
-    margin-left: 290px;
+    margin-left: 305px;
     height: 100%;
 }
 
@@ -216,8 +216,12 @@ hr {
     background-color: darkgoldenrod !important;
 }
 
-.herald {
+.voidgrub {
     background-color: deeppink !important;
+}
+
+.herald {
+    background-color: magenta !important;
 }
 
 .baron {
@@ -250,7 +254,7 @@ hr {
 }
 
 #herald {
-    accent-color: deeppink;
+    accent-color: magenta;
 }
 
 #baron {

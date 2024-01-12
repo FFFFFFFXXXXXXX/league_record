@@ -326,6 +326,7 @@ function changeMarkers() {
             case 'Elder-Dragon':
                 visible = checkboxDragon.checked;
                 break;
+            case 'Voidgrub':
             case 'Herald':
                 visible = checkboxHerald.checked;
                 break;

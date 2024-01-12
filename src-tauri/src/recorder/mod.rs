@@ -398,6 +398,7 @@ async fn collect_ingame_data(
                 };
                 None
             }
+            GameEvent::HordeKill(_) => Some("Voidgrub"),
             GameEvent::HeraldKill(_) => Some("Herald"),
             GameEvent::InhibKilled(_) => Some("Inhibitor"),
             GameEvent::TurretKilled(_) => Some("Turret"),

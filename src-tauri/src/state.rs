@@ -52,7 +52,7 @@ impl SettingsFile {
     }
 }
 
-#[derive(Serialize, Debug, Clone, Eq)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct MarkerFlags {
     kill: bool,
     death: bool,
@@ -138,18 +138,18 @@ impl Default for MarkerFlags {
     }
 }
 
-impl PartialEq for MarkerFlags {
-    fn eq(&self, other: &Self) -> bool {
-        self.kill == other.kill
-            && self.death == other.death
-            && self.assist == other.assist
-            && self.turret == other.turret
-            && self.inhibitor == other.inhibitor
-            && self.dragon == other.dragon
-            && self.herald == other.herald
-            && self.baron == other.baron
-    }
-}
+// impl PartialEq for MarkerFlags {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.kill == other.kill
+//             && self.death == other.death
+//             && self.assist == other.assist
+//             && self.turret == other.turret
+//             && self.inhibitor == other.inhibitor
+//             && self.dragon == other.dragon
+//             && self.herald == other.herald
+//             && self.baron == other.baron
+//     }
+// }
 
 #[derive(Debug)]
 pub struct Settings(RwLock<SettingsInner>);
