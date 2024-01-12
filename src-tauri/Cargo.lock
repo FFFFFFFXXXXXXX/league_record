@@ -75,7 +75,7 @@ checksum = "080e9890a082662b09c1ad45f567faeeb47f22b5fb23895fbe1e651e718e25ca"
 
 [[package]]
 name = "app"
-version = "1.15.1"
+version = "1.15.2"
 dependencies = [
  "bytes",
  "chrono",
@@ -172,9 +172,9 @@ checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
 name = "base64"
-version = "0.21.6"
+version = "0.21.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c79fed4cdb43e993fcdadc7e58a09fd0e3e649c4436fa11da71c9f1f3ee7feb9"
+checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
 name = "bitflags"
@@ -2483,7 +2483,7 @@ version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5699cc8a63d1aa2b1ee8e12b9ad70ac790d65788cd36101fa37f87ea46c4cef"
 dependencies = [
- "base64 0.21.6",
+ "base64 0.21.7",
  "indexmap 2.1.0",
  "line-wrap",
  "quick-xml",
@@ -2816,7 +2816,7 @@ version = "0.11.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37b1ae8d9ac08420c66222fb9096fc5de435c3c48542bc5336c51892cffafb41"
 dependencies = [
- "base64 0.21.6",
+ "base64 0.21.7",
  "bytes",
  "encoding_rs",
  "futures-core",
@@ -3105,7 +3105,7 @@ version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64cd236ccc1b7a29e7e2739f27c0b2dd199804abc4290e32f59f3b68d6405c23"
 dependencies = [
- "base64 0.21.6",
+ "base64 0.21.7",
  "chrono",
  "hex",
  "indexmap 1.9.3",
@@ -3185,9 +3185,9 @@ dependencies = [
 [[package]]
 name = "shaco"
 version = "0.6.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/Shaco#acb0c8263e7e22b412abed858a26f568c229e8ff"
+source = "git+https://github.com/FFFFFFFXXXXXXX/Shaco#579d8186fc11bd9f3a97c37370a70ea3aa951483"
 dependencies = [
- "base64 0.21.6",
+ "base64 0.21.7",
  "derive_more",
  "futures-util",
  "native-tls",
@@ -3591,7 +3591,7 @@ version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1554c5857f65dbc377cefb6b97c8ac77b1cb2a90d30d3448114d5d6b48a77fc"
 dependencies = [
- "base64 0.21.6",
+ "base64 0.21.7",
  "brotli",
  "ico",
  "json-patch",
