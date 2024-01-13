@@ -4,9 +4,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use log::LevelFilter;
 use reqwest::{blocking::Client, redirect::Policy, StatusCode};
 use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem, Window};
-use tauri_plugin_autostart::AutoLaunchManager;
+use tauri_plugin_autostart::ManagerExt;
+use tauri_plugin_log::LogTarget;
 
 use crate::state::{Settings, WindowState};
 
@@ -70,7 +72,7 @@ pub fn check_updates(app_handle: &AppHandle) {
 
 pub fn sync_autostart(app_handle: &AppHandle) {
     let settings = app_handle.state::<Settings>();
-    let autostart_manager = app_handle.state::<AutoLaunchManager>();
+    let autostart_manager = app_handle.autolaunch();
 
     match autostart_manager.is_enabled() {
         Ok(autostart_enabled) => {
@@ -90,6 +92,23 @@ pub fn sync_autostart(app_handle: &AppHandle) {
             log::warn!("unable to get current autostart state: {error:?}");
         }
     }
+}
+
+pub fn add_log_plugin(app_handle: &AppHandle) -> Result<(), tauri::Error> {
+    app_handle.plugin(
+        tauri_plugin_log::Builder::default()
+            .targets([LogTarget::LogDir, LogTarget::Stdout])
+            .log_name(format!("{}", chrono::Local::now().format("%Y-%m-%d_%H-%M")))
+            .level(LevelFilter::Info)
+            .format(|out, msg, record| out.finish(format_args!("[{}]: {}", record.metadata().level(), msg)))
+            .build(),
+    )
+}
+
+pub fn remove_log_plugin(app_handle: &AppHandle) {
+    // the name the tauri log plugin registers itself with is currently "log"
+    // maybe this will change in the future?
+    app_handle.remove_plugin("log");
 }
 
 pub fn get_recordings(rec_folder: &Path) -> Vec<PathBuf> {

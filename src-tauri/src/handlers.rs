@@ -1,6 +1,5 @@
 use std::{error::Error, process::Command, thread, time::Duration};
 
-use log::LevelFilter;
 use tauri::{
     api::{
         path::{app_config_dir, video_dir},
@@ -8,12 +7,12 @@ use tauri::{
     },
     App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
 };
-use tauri_plugin_log::LogTarget;
 
 use crate::{
     fileserver, filewatcher,
     helpers::{
-        check_updates, create_tray_menu, create_window, ensure_settings_exist, save_window_state, sync_autostart,
+        add_log_plugin, check_updates, create_tray_menu, create_window, ensure_settings_exist, remove_log_plugin,
+        save_window_state, sync_autostart,
     },
     recorder,
     state::{FileWatcher, Settings, SettingsFile},
@@ -41,6 +40,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                             let settings = app_handle.state::<Settings>();
                             let old_recordings_path = settings.get_recordings_path();
                             let old_marker_flags = settings.get_marker_flags();
+                            let old_log = settings.debug_log();
 
                             // hardcode 'notepad' since league_record currently only works on windows anyways
                             Command::new("notepad")
@@ -54,6 +54,19 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 
                             // check and update autostart if necessary
                             sync_autostart(&app_handle);
+
+                            // add / remove logs plugin if needed
+                            if old_log != settings.debug_log() {
+                                if settings.debug_log() {
+                                    if add_log_plugin(&app_handle).is_err() {
+                                        // retry
+                                        remove_log_plugin(&app_handle);
+                                        _ = add_log_plugin(&app_handle);
+                                    }
+                                } else {
+                                    remove_log_plugin(&app_handle);
+                                }
+                            }
 
                             // check if fileserver needs to be restarted
                             let marker_flags = settings.get_marker_flags();
@@ -142,14 +155,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     let debug_log = settings.debug_log();
 
     if debug_log {
-        app_handle.plugin(
-            tauri_plugin_log::Builder::default()
-                .targets([LogTarget::LogDir, LogTarget::Stdout])
-                .log_name(format!("{}", chrono::Local::now().format("%Y-%m-%d %H:%M")))
-                .level(LevelFilter::Info)
-                .format(|out, msg, record| out.finish(format_args!("[{}]: {}", record.metadata().level(), msg)))
-                .build(),
-        )?;
+        add_log_plugin(&app_handle)?;
     }
 
     log::info!("LeagueRecord v{}", env!("CARGO_PKG_VERSION"));
