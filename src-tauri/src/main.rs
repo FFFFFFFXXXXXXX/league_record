@@ -50,6 +50,7 @@ fn main() {
             get_recordings_list,
             open_recordings_folder,
             delete_video,
+            rename_video,
             get_metadata
         ])
         .system_tray(create_system_tray())

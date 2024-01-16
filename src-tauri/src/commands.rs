@@ -6,7 +6,7 @@
 
 use std::{
     cmp::Ordering,
-    fs::{metadata, remove_file, File},
+    fs::{metadata, remove_file, rename, File},
     io::BufReader,
     path::PathBuf,
 };
@@ -99,6 +99,24 @@ pub fn delete_video(video: String, state: State<'_, Settings>) -> bool {
     // remove json file if it exists
     path.set_extension("json");
     _ = remove_file(path);
+    true
+}
+
+#[tauri::command]
+pub fn rename_video(video: String, new_name: String, state: State<'_, Settings>) -> bool {
+    let mut path = state.get_recordings_path();
+    let mut new_path = path.clone();
+
+    path.push(PathBuf::from(&video));
+    new_path.push(PathBuf::from(&new_name));
+
+    if rename(&path, &new_path).is_err() {
+        return false;
+    }
+
+    path.set_extension("json");
+    new_path.set_extension("json");
+    _ = rename(&path, &new_path);
     true
 }
 

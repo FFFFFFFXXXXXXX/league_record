@@ -80,6 +80,7 @@ hr {
     color: lightgray;
     display: block;
     border-bottom: 1px solid lightgray;
+    line-height: 22px;
 }
 
 #sidebar-content li:hover,
@@ -89,15 +90,26 @@ hr {
     background-color: #445fa5;
 }
 
-.delete {
+.delete, .rename {
     position: absolute;
-    right: 3%;
     padding: 0px 5px 1px 5px;
     border-radius: 50px;
 }
 
+.delete {
+    right: 3%;
+}
+
 .delete:hover {
     background: red;
+}
+
+.rename {
+    right: 10%;
+}
+
+.rename:hover {
+    background: blue;
 }
 
 #main {
