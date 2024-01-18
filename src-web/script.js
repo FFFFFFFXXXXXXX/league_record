@@ -68,7 +68,7 @@ addEventListener('fullscreenchange', () => {
 });
 
 addEventListener('keydown', event => {
-    if (!document.querySelector('.active')) return;
+    if (!document.querySelector('.active') || document.getElementById('modal').style.display === 'block') return;
 
     switch (event.key) {
         case ' ':
@@ -180,6 +180,41 @@ function showDeleteModal(video) {
     showModal(html);
 }
 
+async function showRenameModal(video) {
+    const filenames = await getRecordingsNames();
+
+    let html = `<p>Change name of ${video.slice(0,-4)}</p>`;
+    html += '<p><form>';
+    html += `<input type="text" id="new-name" value="${video.slice(0,-4)}" spellcheck="false">`;
+    html += `<button class="btn" onclick="saveRename(event, '${video}')">Save</button>`;
+    html += `<button class="btn" onclick="hideModal();">Cancel</button>`;
+    html += '</form></p>';
+
+    showModal(html);
+
+    // with video player having tabindex attribute it's impossible for user to focus the new-name input
+    const videoPlayer = document.getElementById('video_player');
+    videoPlayer.removeAttribute('tabindex');
+
+    const input = document.getElementById('new-name');
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+
+    input.addEventListener('input', (event) => {
+        input.setCustomValidity(
+            filenames.includes(input.value + '.mp4') ? 'There is already a file with this name': ''
+        );
+    })
+}
+
+async function saveRename(e, video) {
+    if(document.getElementById('new-name').validity.valid) {
+        e.preventDefault();
+        hideModal();
+        await renameVideo(video);
+    }
+}
+
 function showModal(content) {
     modalContent.innerHTML = content;
     modal.style.display = 'block';
@@ -187,6 +222,9 @@ function showModal(content) {
 
 function hideModal() {
     modal.style.display = 'none';
+
+    // restore tabindex if it got removed in showRenameModal()
+    document.getElementById('video_player').setAttribute('tabindex', '-1');
 }
 
 async function getVideoPath(video) {
@@ -290,10 +328,30 @@ async function deleteVideo(video) {
     }
 }
 
+async function renameVideo(video) {
+    if (video === document.querySelector('.active')?.id) {
+        // make sure the video is not in use before renaming it
+        resetPlayer();
+        await sleep(250);
+    }
+
+    let ok = await __TAURI__.invoke('rename_video', {
+        'video': video,
+        'newName': document.getElementById('new-name').value + '.mp4',
+    });
+
+    if (!ok) {
+        let content = '<p>Error renaming video!</p>';
+        content += '<p><button class="btn" onclick="hideModal();">Close</button></p>';
+        showModal(content);
+    }
+}
+
 function createSidebarElement(el) {
     // call event.stopPropagation(); to stop the onclick event from also effecting the element under the clicked X button
+    let renameBtn = `<span class="rename" onclick="event.stopPropagation();showRenameModal('${el}')">&#x270E;</span>`;
     let deleteBtn = `<span class="delete" onclick="event.stopPropagation();showDeleteModal('${el}')">&times;</span>`;
-    return `<li id="${el}" onclick="setVideo('${el}')">${escape(el.substring(0, el.length - 4))}${deleteBtn}</li>`;
+    return `<li id="${el}" onclick="setVideo('${el}')">${escape(el.slice(0, -4).slice(0, 20))}${renameBtn}${deleteBtn}</li>`;
 }
 
 function changeMarkers() {
