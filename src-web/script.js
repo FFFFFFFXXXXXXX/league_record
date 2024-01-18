@@ -180,13 +180,15 @@ function showDeleteModal(video) {
     showModal(html);
 }
 
-function showRenameModal(video) {
+async function showRenameModal(video) {
+    const filenames = await getRecordingsNames();
+
     let html = `<p>Change name of ${video.slice(0,-4)}</p>`;
-    html += '<p>';
+    html += '<p><form>';
     html += `<input type="text" id="new-name" value="${video.slice(0,-4)}" spellcheck="false">`;
-    html += `<button class="btn" onclick="hideModal();renameVideo('${video}');">Save</input>`;
+    html += `<button class="btn" onclick="saveRename(event, '${video}')">Save</button>`;
     html += `<button class="btn" onclick="hideModal();">Cancel</button>`;
-    html += '</p>';
+    html += '</form></p>';
 
     showModal(html);
 
@@ -197,6 +199,20 @@ function showRenameModal(video) {
     const input = document.getElementById('new-name');
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
+
+    input.addEventListener('input', (event) => {
+        input.setCustomValidity(
+            filenames.includes(input.value + '.mp4') ? 'There is already a file with this name': ''
+        );
+    })
+}
+
+async function saveRename(e, video) {
+    if(document.getElementById('new-name').validity.valid) {
+        e.preventDefault();
+        hideModal();
+        await renameVideo(video);
+    }
 }
 
 function showModal(content) {

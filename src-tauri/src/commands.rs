@@ -104,11 +104,16 @@ pub fn delete_video(video: String, state: State<'_, Settings>) -> bool {
 
 #[tauri::command]
 pub fn rename_video(video: String, new_name: String, state: State<'_, Settings>) -> bool {
-    let mut path = state.get_recordings_path();
-    let mut new_path = path.clone();
+    let new = PathBuf::from(&new_name);
+    let Some(new_filename) = new.file_name() else { return false };
 
-    path.push(PathBuf::from(&video));
-    new_path.push(PathBuf::from(&new_name));
+    let mut path = state.get_recordings_path().join(video);
+    let mut new_path = path.clone();
+    new_path.set_file_name(new_filename);
+
+    if new_path.exists() {
+        return false;
+    }
 
     if rename(&path, &new_path).is_err() {
         return false;
