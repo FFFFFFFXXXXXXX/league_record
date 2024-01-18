@@ -17,14 +17,13 @@ use shaco::{
         ingame::{ChampionKill, DragonType, GameEvent, GameResult, Killer},
         ws::LcuSubscriptionType::JsonApiEvent,
     },
-    rest::RESTClient,
     ws::LcuWebsocketClient,
 };
 use tauri::{
     async_runtime::{self, JoinHandle},
     AppHandle, Manager,
 };
-use tokio::time::timeout;
+use tokio::time::{interval, timeout};
 use tokio_util::sync::CancellationToken;
 use windows::Win32::UI::HiDpi::{
     GetAwarenessFromDpiAwarenessContext, GetDpiFromDpiAwarenessContext, GetThreadDpiAwarenessContext,
@@ -71,6 +70,10 @@ fn closest_resolution_to_size(window_size: &Size) -> Resolution {
 pub fn start(app_handle: &AppHandle) {
     let app_handle = app_handle.clone();
 
+    // send stop to channel on "shutdown" event
+    let (tx, rx) = channel::<_>();
+    app_handle.once_global("shutdown_recorder", move |_| _ = tx.send(()));
+
     thread::spawn(move || {
         #[cfg(target_os = "windows")]
         unsafe {
@@ -85,10 +88,6 @@ pub fn start(app_handle: &AppHandle) {
                 GetDpiFromDpiAwarenessContext(dpi_awareness_context),
             )
         };
-
-        // send stop to channel on "shutdown" event
-        let (tx, rx) = channel::<_>();
-        app_handle.once_global("shutdown_recorder", move |_| _ = tx.send(()));
 
         enum State {
             Idle,
@@ -264,7 +263,7 @@ async fn collect_ingame_data(
 
     log::info!("waiting for game to start");
 
-    let mut timer = tokio::time::interval(Duration::from_millis(500));
+    let mut timer = interval(Duration::from_millis(500));
     while !ingame_client.active_game().await {
         // busy wait for API
         // "sleep" by selecting either the next timer tick or the token cancel
@@ -292,19 +291,15 @@ async fn collect_ingame_data(
     if let Ok(data) = ingame_client.all_game_data(None).await {
         game_data.game_info.game_mode = data.game_data.game_mode.to_string();
 
-        // weird block instead of nested 'if let' to avoid: future is not `Send` as this value is used across an await
-        'label: {
-            // this is a workaround for https://github.com/RiotGames/developer-relations/issues/857
-            // Riot bug: the ingame API active_player summoner_name != playerlist summoner_name (because of Riot ID introduction)
-            // for old/normal code see git history
-            let Ok(client) = RESTClient::new() else { break 'label };
-            let Ok(json) = client.get("/lol-summoner/v1/current-summoner").await else {
-                break 'label;
-            };
-            let Some(game_name) = json["gameName"].as_str() else { break 'label };
-            game_data.game_info.summoner_name = game_name.to_owned();
-
-            log::info!("current summoner: {json:?}");
+        if let Some(active_player) = data.active_player {
+            // the summoner name in ActivePlayer now has the format <name>#<tag>
+            // but the summoner_name in the all-player list is just the <name> part
+            game_data.game_info.summoner_name = active_player
+                .summoner_name
+                .rsplit_once('#')
+                .unwrap_or_default()
+                .0
+                .to_owned();
         }
 
         let champion_name = data.all_players.into_iter().find_map(|p| {
@@ -316,6 +311,11 @@ async fn collect_ingame_data(
         });
         if let Some(champion_name) = champion_name {
             game_data.game_info.champion_name = champion_name;
+        } else {
+            log::error!(
+                "no champion for player with name {} found",
+                game_data.game_info.summoner_name
+            );
         }
     }
 
@@ -338,23 +338,7 @@ async fn collect_ingame_data(
     let recording_start = Instant::now();
     set_recording_tray_item(&app_handle, true);
 
-    // prepare LcuWebsocketClient subscription for post game stats
-    // if we do this after the ingame window closes we could technically miss the event
-    let ws_client = match LcuWebsocketClient::connect().await {
-        Ok(mut ws_client) => {
-            let subscription_result = ws_client
-                .subscribe(JsonApiEvent("lol-end-of-game/v1/eog-stats-block".to_string()))
-                .await;
-            if let Err(e) = subscription_result {
-                log::warn!("unable to subscribe to LoL client post game stats ({e:?})");
-            }
-            Some(ws_client)
-        }
-        Err(e) => {
-            log::warn!("unable to connect to LoL client ({e:?})");
-            None
-        }
-    };
+    let mut ws_client = subscribe_to_postgame_stats().await;
 
     log::info!("Starting EventStream - listening to ingame events");
 
@@ -420,6 +404,17 @@ async fn collect_ingame_data(
 
     log::info!("waiting for post game stats");
 
+    // after the game has ended retry connecting to LeagueClient for 10s
+    // (if not already connected) in case the LeagueClient gets closed during the game
+    for _ in 0..10 {
+        if ws_client.is_some() {
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        ws_client = subscribe_to_postgame_stats().await;
+    }
+
     if let Some(mut ws_client) = ws_client {
         tokio::select! {
             _ = cancel_subtoken.cancelled() => log::info!("canceled waiting for post game stats"),
@@ -464,6 +459,26 @@ async fn collect_ingame_data(
             log::info!("metadata saved: {result:?}");
         }
     });
+}
+
+async fn subscribe_to_postgame_stats() -> Option<LcuWebsocketClient> {
+    // prepare LcuWebsocketClient subscription for post game stats
+    // if we do this after the ingame window closes we could technically miss the event
+    match LcuWebsocketClient::connect().await {
+        Ok(mut ws_client) => {
+            let subscription_result = ws_client
+                .subscribe(JsonApiEvent("lol-end-of-game/v1/eog-stats-block".to_string()))
+                .await;
+            if let Err(e) = subscription_result {
+                log::warn!("unable to subscribe to LoL client post game stats ({e:?})");
+            }
+            Some(ws_client)
+        }
+        Err(e) => {
+            log::warn!("unable to connect to LoL client ({e:?})");
+            None
+        }
+    }
 }
 
 #[cfg(target_os = "windows")]
