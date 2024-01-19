@@ -57,7 +57,11 @@ hr {
     cursor: pointer;
 }
 
-.btn:hover {
+.btn:disabled {
+    color: lightslategray;
+}
+
+.btn:hover:enabled {
     background: #445fa5;
     color: white;
     border: 2px solid white;
@@ -74,13 +78,22 @@ hr {
 }
 
 #sidebar-content li {
-    padding: 12px 35px 12px 15px;
+    padding: 12px 15px;
     text-decoration: none;
     font-size: 20px;
     color: lightgray;
     display: block;
     border-bottom: 1px solid lightgray;
     line-height: 22px;
+
+    /* All 'white-space' and 'overflow' are required for 'text-overflow' to do anything */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#sidebar-content li:hover {
+    padding: 12px 60px 12px 15px;
 }
 
 #sidebar-content li:hover,
@@ -90,26 +103,32 @@ hr {
     background-color: #445fa5;
 }
 
-.delete, .rename {
-    position: absolute;
-    padding: 0px 5px 1px 5px;
-    border-radius: 50px;
+#sidebar-content li>span {
+    display: none;
 }
 
-.delete {
-    right: 3%;
-}
-
-.delete:hover {
-    background: red;
+#sidebar-content li:hover>span {
+    display: inline-block;
 }
 
 .rename {
-    right: 10%;
+    position: absolute;
+    right: 11%;
+    margin-top: 1px;
 }
 
 .rename:hover {
-    background: blue;
+    color: aqua;
+}
+
+.delete {
+    position: absolute;
+    right: 3%;
+    padding: 0px 5px;
+}
+
+.delete:hover {
+    color: red;
 }
 
 #main {
@@ -158,6 +177,8 @@ hr {
     flex: 0.1 0 auto;
 }
 
+/* MODAL */
+
 #modal {
     display: none;
     /* Hidden by default */
@@ -175,9 +196,8 @@ hr {
     background-color: rgba(0, 0, 0, 0.4);
 }
 
-/* Modal Content */
 #modal-content {
-    color: white;
+    color: lightgray;
     background-color: #2c2f3e;
     margin: auto;
     padding: 20px;
@@ -186,6 +206,14 @@ hr {
     width: 50%;
     font-size: 25px;
     text-align: center;
+}
+
+#new-name {
+    width: 50%;
+    background: lightgray;
+    font-family: 'BeaufortW01-Bold';
+    font-size: 16px;
+    padding: 5px;
 }
 
 /* EVENT MARKERS */
