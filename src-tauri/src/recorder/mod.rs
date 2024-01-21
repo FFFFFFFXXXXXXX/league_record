@@ -263,9 +263,9 @@ async fn collect_ingame_data(
 
     log::info!("waiting for game to start");
 
+    // wait for game start
     let mut timer = interval(Duration::from_millis(500));
     while !ingame_client.active_game().await {
-        // busy wait for API
         // "sleep" by selecting either the next timer tick or the token cancel
         tokio::select! {
             _ = cancel_subtoken.cancelled() => {
