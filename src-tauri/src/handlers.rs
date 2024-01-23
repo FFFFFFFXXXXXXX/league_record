@@ -111,19 +111,23 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                 app_handle.once_global("fileserver_shutdown", |_| _ = tx1.send(()));
                 app_handle.once_global("recorder_shutdown", |_| _ = tx2.send(()));
 
-                // trigger shutdown
-                app_handle.trigger_global("shutdown_fileserver", None);
-                app_handle.trigger_global("shutdown_recorder", None);
-
                 // await shutdown of fileserver and recorder modules or timeout
                 tauri::async_runtime::spawn({
                     let app_handle = app_handle.clone();
                     async move {
                         let timeout = Duration::from_secs(3);
-                        let _ = tokio::join!(tokio::time::timeout(timeout, rx1), tokio::time::timeout(timeout, rx2));
+                        let (a, b) =
+                            tokio::join!(tokio::time::timeout(timeout, rx1), tokio::time::timeout(timeout, rx2));
+                        if a.is_err() || b.is_err() {
+                            log::warn!("forcing app shutdown");
+                        }
                         app_handle.exit(0);
                     }
                 });
+
+                // trigger shutdown
+                app_handle.trigger_global("shutdown_fileserver", None);
+                app_handle.trigger_global("shutdown_recorder", None);
             }
             "update" => {
                 _ = shell::open(

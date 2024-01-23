@@ -2,7 +2,6 @@ use std::{
     cmp::Ordering,
     path::{Path, PathBuf},
     sync::mpsc::{channel, RecvTimeoutError},
-    thread,
     time::{Duration, Instant},
 };
 
@@ -74,7 +73,7 @@ pub fn start(app_handle: &AppHandle) {
     let (tx, rx) = channel::<_>();
     app_handle.once_global("shutdown_recorder", move |_| _ = tx.send(()));
 
-    thread::spawn(move || {
+    std::thread::spawn(move || {
         #[cfg(target_os = "windows")]
         unsafe {
             // Get correct window size from get_lol_window() / GetClientRect

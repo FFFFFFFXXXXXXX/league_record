@@ -30,25 +30,22 @@ static BUFFER_SIZE: usize = 8192;
 pub fn start(app_handle: &AppHandle, folder: PathBuf, port: u16) {
     let app_handle = app_handle.clone();
 
+    let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+    app_handle.once_global("shutdown_fileserver", move |_| _ = tx.send(()));
+
     tauri::async_runtime::spawn(async move {
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
-        let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-        app_handle.once_global("shutdown_fileserver", move |_| {
-            _ = tx.send(());
-        });
-
         let server = Server::bind(&addr)
             .serve(MakeFileService::new(folder))
-            .with_graceful_shutdown(async {
-                _ = rx.await;
-            });
+            .with_graceful_shutdown(async { _ = rx.await });
 
         if let Err(e) = server.await {
             log::error!("fileserver error: {e}")
         } else {
             log::info!("fileserver gracefully shutdown")
         }
+
         app_handle.trigger_global("fileserver_shutdown", None);
     });
 }
@@ -98,7 +95,7 @@ async fn response(req: Request<Body>, mut folder: PathBuf) -> Result<Response<Bo
         .get("host")
         .and_then(|host_header| host_header.to_str().ok())
         .and_then(|host_str| host_str.rsplit_once(':'))
-        .is_some_and(|(domain, _port)| domain == "127.0.0.1")
+        .is_some_and(|(domain, _port)| domain == "localhost" || domain == "127.0.0.1")
     {
         return response_from_statuscode(StatusCode::FORBIDDEN);
     }
@@ -127,7 +124,6 @@ async fn response(req: Request<Body>, mut folder: PathBuf) -> Result<Response<Bo
     };
 
     // assume well formed range header
-
     let Some((start, end, len)) = headers
         .get("Range")
         .and_then(|range_header| range_header.to_str().ok())

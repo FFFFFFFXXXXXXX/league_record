@@ -362,6 +362,6 @@ impl FileWatcher {
     }
 
     pub fn drop(&self) {
-        *self.0.lock().unwrap() = None;
+        self.0.lock().unwrap().take();
     }
 }

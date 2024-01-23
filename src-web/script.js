@@ -129,8 +129,8 @@ addEventListener('focusin', event => {
 });
 
 // listen for new recordings
-__TAURI__.event.listen('reload_recordings', partialReloadFiles);
-__TAURI__.event.listen('new_recording', partialReloadFiles);
+__TAURI__.event.listen('reload_recordings', reloadSidebarFiles);
+__TAURI__.event.listen('new_recording', reloadSidebarFiles);
 
 // listen for settings change
 __TAURI__.event.listen('reload_ui', async () => {
@@ -238,7 +238,7 @@ function hideModal() {
 }
 
 async function getVideoPath(video) {
-    let port = await __TAURI__.invoke('get_asset_port');
+    const port = await __TAURI__.invoke('get_asset_port');
     return `http://127.0.0.1:${port}/${video}`;
 }
 
@@ -251,7 +251,7 @@ async function getRecordingsNames() {
 }
 
 async function setRecordingsSize() {
-    let size = await __TAURI__.invoke('get_recordings_size');
+    const size = await __TAURI__.invoke('get_recordings_size');
     recordingsSize.innerHTML = size.toString().substring(0, 4);
 }
 
@@ -329,7 +329,7 @@ async function deleteVideo(video) {
         await sleep(250);
     }
 
-    let ok = await __TAURI__.invoke('delete_video', { 'video': video });
+    const ok = await __TAURI__.invoke('delete_video', { 'video': video });
     if (!ok) {
         let content = '<p>Error deleting video!</p>';
         content += '<p><button class="btn" onclick="hideModal();">Close</button></p>';
@@ -344,7 +344,7 @@ async function renameVideo(video) {
         await sleep(250);
     }
 
-    let ok = await __TAURI__.invoke('rename_video', {
+    const ok = await __TAURI__.invoke('rename_video', {
         'video': video,
         'newName': document.getElementById('new-name').value + '.mp4',
     });
@@ -358,14 +358,14 @@ async function renameVideo(video) {
 
 function createSidebarElement(el) {
     // call event.stopPropagation(); to stop the onclick event from also effecting the element under the clicked X button
-    let renameBtn = `<span class="rename" onclick="event.stopPropagation();showRenameModal('${el}')">&#x270E;</span>`;
-    let deleteBtn = `<span class="delete" onclick="event.stopPropagation();showDeleteModal('${el}')">&times;</span>`;
+    const renameBtn = `<span class="rename" onclick="event.stopPropagation();showRenameModal('${el}')">&#x270E;</span>`;
+    const deleteBtn = `<span class="delete" onclick="event.stopPropagation();showDeleteModal('${el}')">&times;</span>`;
     return `<li id="${el}" onclick="setVideo('${el}')">${escape(el.slice(0, -4))}${renameBtn}${deleteBtn}</li>`;
 }
 
 function changeMarkers() {
     player.markers.removeAll();
-    let arr = [];
+    const arr = [];
     currentEvents.forEach(e => {
         let visible = false;
         switch (e['name']) {
@@ -425,7 +425,7 @@ function changeMarkers() {
     });
 }
 
-async function partialReloadFiles() {
+async function reloadSidebarFiles() {
     const activeVideoId = document.querySelector('#sidebar-content li.active')?.id;
 
     const filenames = await getRecordingsNames();
@@ -451,7 +451,11 @@ async function init() {
     let sidebarHtml = '';
     for (file of filenames) sidebarHtml += createSidebarElement(file);
     sidebar.innerHTML = sidebarHtml;
-    setVideo(filenames[0]);
+    if (filenames.length > 0) {
+        setVideo(filenames[0]);
+    } else {
+        resetPlayer();
+    }
 
     let settings = await getCurrentMarkerSettings() ?? await getDefaultMarkerSettings();
     checkboxKill.checked = settings.kill;
