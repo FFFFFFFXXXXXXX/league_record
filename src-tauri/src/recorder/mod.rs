@@ -119,12 +119,6 @@ pub fn start(app_handle: &AppHandle) {
 
                     log::info!("Using resolution ({output_resolution:?}) for window ({window_size:?})");
 
-                    let mut filename_path = settings_state.get_recordings_path();
-                    filename_path.push(format!(
-                        "{}",
-                        chrono::Local::now().format(&settings_state.get_filename_format())
-                    ));
-
                     let mut settings = RecorderSettings::new();
                     settings.set_window(Window::new(
                         WINDOW_TITLE,
@@ -136,7 +130,19 @@ pub fn start(app_handle: &AppHandle) {
                     settings.set_framerate(settings_state.get_framerate());
                     settings.set_rate_control(RateControl::CQP(settings_state.get_encoding_quality()));
                     settings.record_audio(settings_state.get_audio_source());
-                    settings.set_output_path(filename_path.to_str().expect("error converting filename path to &str"));
+
+                    let mut filename = settings_state.get_filename_format();
+                    if !filename.ends_with(".mp4") {
+                        filename.push_str(".mp4");
+                    }
+                    let mut filename_path = settings_state
+                        .get_recordings_path()
+                        .join(format!("{}", chrono::Local::now().format(filename.as_str())));
+                    if let Some(filename_path_str) = filename_path.to_str() {
+                        settings.set_output_path(filename_path_str);
+                    } else {
+                        break 'inner;
+                    }
 
                     // if LeagueRecord gets launched by Windows Autostart the CWD is system32 instead of the installation folder
                     // get directory to current executable so we can locate extprocess_recorder.exe
@@ -181,11 +187,10 @@ pub fn start(app_handle: &AppHandle) {
                         // preparation for task
                         let app_handle = app_handle.clone();
                         let cancel_subtoken = cancel_token.child_token();
-                        let mut outfile = settings_state.get_recordings_path().join(filename_path);
-                        outfile.set_extension("json");
+                        filename_path.set_extension("json");
 
                         // actual task
-                        async move { collect_ingame_data(app_handle, cancel_subtoken, recorder, outfile).await }
+                        async move { collect_ingame_data(app_handle, cancel_subtoken, recorder, filename_path).await }
                     });
                     log::info!("ingame task spawned: {handle:?}");
 
@@ -454,8 +459,10 @@ async fn collect_ingame_data(
 
         // serde_json requires a std::fs::File
         if let Ok(file) = std::fs::File::create(&outfile) {
-            let result = serde_json::to_writer(file, &game_data);
+            let result = serde_json::to_writer(&file, &game_data);
             log::info!("metadata saved: {result:?}");
+
+            _ = app_handle.emit_all("new_recording_metadata", ());
         }
     });
 }

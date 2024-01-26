@@ -130,7 +130,33 @@ addEventListener('focusin', event => {
 
 // listen for new recordings
 __TAURI__.event.listen('reload_recordings', reloadSidebarFiles);
-__TAURI__.event.listen('new_recording', reloadSidebarFiles);
+__TAURI__.event.listen('new_recording_metadata', reloadActiveVideoMetadata);
+
+async function reloadSidebarFiles() {
+    const activeVideoId = document.querySelector('#sidebar-content li.active')?.id;
+
+    const filenames = await getRecordingsNames();
+    let sidebarHtml = '';
+    for (file of filenames) sidebarHtml += createSidebarElement(file);
+    sidebar.innerHTML = sidebarHtml;
+
+    if (activeVideoId) {
+        // check if previously active video still exists after update
+        const newActiveVideo = document.getElementById(activeVideoId);
+        if (newActiveVideo) {
+            newActiveVideo.classList.add('active');
+        } else {
+            resetPlayer();
+        }
+    }
+
+    setRecordingsSize();
+}
+
+function reloadActiveVideoMetadata() {
+    const active = document.querySelector('#sidebar-content li.active');
+    if (active) setMetadata(active.id);
+}
 
 // listen for settings change
 __TAURI__.event.listen('reload_ui', async () => {
@@ -279,47 +305,45 @@ function clearData() {
 }
 
 function setVideo(name) {
+    setMetadata(name);
+    setPlayer(name);
+
     document.querySelector('#sidebar-content li.active')?.classList.remove('active');
     document.getElementById(name).classList.add('active');
 
-    if (name) {
-        tauriWindowManager.setTitle('League Record - ' + name);
-    } else {
-        tauriWindowManager.setTitle('League Record');
-        resetPlayer();
-        return;
-    }
+    tauriWindowManager.setTitle('League Record - ' + name);
+}
 
-    __TAURI__.invoke('get_metadata', { video: name }).then(md => {
-        if (md) {
-            try {
-                currentEvents = md['events'];
+async function setPlayer(name) {
+    player.on('loadedmetadata', changeMarkers);
+    player.src({ type: 'video/mp4', src: await getVideoPath(name) });
+    player.bigPlayButton.show();
+    player.controlBar.show();
+}
 
-                const stats = md['stats'];
-                let descLeft = `<span class="summoner-name">${escape(md['gameInfo']['summonerName'])}</span><br>`;
-                descLeft += `${escape(md['gameInfo']['championName'])} - ${escape(stats['kills'])}/${escape(stats['deaths'])}/${escape(stats['assists'])}<br>`;
-                descLeft += `${escape(stats['minionsKilled'] + stats['neutralMinionsKilled'])} CS | ${escape(stats['wardScore'].toString().substring(0, 4))} WS`;
-                descriptionLeft.innerHTML = descLeft;
+async function setMetadata(name) {
+    const md = __TAURI__.invoke('get_metadata', { video: name });
+    if (md) {
+        try {
+            currentEvents = md['events'];
 
-                let descCenter = `Game Mode: ${escape(md['gameInfo']['gameMode'])}<br>`;
-                if (md['win'] != null) {
-                    descCenter += md['win'] ? '<span class="win">Victory</span><br>' : '<span class="loss">Defeat</span>';
-                }
-                descriptionCenter.innerHTML = descCenter;
-            } catch {
-                clearData();
+            const stats = md['stats'];
+            let descLeft = `<span class="summoner-name">${escape(md['gameInfo']['summonerName'])}</span><br>`;
+            descLeft += `${escape(md['gameInfo']['championName'])} - ${escape(stats['kills'])}/${escape(stats['deaths'])}/${escape(stats['assists'])}<br>`;
+            descLeft += `${escape(stats['minionsKilled'] + stats['neutralMinionsKilled'])} CS | ${escape(stats['wardScore'].toString().substring(0, 4))} WS`;
+            descriptionLeft.innerHTML = descLeft;
+
+            let descCenter = `Game Mode: ${escape(md['gameInfo']['gameMode'])}<br>`;
+            if (md['win'] != null) {
+                descCenter += md['win'] ? '<span class="win">Victory</span><br>' : '<span class="loss">Defeat</span>';
             }
-        } else {
+            descriptionCenter.innerHTML = descCenter;
+        } catch {
             clearData();
         }
-    });
-
-    getVideoPath(name).then(path => {
-        player.on('loadedmetadata', changeMarkers);
-        player.src({ type: 'video/mp4', src: path });
-        player.bigPlayButton.show();
-        player.controlBar.show();
-    });
+    } else {
+        clearData();
+    }
 }
 
 async function deleteVideo(video) {
@@ -423,27 +447,6 @@ function changeMarkers() {
         herald: checkboxHerald.checked,
         baron: checkboxBaron.checked,
     });
-}
-
-async function reloadSidebarFiles() {
-    const activeVideoId = document.querySelector('#sidebar-content li.active')?.id;
-
-    const filenames = await getRecordingsNames();
-    let sidebarHtml = '';
-    for (file of filenames) sidebarHtml += createSidebarElement(file);
-    sidebar.innerHTML = sidebarHtml;
-
-    if (activeVideoId) {
-        // check if previously active video still exists after update
-        const newActiveVideo = document.getElementById(activeVideoId);
-        if (newActiveVideo) {
-            newActiveVideo.classList.add('active');
-        } else {
-            resetPlayer();
-        }
-    }
-
-    await setRecordingsSize();
 }
 
 async function init() {
