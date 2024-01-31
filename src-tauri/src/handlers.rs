@@ -39,7 +39,6 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                         if ensure_settings_exist(&path) {
                             let settings = app_handle.state::<Settings>();
                             let old_recordings_path = settings.get_recordings_path();
-                            let old_marker_flags = settings.get_marker_flags();
                             let old_log = settings.debug_log();
 
                             // hardcode 'notepad' since league_record currently only works on windows anyways
@@ -69,9 +68,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                             }
 
                             // check if fileserver needs to be restarted
-                            let marker_flags = settings.get_marker_flags();
                             let recordings_path = settings.get_recordings_path();
-                            let marker_flags_changed = marker_flags != old_marker_flags;
                             let recordings_path_changed = recordings_path != old_recordings_path;
 
                             if recordings_path_changed {
@@ -88,8 +85,8 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                             }
 
                             // check if UI window needs to be updated
-                            if marker_flags_changed || recordings_path_changed {
-                                _ = app_handle.emit_all("reload_ui", ());
+                            if recordings_path_changed {
+                                _ = app_handle.emit_all("reload_recordings", ());
                             }
                         }
                     }

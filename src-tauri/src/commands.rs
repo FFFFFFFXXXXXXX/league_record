@@ -26,11 +26,6 @@ pub async fn show_app_window(app_handle: AppHandle) {
 }
 
 #[tauri::command]
-pub fn get_default_marker_flags() -> MarkerFlags {
-    MarkerFlags::default()
-}
-
-#[tauri::command]
 pub fn get_current_marker_flags(settings: State<'_, Settings>) -> MarkerFlags {
     settings.get_marker_flags()
 }
@@ -87,27 +82,11 @@ pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, Settings>)
 }
 
 #[tauri::command]
-pub fn delete_video(video: String, state: State<'_, Settings>) -> bool {
-    // remove video
-    let mut path = state.get_recordings_path();
-    path.push(PathBuf::from(&video));
-    if remove_file(&path).is_err() {
-        // if video delete fails return and dont delete json file
-        return false;
-    }
-
-    // remove json file if it exists
-    path.set_extension("json");
-    _ = remove_file(path);
-    true
-}
-
-#[tauri::command]
-pub fn rename_video(video: String, new_name: String, state: State<'_, Settings>) -> bool {
-    let new = PathBuf::from(&new_name);
+pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, Settings>) -> bool {
+    let new = PathBuf::from(&new_video_id);
     let Some(new_filename) = new.file_name() else { return false };
 
-    let mut path = state.get_recordings_path().join(video);
+    let mut path = state.get_recordings_path().join(video_id);
     let mut new_path = path.clone();
     new_path.set_file_name(new_filename);
 
@@ -122,6 +101,22 @@ pub fn rename_video(video: String, new_name: String, state: State<'_, Settings>)
     path.set_extension("json");
     new_path.set_extension("json");
     _ = rename(&path, &new_path);
+    true
+}
+
+#[tauri::command]
+pub fn delete_video(video_id: String, state: State<'_, Settings>) -> bool {
+    // remove video
+    let mut path = state.get_recordings_path();
+    path.push(PathBuf::from(&video_id));
+    if remove_file(&path).is_err() {
+        // if video delete fails return and dont delete json file
+        return false;
+    }
+
+    // remove json file if it exists
+    path.set_extension("json");
+    _ = remove_file(path);
     true
 }
 

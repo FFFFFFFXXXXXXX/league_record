@@ -42,7 +42,6 @@ fn main() {
         .manage(FileWatcher::default())
         .invoke_handler(tauri::generate_handler![
             show_app_window,
-            get_default_marker_flags,
             get_current_marker_flags,
             set_current_marker_flags,
             get_asset_port,
