@@ -56,8 +56,7 @@
       },
       "window": {
         "setTitle": true,
-        "setFullscreen": true,
-        "close": true
+        "setFullscreen": true
       }
     },
     "windows": [

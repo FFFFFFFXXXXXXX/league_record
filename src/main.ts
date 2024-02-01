@@ -87,15 +87,10 @@ async function main() {
     // handle keybord shortcuts
     addEventListener('keydown', handleKeyboardEvents);
 
-    const unlistenReloadRecordings = listen<void>('reload_recordings', updateSidebar);
-    const unlistenNewRecordingMetadata = listen<void>('new_recording_metadata', () => {
+    listen<void>('reload_recordings', updateSidebar);
+    listen<void>('new_recording_metadata', () => {
         const activeVideoId = ui.getActiveVideoId();
         if (activeVideoId) setMetadata(activeVideoId);
-    });
-
-    await new WindowManager('main').onCloseRequested(async _e => {
-        (await unlistenReloadRecordings)();
-        (await unlistenNewRecordingMetadata)();
     });
 
     // load data
