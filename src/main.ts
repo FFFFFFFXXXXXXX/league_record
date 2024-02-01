@@ -1,15 +1,20 @@
-import '../video-js/video.min.js';
-import '../videojs-markers/videojs-markers.js';
+import 'video.js/dist/video-js.min.css';
 
+import videojs from 'video.js';
+import type Player from 'video.js/dist/types/player';
+import '@fffffffxxxxxxx/videojs-markers';
+import type { MarkerOptions, MarkersPlugin, Settings } from '@fffffffxxxxxxx/videojs-markers';
+
+import UI from './ui.js';
 import tauri from './tauri.js';
-import ui from './ui.js';
 import { sleep } from './util.js';
 
 // sets the time a marker jumps to before the actual event happens
 // jumps to (eventTime - EVENT_DELAY) when a marker is clicked
 const EVENT_DELAY = 3;
 
-let currentEvents = [];
+const ui = new UI(videojs, tauri.newWindowManager());
+let currentEvents = new Array<any>();
 
 // create video player
 const player = videojs('video_player', {
@@ -19,7 +24,7 @@ const player = videojs('video_player', {
     'controls': true,
     'preload': 'auto',
     'enableSourceset': true
-});
+}) as Player & { markers: (settings?: Settings) => MarkersPlugin };
 
 main();
 
@@ -47,11 +52,14 @@ async function main() {
         ui.setActiveVideoId(null);
 
         // make sure the bigplaybutton and controlbar are hidden when resetting the video src
-        player.bigPlayButton.hide();
-        player.controlBar.hide();
+        // // @ts-ignore
+        // player.bigPlayButton.hide();
+
+        ui.showBigPlayButton(false);
+        player.controls(false);
     });
 
-    player.on('sourceset', ({ src }) => {
+    player.on('sourceset', ({ src }: { src: string }) => {
         // ignore all sources that are falsy (e.g. null, undefined, empty string)
         // because player.reset() for example triggers a 'sourceset' event with { src: "" }
         if (!src) return;
@@ -63,8 +71,11 @@ async function main() {
         setMetadata(videoId);
 
         // re-show the bigplaybutton and controlbar when a new video src is set
-        player.bigPlayButton.show();
-        player.controlBar.show();
+        // // @ts-ignore
+        // player.bigPlayButton.show();
+
+        ui.showBigPlayButton(true);
+        player.controls(true);
     });
 
     // add events to html elements
@@ -73,14 +84,14 @@ async function main() {
 
     // listen if the videojs player fills the whole window
     // and keep the tauri fullscreen setting in sync
-    addEventListener('fullscreenchange', e => ui.setFullscreen(!!document.fullscreenElement));
+    addEventListener('fullscreenchange', _e => ui.setFullscreen(!!document.fullscreenElement));
 
     // handle keybord shortcuts
     addEventListener('keydown', handleKeyboardEvents);
 
     // listen for new recordings
-    __TAURI__.event.listen('reload_recordings', updateSidebar);
-    __TAURI__.event.listen('new_recording_metadata', () => {
+    tauri.eventListener<void>('reload_recordings', updateSidebar);
+    tauri.eventListener<void>('new_recording_metadata', () => {
         const activeVideoId = ui.getActiveVideoId();
         if (activeVideoId) setMetadata(activeVideoId);
     });
@@ -88,8 +99,9 @@ async function main() {
     // load data
     ui.setCheckboxes(await tauri.getMarkerSettings());
     const videoIds = await updateSidebar();
-    if (videoIds.length > 0) {
-        setVideo(videoIds[0]);
+    const firstVideo = videoIds[0];
+    if (firstVideo) {
+        setVideo(firstVideo);
         player.one('canplay', tauri.showWindow);
     } else {
         player.reset();
@@ -111,7 +123,7 @@ async function updateSidebar() {
 
     return videoIds;
 }
-async function setVideo(videoId) {
+async function setVideo(videoId: string) {
     if (videoId === ui.getActiveVideoId()) {
         return;
     }
@@ -119,7 +131,7 @@ async function setVideo(videoId) {
     player.src({ type: 'video/mp4', src: await tauri.getVideoPath(videoId) });
 }
 
-async function setMetadata(videoId) {
+async function setMetadata(videoId: string) {
     const md = await tauri.getMetadata(videoId);
     if (md) {
         ui.setVideoDescriptionStats(md);
@@ -132,7 +144,7 @@ async function setMetadata(videoId) {
 }
 
 function changeMarkers() {
-    const arr = [];
+    const arr = new Array<MarkerOptions>();
     const checkbox = ui.getCheckboxes();
     for (const e of currentEvents) {
         let visible = false;
@@ -186,11 +198,11 @@ function changeMarkers() {
 
 // --- MODAL ---
 
-async function showRenameModal(videoId) {
+async function showRenameModal(videoId: string) {
     ui.showRenameModal(videoId, await tauri.getRecordingsNames(), renameVideo);
 }
 
-async function renameVideo(videoId, newVideoName) {
+async function renameVideo(videoId: string, newVideoName: string) {
     if (videoId === ui.getActiveVideoId()) {
         // make sure the video is not in use before renaming it
         player.reset();
@@ -203,11 +215,11 @@ async function renameVideo(videoId, newVideoName) {
     }
 }
 
-function showDeleteModal(videoId) {
+function showDeleteModal(videoId: string) {
     ui.showDeleteModal(videoId, deleteVideo);
 }
 
-async function deleteVideo(videoId) {
+async function deleteVideo(videoId: string) {
     if (videoId === document.querySelector('#sidebar-content li.active')?.id) {
         // make sure the video is not in use before deleting it
         player.reset();
@@ -222,7 +234,7 @@ async function deleteVideo(videoId) {
 
 // --- KEYBOARD SHORTCUTS ---
 
-function handleKeyboardEvents(event) {
+function handleKeyboardEvents(event: KeyboardEvent) {
     // if (ui.getActiveVideoId() === null || ui.modal.style.display === 'block') return;
     if (ui.getActiveVideoId() === null) return;
 
@@ -231,16 +243,16 @@ function handleKeyboardEvents(event) {
             player.paused() ? player.play() : player.pause();
             break;
         case 'ArrowRight':
-            event.shiftKey ? player.markers().next() : player.currentTime(player.currentTime() + 5);
+            event.shiftKey ? player.markers().next() : player.currentTime(player.currentTime()! + 5);
             break;
         case 'ArrowLeft':
-            event.shiftKey ? player.markers().prev() : player.currentTime(player.currentTime() - 5);
+            event.shiftKey ? player.markers().prev() : player.currentTime(player.currentTime()! - 5);
             break;
         case 'ArrowUp':
-            player.volume(player.volume() + 0.1)
+            player.volume(player.volume()! + 0.1)
             break;
         case 'ArrowDown':
-            player.volume(player.volume() - 0.1)
+            player.volume(player.volume()! - 0.1)
             break;
         case 'f':
         case 'F':
@@ -253,12 +265,12 @@ function handleKeyboardEvents(event) {
             player.muted(!player.muted());
             break;
         case '<':
-            if (player.playbackRate() > 0.25)
-                player.playbackRate(player.playbackRate() - 0.25);
+            if (player.playbackRate()! > 0.25)
+                player.playbackRate(player.playbackRate()! - 0.25);
             break;
         case '>':
-            if (player.playbackRate() < 3)
-                player.playbackRate(player.playbackRate() + 0.25);
+            if (player.playbackRate()! < 3)
+                player.playbackRate(player.playbackRate()! + 0.25);
             break;
         default:
             // return early to not call preventDefault()

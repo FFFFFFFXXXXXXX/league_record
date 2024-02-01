@@ -1,0 +1,21 @@
+{
+    "name": "league_record",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc && vite build",
+        "preview": "vite preview",
+        "tauri": "tauri"
+    },
+    "dependencies": {
+        "video.js": "^8.10.0",
+        "@fffffffxxxxxxx/videojs-markers": "^1.1.6",
+        "@tauri-apps/api": "^1.5.2"
+    },
+    "devDependencies": {
+        "@tauri-apps/cli": "^1.5.8",
+        "typescript": "^5.3.3",
+        "vite": "^5.0.0"
+    }
+}

@@ -4,9 +4,10 @@
     "version": "1.17.0"
   },
   "build": {
-    "distDir": "../src-web",
-    "devPath": "../src-web",
-    "withGlobalTauri": true
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devPath": "http://localhost:1420",
+    "distDir": "../dist"
   },
   "tauri": {
     "bundle": {

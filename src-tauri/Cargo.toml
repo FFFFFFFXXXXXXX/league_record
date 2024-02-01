@@ -45,7 +45,7 @@ windows = { version = "0.52.0", features = ["Win32_Foundation", "Win32_UI_Window
 [build-dependencies]
 tauri-build = { version = "1.1.1" }
 # artifact/binary dependencies still require using 'cargo +nightly -Z bindeps {cmd}'
-libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", artifact = "bin:extprocess_recorder" }
+# libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", artifact = "bin:extprocess_recorder" }
 
 [features]
 # by default Tauri runs in production mode
