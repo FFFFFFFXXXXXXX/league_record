@@ -71,8 +71,9 @@ async function main() {
     ui.setRecordingsFolderBtnOnClickHandler(tauri.openRecordingsFolder);
     ui.setCheckboxOnClickHandler(changeMarkers);
 
-    // listen to fullscreenchange and set window fullscreen
-    addEventListener('fullscreenchange', ui.toggleFullscreen);
+    // listen if the videojs player fills the whole window
+    // and keep the tauri fullscreen setting in sync
+    addEventListener('fullscreenchange', e => ui.setFullscreen(!!document.fullscreenElement));
 
     // handle keybord shortcuts
     addEventListener('keydown', handleKeyboardEvents);
@@ -243,6 +244,8 @@ function handleKeyboardEvents(event) {
             break;
         case 'f':
         case 'F':
+            // this only makes the videojs player fill the whole window
+            // the listener for the 'fullscreenchange' event handles keeping the tauri window fullscreen status in sync
             player.isFullscreen() ? player.exitFullscreen() : player.requestFullscreen();
             break;
         case 'm':

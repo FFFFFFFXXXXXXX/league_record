@@ -1,7 +1,7 @@
 const windowManager = new __TAURI__.window.WindowManager('main');
 
-function toggleFullscreen() {
-    windowManager.isFullscreen().then(fullscreen => windowManager.setFullscreen(!fullscreen));
+async function setFullscreen(fullscreen) {
+    await windowManager.setFullscreen(fullscreen);
 }
 
 function setWindowTitle(title) {
@@ -225,7 +225,7 @@ function getCheckboxes() {
 
 export default {
     setWindowTitle: setWindowTitle,
-    toggleFullscreen: toggleFullscreen,
+    setFullscreen: setFullscreen,
 
     setRecordingsFolderBtnOnClickHandler: setRecordingsFolderBtnOnClickHandler,
     setCheckboxOnClickHandler: setCheckboxOnClickHandler,
