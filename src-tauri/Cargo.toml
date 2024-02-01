@@ -11,7 +11,7 @@ build = "build.rs"
 
 [dependencies]
 # dependencies for main app and UI
-tauri = { version = "1.5.2", features = ["shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
+tauri = { version = "1.5.2", features = [ "window-close", "shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
 tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 log = "0.4.20"
@@ -34,6 +34,8 @@ libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder" }
 shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
 futures = "0.3.26"
 chrono = "0.4.19"
+specta = { version = "1.0.5", features = ["export"] }
+tauri-specta = { version = "1.0.2", features = ["typescript"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.52.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }

@@ -13,12 +13,13 @@ use std::{
 
 use crate::{
     helpers::{self, compare_time, get_recordings, show_window},
+    recorder::data::GameData,
     state::{AssetPort, MarkerFlags, Settings, SettingsFile},
 };
-use serde_json::Value;
 use tauri::{api::shell, AppHandle, Manager, State};
 
 #[tauri::command]
+#[specta::specta]
 pub async fn show_app_window(app_handle: AppHandle) {
     if let Some(main) = app_handle.windows().get("main") {
         show_window(main);
@@ -26,12 +27,14 @@ pub async fn show_app_window(app_handle: AppHandle) {
 }
 
 #[tauri::command]
-pub fn get_current_marker_flags(settings: State<'_, Settings>) -> MarkerFlags {
+#[specta::specta]
+pub fn get_marker_flags(settings: State<'_, Settings>) -> MarkerFlags {
     settings.get_marker_flags()
 }
 
 #[tauri::command]
-pub fn set_current_marker_flags(
+#[specta::specta]
+pub fn set_marker_flags(
     marker_flags: MarkerFlags,
     settings: State<'_, Settings>,
     settings_file: State<'_, SettingsFile>,
@@ -41,11 +44,13 @@ pub fn set_current_marker_flags(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_asset_port(port_state: State<'_, AssetPort>) -> u16 {
     port_state.get()
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_recordings_size(settings_state: State<'_, Settings>) -> f32 {
     let mut size = 0;
     for file in get_recordings(&settings_state.get_recordings_path()) {
@@ -57,6 +62,7 @@ pub fn get_recordings_size(settings_state: State<'_, Settings>) -> f32 {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_recordings_list(settings_state: State<'_, Settings>) -> Vec<String> {
     let mut recordings = get_recordings(&settings_state.get_recordings_path());
     // sort by time created (index 0 is newest)
@@ -73,6 +79,7 @@ pub fn get_recordings_list(settings_state: State<'_, Settings>) -> Vec<String> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, Settings>) {
     _ = shell::open(
         &app_handle.shell_scope(),
@@ -82,6 +89,7 @@ pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, Settings>)
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, Settings>) -> bool {
     let new = PathBuf::from(&new_video_id);
     let Some(new_filename) = new.file_name() else { return false };
@@ -105,6 +113,7 @@ pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, Set
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn delete_video(video_id: String, state: State<'_, Settings>) -> bool {
     // remove video
     let mut path = state.get_recordings_path();
@@ -121,17 +130,11 @@ pub fn delete_video(video_id: String, state: State<'_, Settings>) -> bool {
 }
 
 #[tauri::command]
-pub fn get_metadata(video: String, state: State<'_, Settings>) -> Value {
-    let mut path = state.get_recordings_path();
-    path.push(PathBuf::from(video));
+#[specta::specta]
+pub fn get_metadata(video_id: String, state: State<'_, Settings>) -> Option<GameData> {
+    let mut path = state.get_recordings_path().join(video_id);
     path.set_extension("json");
-    let reader = match File::open(path) {
-        Ok(file) => BufReader::new(file),
-        Err(_) => return Value::Null,
-    };
 
-    match serde_json::from_reader::<BufReader<File>, Value>(reader) {
-        Ok(json) => json,
-        Err(_) => Value::Null,
-    }
+    let reader = BufReader::new(File::open(path).ok()?);
+    serde_json::from_reader::<_, GameData>(reader).ok()
 }

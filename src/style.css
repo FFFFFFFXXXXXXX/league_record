@@ -3,6 +3,10 @@
     src: url("assets/BeaufortW01-Bold.ttf") format('truetype');
 }
 
+*:focus {
+    outline: none;
+}
+
 html {
     font-family: 'BeaufortW01-Bold';
     text-shadow: 1px 1px 3px black;

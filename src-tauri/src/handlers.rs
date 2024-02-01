@@ -198,8 +198,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
 pub fn run_handler(app_handle: &AppHandle, event: RunEvent) {
     match event {
         RunEvent::WindowEvent {
-            label: _,
-            event: WindowEvent::CloseRequested { api: _, .. },
+            event: WindowEvent::CloseRequested { .. },
             ..
         } => {
             // triggered on window close (X Button)

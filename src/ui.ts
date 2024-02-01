@@ -1,16 +1,6 @@
 import type videojs from 'video.js';
 import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
-
-export interface Checkboxes {
-    kill: boolean,
-    death: boolean,
-    assist: boolean,
-    turret: boolean,
-    inhibitor: boolean,
-    dragon: boolean,
-    herald: boolean,
-    baron: boolean,
-}
+import type { MarkerFlags, GameData } from './bindings';
 
 export default class UI {
 
@@ -34,12 +24,12 @@ export default class UI {
     private readonly vjs: typeof videojs;
     private readonly windowManager: any;
 
-    private readonly hideModal;
+    private readonly boundHideModal;
 
     constructor(vjs: typeof videojs, windowManager: any) {
         this.vjs = vjs;
         this.windowManager = windowManager;
-        this.hideModal = this.hideModalUnbound.bind(this);
+        this.boundHideModal = this.hideModal.bind(this);
 
         this.modal = document.querySelector<HTMLDivElement>('[id="modal"]')!;
         this.modalContent = document.querySelector<HTMLDivElement>('[id="modal-content"]')!;
@@ -127,10 +117,24 @@ export default class UI {
         this.vjs.dom.insertContent(this.recordingsSize, recordingsSizeGb.toFixed(2).toString());
     }
 
+    public showModal(content: ContentDescriptor) {
+        this.vjs.dom.insertContent(this.modalContent, content);
+        this.modal.style.display = 'block';
+    }
+
+    public hideModal() {
+        this.vjs.dom.emptyEl(this.modalContent);
+        this.modal.style.display = 'none';
+    }
+
+    public modalIsOpen() {
+        return this.modal.style.display === 'block';
+    }
+
     public async showErrorModal(text: string) {
         this.showModal([
             this.vjs.dom.createEl('p', {}, {}, text),
-            this.vjs.dom.createEl('p', {}, {}, this.vjs.dom.createEl('button', { 'onclick': this.hideModal }, { 'class': 'btn' }, 'Close')),
+            this.vjs.dom.createEl('p', {}, {}, this.vjs.dom.createEl('button', { 'onclick': this.boundHideModal }, { 'class': 'btn' }, 'Close')),
         ]);
     }
 
@@ -159,7 +163,7 @@ export default class UI {
                 'onclick': (e: MouseEvent) => {
                     if (input.validity.valid) {
                         e.preventDefault();
-                        this.hideModal();
+                        this.boundHideModal();
                         rename(videoId, input.value);
                     }
                 }
@@ -169,7 +173,7 @@ export default class UI {
         ) as HTMLButtonElement;
         const cancelButton = this.vjs.dom.createEl(
             'button',
-            { 'onclick': this.hideModal },
+            { 'onclick': this.boundHideModal },
             { 'class': 'btn' },
             'Cancel'
         ) as HTMLButtonElement;
@@ -203,11 +207,11 @@ export default class UI {
         const buttons = this.vjs.dom.createEl('p', {}, {}, [
             this.vjs.dom.createEl('button', {
                 'onclick': (_: MouseEvent) => {
-                    this.hideModal();
+                    this.boundHideModal();
                     deleteVideo(videoId);
                 }
             }, { 'class': 'btn' }, 'Delete'),
-            this.vjs.dom.createEl('button', { 'onclick': this.hideModal }, { 'class': 'btn' }, 'Cancel'),
+            this.vjs.dom.createEl('button', { 'onclick': this.boundHideModal }, { 'class': 'btn' }, 'Cancel'),
         ]);
 
         this.showModal([prompt, buttons]);
@@ -233,27 +237,26 @@ export default class UI {
         this.vjs.dom.insertContent(this.descriptionCenter, center);
     }
 
-    // TODO
-    public setVideoDescriptionStats(md: any) {
-        if (!md) {
+    public setVideoDescriptionStats(data: GameData) {
+        if (!data) {
             this.setVideoDescription('', 'No Data');
             return;
         }
 
-        const stats = md['stats'];
+        const stats = data['stats'];
 
         const summoner = this.vjs.dom.createEl(
             'span',
             {},
             { 'class': 'summoner-name' },
-            md['gameInfo']['summonerName']
+            data['gameInfo']['summonerName']
         );
-        const score1 = `${md['gameInfo']['championName']} - ${stats['kills']}/${stats['deaths']}/${stats['assists']}`;
-        const score2 = `${stats['minionsKilled'] + stats['neutralMinionsKilled']} CS | ${stats['wardScore'].toFixed(2).toString()} WS`;
+        const score1 = `${data['gameInfo']['championName']} - ${stats['kills']}/${stats['deaths']}/${stats['assists']}`;
+        const score2 = `${stats['minionsKilled']! + stats['neutralMinionsKilled']!} CS | ${stats['wardScore']!.toFixed(2).toString()} WS`;
 
-        const gameMode = `Game Mode: ${md['gameInfo']['gameMode']}`;
-        const result = md['win'] !== null && (
-            md['win'] ?
+        const gameMode = `Game Mode: ${data['gameInfo']['gameMode']}`;
+        const result = data['win'] !== null && (
+            data['win'] ?
                 this.vjs.dom.createEl('span', {}, { 'class': 'win' }, 'Victory')
                 : this.vjs.dom.createEl('span', {}, { 'class': 'loss' }, 'Defeat')
         );
@@ -281,7 +284,7 @@ export default class UI {
         }
     }
 
-    public setCheckboxes(settings: Checkboxes) {
+    public setCheckboxes(settings: MarkerFlags) {
         this.checkboxKill.checked = settings.kill;
         this.checkboxDeath.checked = settings.death;
         this.checkboxAssist.checked = settings.assist;
@@ -292,7 +295,7 @@ export default class UI {
         this.checkboxBaron.checked = settings.baron;
     }
 
-    public getCheckboxes(): Checkboxes {
+    public getCheckboxes(): MarkerFlags {
         return {
             kill: this.checkboxKill.checked,
             death: this.checkboxDeath.checked,
@@ -303,15 +306,6 @@ export default class UI {
             herald: this.checkboxHerald.checked,
             baron: this.checkboxBaron.checked,
         };
-    }
-
-    private showModal(content: ContentDescriptor) {
-        this.vjs.dom.insertContent(this.modalContent, content);
-        this.modal.style.display = 'block';
-    }
-
-    private hideModalUnbound() {
-        this.modal.style.display = 'none';
     }
 
 }

@@ -39,7 +39,7 @@ use windows::{
 
 use crate::{helpers::set_recording_tray_item, state::Settings};
 
-mod data;
+pub mod data;
 
 const WINDOW_TITLE: &str = "League of Legends (TM) Client";
 const WINDOW_CLASS: &str = "RiotWindowClass";
@@ -350,35 +350,34 @@ async fn collect_ingame_data(
     while let Some(event) =
         tokio::select! { event = ingame_events.next() => event, _ = cancel_subtoken.cancelled() => None }
     {
-        let time = recording_start.elapsed().as_secs_f64();
+        use data::EventName;
+
+        let time = recording_start.elapsed().as_secs_f32();
         log::info!("[{}]: {:?}", time, event);
 
         let event_name = match event {
-            GameEvent::BaronKill(_) => Some("Baron"),
+            GameEvent::BaronKill(_) => Some(EventName::Baron),
             GameEvent::ChampionKill(e) => {
                 let summoner_name = &game_data.game_info.summoner_name;
                 match e {
                     ChampionKill {
                         killer_name: Killer::Summoner(ref killer_name),
                         ..
-                    } if killer_name == summoner_name => Some("Kill"),
-                    ChampionKill { ref victim_name, .. } if victim_name == summoner_name => Some("Death"),
-                    ChampionKill { assisters, .. } if assisters.contains(summoner_name) => Some("Assist"),
+                    } if killer_name == summoner_name => Some(EventName::Kill),
+                    ChampionKill { ref victim_name, .. } if victim_name == summoner_name => Some(EventName::Death),
+                    ChampionKill { assisters, .. } if assisters.contains(summoner_name) => Some(EventName::Assist),
                     _ => None,
                 }
             }
-            GameEvent::DragonKill(e) => {
-                let dragon = match e.dragon_type {
-                    DragonType::Infernal => "Infernal-Dragon",
-                    DragonType::Ocean => "Ocean-Dragon",
-                    DragonType::Mountain => "Mountain-Dragon",
-                    DragonType::Cloud => "Cloud-Dragon",
-                    DragonType::Hextech => "Hextech-Dragon",
-                    DragonType::Chemtech => "Chemtech-Dragon",
-                    DragonType::Elder => "Elder-Dragon",
-                };
-                Some(dragon)
-            }
+            GameEvent::DragonKill(e) => Some(match e.dragon_type {
+                DragonType::Infernal => EventName::InfernalDragon,
+                DragonType::Ocean => EventName::OceanDragon,
+                DragonType::Mountain => EventName::MountainDragon,
+                DragonType::Cloud => EventName::CloudDragon,
+                DragonType::Hextech => EventName::HextechDragon,
+                DragonType::Chemtech => EventName::ChemtechDragon,
+                DragonType::Elder => EventName::ElderDragon,
+            }),
             GameEvent::GameEnd(e) => {
                 game_data.win = match e.result {
                     GameResult::Win => Some(true),
@@ -386,10 +385,10 @@ async fn collect_ingame_data(
                 };
                 None
             }
-            GameEvent::HordeKill(_) => Some("Voidgrub"),
-            GameEvent::HeraldKill(_) => Some("Herald"),
-            GameEvent::InhibKilled(_) => Some("Inhibitor"),
-            GameEvent::TurretKilled(_) => Some("Turret"),
+            GameEvent::HordeKill(_) => Some(EventName::Voidgrub),
+            GameEvent::HeraldKill(_) => Some(EventName::Herald),
+            GameEvent::InhibKilled(_) => Some(EventName::Inhibitor),
+            GameEvent::TurretKilled(_) => Some(EventName::Turret),
             _ => None,
         };
 

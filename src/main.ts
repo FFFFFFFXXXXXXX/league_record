@@ -1,20 +1,24 @@
 import 'video.js/dist/video-js.min.css';
-
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
-import '@fffffffxxxxxxx/videojs-markers';
-import type { MarkerOptions, MarkersPlugin, Settings } from '@fffffffxxxxxxx/videojs-markers';
+import { MarkersPlugin, type Settings, type MarkerOptions } from '@fffffffxxxxxxx/videojs-markers';
 
-import UI from './ui.js';
-import tauri from './tauri.js';
-import { sleep } from './util.js';
+import { WindowManager } from '@tauri-apps/api/window';
+import { listen } from '@tauri-apps/api/event';
+import * as tauri from './bindings';
+
+import UI from './ui';
+import { sleep } from './util';
 
 // sets the time a marker jumps to before the actual event happens
 // jumps to (eventTime - EVENT_DELAY) when a marker is clicked
 const EVENT_DELAY = 3;
 
-const ui = new UI(videojs, tauri.newWindowManager());
-let currentEvents = new Array<any>();
+// this windows name is 'main', the name can be changed and is set when opening the window on the rust side
+const windowManager = new WindowManager('main');
+const ui = new UI(videojs, windowManager);
+
+let currentEvents = new Array<tauri.GameEvent>();
 
 // create video player
 const player = videojs('video_player', {
@@ -52,9 +56,6 @@ async function main() {
         ui.setActiveVideoId(null);
 
         // make sure the bigplaybutton and controlbar are hidden when resetting the video src
-        // // @ts-ignore
-        // player.bigPlayButton.hide();
-
         ui.showBigPlayButton(false);
         player.controls(false);
     });
@@ -71,9 +72,6 @@ async function main() {
         setMetadata(videoId);
 
         // re-show the bigplaybutton and controlbar when a new video src is set
-        // // @ts-ignore
-        // player.bigPlayButton.show();
-
         ui.showBigPlayButton(true);
         player.controls(true);
     });
@@ -89,23 +87,27 @@ async function main() {
     // handle keybord shortcuts
     addEventListener('keydown', handleKeyboardEvents);
 
-    // listen for new recordings
-    tauri.eventListener<void>('reload_recordings', updateSidebar);
-    tauri.eventListener<void>('new_recording_metadata', () => {
+    const unlistenReloadRecordings = listen<void>('reload_recordings', updateSidebar);
+    const unlistenNewRecordingMetadata = listen<void>('new_recording_metadata', () => {
         const activeVideoId = ui.getActiveVideoId();
         if (activeVideoId) setMetadata(activeVideoId);
     });
 
+    await new WindowManager('main').onCloseRequested(async _e => {
+        (await unlistenReloadRecordings)();
+        (await unlistenNewRecordingMetadata)();
+    });
+
     // load data
-    ui.setCheckboxes(await tauri.getMarkerSettings());
+    ui.setCheckboxes(await tauri.getMarkerFlags());
     const videoIds = await updateSidebar();
     const firstVideo = videoIds[0];
     if (firstVideo) {
         setVideo(firstVideo);
-        player.one('canplay', tauri.showWindow);
+        player.one('canplay', tauri.showAppWindow);
     } else {
         player.reset();
-        player.ready(tauri.showWindow);
+        player.ready(tauri.showAppWindow);
     }
 }
 
@@ -114,7 +116,7 @@ async function main() {
 async function updateSidebar() {
     const activeVideoId = ui.getActiveVideoId();
 
-    const [videoIds, recordingsSize] = await Promise.all([tauri.getRecordingsNames(), tauri.getRecordingsSize()])
+    const [videoIds, recordingsSize] = await Promise.all([tauri.getRecordingsList(), tauri.getRecordingsSize()])
     ui.updateSideBar(recordingsSize, videoIds, setVideo, showRenameModal, showDeleteModal);
 
     if (!ui.setActiveVideoId(activeVideoId)) {
@@ -128,18 +130,19 @@ async function setVideo(videoId: string) {
         return;
     }
 
-    player.src({ type: 'video/mp4', src: await tauri.getVideoPath(videoId) });
+    const port = await tauri.getAssetPort();
+    player.src({ type: 'video/mp4', src: `http://127.0.0.1:${port}/${videoId}` });
 }
 
 async function setMetadata(videoId: string) {
-    const md = await tauri.getMetadata(videoId);
-    if (md) {
-        ui.setVideoDescriptionStats(md);
+    const data = await tauri.getMetadata(videoId);
+    if (data) {
+        ui.setVideoDescriptionStats(data);
     } else {
         ui.setVideoDescription('', 'No Data');
     }
 
-    currentEvents = md?.events ?? [];
+    currentEvents = data?.events ?? [];
     changeMarkers();
 }
 
@@ -164,13 +167,13 @@ function changeMarkers() {
             case 'Inhibitor':
                 visible = checkbox.inhibitor;
                 break;
-            case 'Infernal-Dragon':
-            case 'Ocean-Dragon':
-            case 'Mountain-Dragon':
-            case 'Cloud-Dragon':
-            case 'Hextech-Dragon':
-            case 'Chemtech-Dragon':
-            case 'Elder-Dragon':
+            case 'InfernalDragon':
+            case 'OceanDragon':
+            case 'MountainDragon':
+            case 'CloudDragon':
+            case 'HextechDragon':
+            case 'ChemtechDragon':
+            case 'ElderDragon':
                 visible = checkbox.dragon;
                 break;
             case 'Voidgrub':
@@ -194,12 +197,22 @@ function changeMarkers() {
     }
     player.markers().removeAll();
     player.markers().add(arr);
+    tauri.setMarkerFlags({
+        kill: checkbox.kill,
+        death: checkbox.death,
+        assist: checkbox.assist,
+        turret: checkbox.turret,
+        inhibitor: checkbox.inhibitor,
+        dragon: checkbox.dragon,
+        herald: checkbox.herald,
+        baron: checkbox.baron
+    });
 }
 
 // --- MODAL ---
 
 async function showRenameModal(videoId: string) {
-    ui.showRenameModal(videoId, await tauri.getRecordingsNames(), renameVideo);
+    ui.showRenameModal(videoId, await tauri.getRecordingsList(), renameVideo);
 }
 
 async function renameVideo(videoId: string, newVideoName: string) {
@@ -235,46 +248,58 @@ async function deleteVideo(videoId: string) {
 // --- KEYBOARD SHORTCUTS ---
 
 function handleKeyboardEvents(event: KeyboardEvent) {
-    // if (ui.getActiveVideoId() === null || ui.modal.style.display === 'block') return;
-    if (ui.getActiveVideoId() === null) return;
+    if (ui.modalIsOpen()) {
+        switch (event.key) {
+            case 'Escape':
+                ui.hideModal();
+                break;
+            default:
+                // return early to not call preventDefault()
+                return;
+        }
+        event.preventDefault();
+    } else {
+        if (ui.getActiveVideoId() === null) return;
 
-    switch (event.key) {
-        case ' ':
-            player.paused() ? player.play() : player.pause();
-            break;
-        case 'ArrowRight':
-            event.shiftKey ? player.markers().next() : player.currentTime(player.currentTime()! + 5);
-            break;
-        case 'ArrowLeft':
-            event.shiftKey ? player.markers().prev() : player.currentTime(player.currentTime()! - 5);
-            break;
-        case 'ArrowUp':
-            player.volume(player.volume()! + 0.1)
-            break;
-        case 'ArrowDown':
-            player.volume(player.volume()! - 0.1)
-            break;
-        case 'f':
-        case 'F':
-            // this only makes the videojs player fill the whole window
-            // the listener for the 'fullscreenchange' event handles keeping the tauri window fullscreen status in sync
-            player.isFullscreen() ? player.exitFullscreen() : player.requestFullscreen();
-            break;
-        case 'm':
-        case 'M':
-            player.muted(!player.muted());
-            break;
-        case '<':
-            if (player.playbackRate()! > 0.25)
-                player.playbackRate(player.playbackRate()! - 0.25);
-            break;
-        case '>':
-            if (player.playbackRate()! < 3)
-                player.playbackRate(player.playbackRate()! + 0.25);
-            break;
-        default:
-            // return early to not call preventDefault()
-            return;
+        switch (event.key) {
+            case ' ':
+            case 'Enter':
+                player.paused() ? player.play() : player.pause();
+                break;
+            case 'ArrowRight':
+                event.shiftKey ? player.markers().next() : player.currentTime(player.currentTime()! + 5);
+                break;
+            case 'ArrowLeft':
+                event.shiftKey ? player.markers().prev() : player.currentTime(player.currentTime()! - 5);
+                break;
+            case 'ArrowUp':
+                player.volume(player.volume()! + 0.1)
+                break;
+            case 'ArrowDown':
+                player.volume(player.volume()! - 0.1)
+                break;
+            case 'f':
+            case 'F':
+                // this only makes the videojs player fill the whole window
+                // the listener for the 'fullscreenchange' event handles keeping the tauri window fullscreen status in sync
+                player.isFullscreen() ? player.exitFullscreen() : player.requestFullscreen();
+                break;
+            case 'm':
+            case 'M':
+                player.muted(!player.muted());
+                break;
+            case '<':
+                if (player.playbackRate()! > 0.25)
+                    player.playbackRate(player.playbackRate()! - 0.25);
+                break;
+            case '>':
+                if (player.playbackRate()! < 3)
+                    player.playbackRate(player.playbackRate()! + 0.25);
+                break;
+            default:
+                // return early to not call preventDefault()
+                return;
+        }
+        event.preventDefault();
     }
-    event.preventDefault();
 }

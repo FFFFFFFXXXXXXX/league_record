@@ -52,7 +52,7 @@ impl SettingsFile {
     }
 }
 
-#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq, specta::Type)]
 pub struct MarkerFlags {
     kill: bool,
     death: bool,

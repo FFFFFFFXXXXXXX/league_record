@@ -19,7 +19,7 @@ fn main() {
     // Only check if this is the only instance of LeagueRecord if the check succeeds (= true|false).
     // It is better to accidentally open two instances instead of none because something went wrong
     //
-    // Keep SingleInstance around until the end of main()
+    // Don't drop single_instance around until the end of main()
     let single_instance = single_instance::SingleInstance::new("LEAGUE_RECORD_APPLICATION");
     if let Ok(single_instance) = single_instance.as_ref() {
         if !single_instance.is_single() {
@@ -42,8 +42,8 @@ fn main() {
         .manage(FileWatcher::default())
         .invoke_handler(tauri::generate_handler![
             show_app_window,
-            get_current_marker_flags,
-            set_current_marker_flags,
+            get_marker_flags,
+            set_marker_flags,
             get_asset_port,
             get_recordings_size,
             get_recordings_list,
@@ -59,4 +59,24 @@ fn main() {
         .expect("error while running tauri application");
 
     app.run(run_handler);
+}
+
+#[test]
+fn export_bindings() {
+    tauri_specta::ts::export(
+        specta::collect_types![
+            show_app_window,
+            get_marker_flags,
+            set_marker_flags,
+            get_asset_port,
+            get_recordings_size,
+            get_recordings_list,
+            open_recordings_folder,
+            delete_video,
+            rename_video,
+            get_metadata
+        ],
+        "../src/bindings.ts",
+    )
+    .unwrap();
 }
