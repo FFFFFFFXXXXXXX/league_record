@@ -11,7 +11,7 @@ build = "build.rs"
 
 [dependencies]
 # dependencies for main app and UI
-tauri = { version = "1.5.2", features = [ "window-close", "shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
+tauri = { version = "1.5.2", features = [ "shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
 tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 log = "0.4.20"

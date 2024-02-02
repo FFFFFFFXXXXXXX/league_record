@@ -47,7 +47,7 @@ pub struct GameEvent {
     pub time: f32,
 }
 
-#[derive(Debug, specta::Type)]
+#[derive(Debug, Serialize, specta::Type)]
 pub enum EventName {
     Kill,
     Death,
@@ -66,33 +66,8 @@ pub enum EventName {
     ElderDragon,
 }
 
-// custom (de-)serializers because #[serde(rename("..."))] is not yet supported by specta
+// custom deserializer because #[serde(rename("..."))] is not yet supported by specta
 // https://github.com/oscartbeaumont/specta/issues/190
-impl Serialize for EventName {
-    fn serialize<S>(&self, ser: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match *self {
-            EventName::Kill => ser.serialize_unit_variant("EventName", 0, ""),
-            EventName::Death => ser.serialize_unit_variant("EventName", 1, "Death"),
-            EventName::Assist => ser.serialize_unit_variant("EventName", 2, "Assist"),
-            EventName::Voidgrub => ser.serialize_unit_variant("EventName", 3, "Voidgrub"),
-            EventName::Herald => ser.serialize_unit_variant("EventName", 4, "Herald"),
-            EventName::Baron => ser.serialize_unit_variant("EventName", 5, "Baron"),
-            EventName::Inhibitor => ser.serialize_unit_variant("EventName", 6, "Inhibitor"),
-            EventName::Turret => ser.serialize_unit_variant("EventName", 7, "Turret"),
-            EventName::InfernalDragon => ser.serialize_unit_variant("EventName", 8, "Infernal-Dragon"),
-            EventName::OceanDragon => ser.serialize_unit_variant("EventName", 9, "Ocean-Dragon"),
-            EventName::MountainDragon => ser.serialize_unit_variant("EventName", 10, "Mountain-Dragon"),
-            EventName::CloudDragon => ser.serialize_unit_variant("EventName", 11, "Cloud-Dragon"),
-            EventName::HextechDragon => ser.serialize_unit_variant("EventName", 12, "Hextech-Dragon"),
-            EventName::ChemtechDragon => ser.serialize_unit_variant("EventName", 13, "Chemtech-Dragon"),
-            EventName::ElderDragon => ser.serialize_unit_variant("EventName", 14, "Elder-Dragon"),
-        }
-    }
-}
-
 impl<'de> Deserialize<'de> for EventName {
     fn deserialize<D>(des: D) -> Result<Self, D::Error>
     where
@@ -119,13 +94,13 @@ impl<'de> Deserialize<'de> for EventName {
                     "Baron" => Ok(EventName::Baron),
                     "Inhibitor" => Ok(EventName::Inhibitor),
                     "Turret" => Ok(EventName::Turret),
-                    "Infernal-Dragon" => Ok(EventName::InfernalDragon),
-                    "Ocean-Dragon" => Ok(EventName::OceanDragon),
-                    "Mountain-Dragon" => Ok(EventName::MountainDragon),
-                    "Cloud-Dragon" => Ok(EventName::CloudDragon),
-                    "Hextech-Dragon" => Ok(EventName::HextechDragon),
-                    "Chemtech-Dragon" => Ok(EventName::ChemtechDragon),
-                    "Elder-Dragon" => Ok(EventName::ElderDragon),
+                    "Infernal-Dragon" | "InfernalDragon" => Ok(EventName::InfernalDragon),
+                    "Ocean-Dragon" | "OceanDragon" => Ok(EventName::OceanDragon),
+                    "Mountain-Dragon" | "MountainDragon" => Ok(EventName::MountainDragon),
+                    "Cloud-Dragon" | "CloudDragon" => Ok(EventName::CloudDragon),
+                    "Hextech-Dragon" | "HextechDragon" => Ok(EventName::HextechDragon),
+                    "Chemtech-Dragon" | "ChemtechDragon" => Ok(EventName::ChemtechDragon),
+                    "Elder-Dragon" | "ElderDragon" => Ok(EventName::ElderDragon),
                     _ => Err(E::unknown_variant(
                         v,
                         &[
@@ -138,12 +113,19 @@ impl<'de> Deserialize<'de> for EventName {
                             "Herald",
                             "Baron",
                             "Infernal-Dragon",
+                            "InfernalDragon",
                             "Ocean-Dragon",
+                            "OceanDragon",
                             "Mountain-Dragon",
+                            "MountainDragon",
                             "Cloud-Dragon",
+                            "CloudDragon",
                             "Hextech-Dragon",
+                            "HextechDragon",
                             "Chemtech-Dragon",
+                            "ChemtechDragon",
                             "Elder-Dragon",
+                            "ElderDragon",
                         ],
                     )),
                 }

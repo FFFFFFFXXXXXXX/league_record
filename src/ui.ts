@@ -157,16 +157,42 @@ export default class UI {
                 'autocomplete': 'off'
             }
         ) as HTMLInputElement;
+
+        // set validity checker initial value and add 'input' event listener
+        const validityChecker = (_e: Event) => {
+            if (videoIds.includes(input.value + '.mp4')) {
+                input.setCustomValidity('there is already a file with this name');
+                saveButton.setAttribute('disabled', 'true');
+            } else {
+                input.setCustomValidity('');
+                saveButton.removeAttribute('disabled');
+            }
+
+            input.reportValidity();
+        };
+        input.addEventListener('input', validityChecker)
+        input.setCustomValidity('there is already a file with this name');
+        input.reportValidity();
+
+        const renameHandler = (e: KeyboardEvent | MouseEvent) => {
+            // if the event is a KeyboardEvent also check if the key pressed was 'enter'
+            const keyboardEvent = 'key' in e;
+            if (input.checkValidity() && (!keyboardEvent || e.key === 'Enter')) {
+                e.preventDefault();
+                this.boundHideModal();
+                rename(videoId, input.value);
+
+                // clean up eventlisteners for this renameHandler and the validityChecker
+                input.removeEventListener('keydown', renameHandler);
+                input.removeEventListener('input', validityChecker);
+            }
+        };
+        input.addEventListener('keydown', renameHandler)
+
         const saveButton = this.vjs.dom.createEl(
             'button',
             {
-                'onclick': (e: MouseEvent) => {
-                    if (input.validity.valid) {
-                        e.preventDefault();
-                        this.boundHideModal();
-                        rename(videoId, input.value);
-                    }
-                }
+                'onclick': renameHandler
             },
             { 'class': 'btn', 'disabled': true },
             'Save'
@@ -183,18 +209,6 @@ export default class UI {
             this.vjs.dom.createEl('p', {}, {}, input),
             this.vjs.dom.createEl('p', {}, {}, [saveButton, cancelButton])
         ]);
-
-        input.addEventListener('input', _ => {
-            if (videoIds.includes(input.value + '.mp4')) {
-                input.setCustomValidity('there is already a file with this name');
-                saveButton.setAttribute('disabled', 'true');
-            } else {
-                input.setCustomValidity('');
-                saveButton.removeAttribute('disabled');
-            }
-
-            input.reportValidity();
-        })
 
         input.setSelectionRange(input.value.length, input.value.length);
         input.focus();
