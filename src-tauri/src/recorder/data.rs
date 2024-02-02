@@ -66,8 +66,9 @@ pub enum EventName {
     ElderDragon,
 }
 
-// custom deserializer because #[serde(rename("..."))] is not yet supported by specta
+// custom (de-)serializers because #[serde(rename|alias("..."))] are not yet supported by specta
 // https://github.com/oscartbeaumont/specta/issues/190
+// and we need to be able to deserialize old {videoName}.json files
 impl<'de> Deserialize<'de> for EventName {
     fn deserialize<D>(des: D) -> Result<Self, D::Error>
     where

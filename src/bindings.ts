@@ -50,9 +50,9 @@ export function getMetadata(videoId: string) {
     return invoke()<GameData | null>("get_metadata", { videoId })
 }
 
-export type EventName = "Kill" | "Death" | "Assist" | "Voidgrub" | "Herald" | "Baron" | "Inhibitor" | "Turret" | "InfernalDragon" | "OceanDragon" | "MountainDragon" | "CloudDragon" | "HextechDragon" | "ChemtechDragon" | "ElderDragon"
 export type GameData = { win: boolean | null; gameInfo: GameInfo; stats: Stats; events: GameEvent[] }
 export type GameEvent = { name: EventName; time: number }
 export type GameInfo = { gameMode: string; summonerName: string; championName: string }
 export type MarkerFlags = { kill: boolean; death: boolean; assist: boolean; turret: boolean; inhibitor: boolean; dragon: boolean; herald: boolean; baron: boolean }
 export type Stats = { kills: number; deaths: number; assists: number; minionsKilled?: number; neutralMinionsKilled?: number; wardScore?: number }
+export type EventName = "Kill" | "Death" | "Assist" | "Voidgrub" | "Herald" | "Baron" | "Inhibitor" | "Turret" | "InfernalDragon" | "OceanDragon" | "MountainDragon" | "CloudDragon" | "HextechDragon" | "ChemtechDragon" | "ElderDragon"
