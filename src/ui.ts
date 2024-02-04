@@ -86,29 +86,29 @@ export default class UI {
             const renameBtn = this.vjs.dom.createEl(
                 'span',
                 {
-                    'onclick': (e: MouseEvent) => {
+                    onclick: (e: MouseEvent) => {
                         e.stopPropagation();
                         onRename(videoId);
                     }
                 },
-                { 'class': 'rename' },
+                { class: 'rename' },
                 '✎'
             );
             const deleteBtn = this.vjs.dom.createEl(
                 'span',
                 {
-                    'onclick': (e: MouseEvent) => {
+                    onclick: (e: MouseEvent) => {
                         e.stopPropagation();
                         onDelete(videoId);
                     }
                 },
-                { 'class': 'delete' },
+                { class: 'delete' },
                 '×'
             );
             return this.vjs.dom.createEl(
                 'li',
-                { 'onclick': () => onVideo(videoId) },
-                { 'id': videoId },
+                { onclick: () => onVideo(videoId) },
+                { id: videoId },
                 [videoName, renameBtn, deleteBtn]
             );
         });
@@ -134,7 +134,7 @@ export default class UI {
     public async showErrorModal(text: string) {
         this.showModal([
             this.vjs.dom.createEl('p', {}, {}, text),
-            this.vjs.dom.createEl('p', {}, {}, this.vjs.dom.createEl('button', { 'onclick': this.boundHideModal }, { 'class': 'btn' }, 'Close')),
+            this.vjs.dom.createEl('p', {}, {}, this.vjs.dom.createEl('button', { onclick: this.boundHideModal }, { class: 'btn' }, 'Close')),
         ]);
     }
 
@@ -149,12 +149,12 @@ export default class UI {
             'input',
             {},
             {
-                'type': 'text',
-                'id': 'new-name',
-                'value': videoName,
-                'placeholder': 'new name',
-                'spellcheck': 'false',
-                'autocomplete': 'off'
+                type: 'text',
+                id: 'new-name',
+                value: videoName,
+                placeholder: 'new name',
+                spellcheck: 'false',
+                autocomplete: 'off'
             }
         ) as HTMLInputElement;
 
@@ -192,15 +192,15 @@ export default class UI {
         const saveButton = this.vjs.dom.createEl(
             'button',
             {
-                'onclick': renameHandler
+                onclick: renameHandler
             },
-            { 'class': 'btn', 'disabled': true },
+            { class: 'btn', disabled: true },
             'Save'
         ) as HTMLButtonElement;
         const cancelButton = this.vjs.dom.createEl(
             'button',
-            { 'onclick': this.boundHideModal },
-            { 'class': 'btn' },
+            { onclick: this.boundHideModal },
+            { class: 'btn' },
             'Cancel'
         ) as HTMLButtonElement;
 
@@ -220,12 +220,12 @@ export default class UI {
         const prompt = this.vjs.dom.createEl('p', {}, {}, ['Delete recording: ', this.vjs.dom.createEl('u', {}, {}, videoName), '?']);
         const buttons = this.vjs.dom.createEl('p', {}, {}, [
             this.vjs.dom.createEl('button', {
-                'onclick': (_: MouseEvent) => {
+                onclick: (_: MouseEvent) => {
                     this.boundHideModal();
                     deleteVideo(videoId);
                 }
-            }, { 'class': 'btn' }, 'Delete'),
-            this.vjs.dom.createEl('button', { 'onclick': this.boundHideModal }, { 'class': 'btn' }, 'Cancel'),
+            }, { class: 'btn' }, 'Delete'),
+            this.vjs.dom.createEl('button', { onclick: this.boundHideModal }, { class: 'btn' }, 'Cancel'),
         ]);
 
         this.showModal([prompt, buttons]);
@@ -262,7 +262,7 @@ export default class UI {
         const summoner = this.vjs.dom.createEl(
             'span',
             {},
-            { 'class': 'summoner-name' },
+            { class: 'summoner-name' },
             data['gameInfo']['summonerName']
         );
         const score1 = `${data['gameInfo']['championName']} - ${stats['kills']}/${stats['deaths']}/${stats['assists']}`;
@@ -271,8 +271,8 @@ export default class UI {
         const gameMode = `Game Mode: ${data['gameInfo']['gameMode']}`;
         const result = data['win'] !== null && (
             data['win'] ?
-                this.vjs.dom.createEl('span', {}, { 'class': 'win' }, 'Victory')
-                : this.vjs.dom.createEl('span', {}, { 'class': 'loss' }, 'Defeat')
+                this.vjs.dom.createEl('span', {}, { class: 'win' }, 'Victory')
+                : this.vjs.dom.createEl('span', {}, { class: 'loss' }, 'Defeat')
         );
 
         this.setVideoDescription(

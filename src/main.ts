@@ -9,6 +9,8 @@ import * as tauri from './bindings';
 
 import UI from './ui';
 import { sleep } from './util';
+import { convertFileSrc } from '@tauri-apps/api/tauri';
+import { sep, join } from '@tauri-apps/api/path';
 
 // sets the time a marker jumps to before the actual event happens
 // jumps to (eventTime - EVENT_DELAY) when a marker is clicked
@@ -20,18 +22,16 @@ const ui = new UI(videojs, windowManager);
 
 let currentEvents = new Array<tauri.GameEvent>();
 
-// create video player
 const player = videojs('video_player', {
-    'aspectRatio': '16:9',
-    'playbackRates': [0.5, 1, 1.5, 2],
-    'autoplay': false,
-    'controls': true,
-    'preload': 'auto',
-    'enableSourceset': true
+    aspectRatio: '16:9',
+    playbackRates: [0.5, 1, 1.5, 2],
+    autoplay: false,
+    controls: true,
+    preload: 'auto',
+    enableSourceset: true
 }) as Player & { markers: (settings?: Settings) => MarkersPlugin };
 
 main();
-
 async function main() {
     // disable right click menu
     addEventListener('contextmenu', event => event.preventDefault());
@@ -49,7 +49,6 @@ async function main() {
     });
 
     // listen for events from player.reset() and player.src() to update the UI accordingly
-
     player.on('playerreset', () => {
         player.markers().removeAll();
         ui.setVideoDescription('', 'No recording selected!');
@@ -65,9 +64,10 @@ async function main() {
         // because player.reset() for example triggers a 'sourceset' event with { src: "" }
         if (!src) return;
 
-        // split src ('http://127.0.0.1:49152/{videoId}') at the last '/' to get the video from the src
+        // split src ('https://asset.localhost/league_recordings/{videoId}') at the last '/' to get the video from the src
         // since {videoId} has to be a valid filename and filenames can't contain '/' this works always
-        const videoId = src.substring(src.lastIndexOf('/') + 1, src.length);
+        const videoPath = decodeURIComponent(src.substring(src.lastIndexOf('/') + 1, src.length));
+        const videoId = videoPath.substring(videoPath.lastIndexOf(sep) + 1, videoPath.length);
         ui.setActiveVideoId(videoId);
         setMetadata(videoId);
 
@@ -125,8 +125,8 @@ async function setVideo(videoId: string) {
         return;
     }
 
-    const port = await tauri.getAssetPort();
-    player.src({ type: 'video/mp4', src: `http://127.0.0.1:${port}/${videoId}` });
+    const recordingsPath = await tauri.getRecordingsPath();
+    player.src({ type: 'video/mp4', src: convertFileSrc(await join(recordingsPath, videoId)) });
 }
 
 async function setMetadata(videoId: string) {
@@ -183,10 +183,10 @@ function changeMarkers() {
         }
         if (visible) {
             arr.push({
-                'time': e['time'] - EVENT_DELAY,
-                'text': e['name'],
-                'class': e['name']?.toLowerCase(),
-                'duration': 5
+                time: e['time'] - EVENT_DELAY,
+                text: e['name'],
+                class: e['name']?.toLowerCase(),
+                duration: 5
             });
         }
     }

@@ -8,7 +8,6 @@ use handlers::*;
 use state::*;
 
 mod commands;
-mod fileserver;
 mod filewatcher;
 mod handlers;
 mod helpers;
@@ -36,7 +35,6 @@ fn main() {
             None,
         ))
         .manage(WindowState::init())
-        .manage(AssetPort::init())
         .manage(SettingsFile::default())
         .manage(SettingsWrapper::default())
         .manage(FileWatcher::default())
@@ -44,7 +42,7 @@ fn main() {
             show_app_window,
             get_marker_flags,
             set_marker_flags,
-            get_asset_port,
+            get_recordings_path,
             get_recordings_size,
             get_recordings_list,
             open_recordings_folder,
@@ -68,7 +66,7 @@ fn generate_command_bindings() {
             show_app_window,
             get_marker_flags,
             set_marker_flags,
-            get_asset_port,
+            get_recordings_path,
             get_recordings_size,
             get_recordings_list,
             open_recordings_folder,

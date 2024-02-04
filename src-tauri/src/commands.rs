@@ -14,7 +14,7 @@ use std::{
 use crate::{
     helpers::{self, compare_time, get_recordings, show_window},
     recorder::data::GameData,
-    state::{AssetPort, MarkerFlags, SettingsFile, SettingsWrapper},
+    state::{MarkerFlags, SettingsFile, SettingsWrapper},
 };
 use tauri::{api::shell, AppHandle, Manager, State};
 
@@ -45,8 +45,8 @@ pub fn set_marker_flags(
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn get_asset_port(port_state: State<'_, AssetPort>) -> u16 {
-    port_state.get()
+pub fn get_recordings_path(settings: State<'_, SettingsWrapper>) -> PathBuf {
+    settings.get_recordings_path()
 }
 
 #[cfg_attr(test, specta::specta)]

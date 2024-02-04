@@ -4,7 +4,6 @@ use std::{
     sync::{Mutex, RwLock},
 };
 
-use port_check::free_local_port_in_range;
 use serde::{
     de::{MapAccess, Visitor},
     Deserialize, Serialize,
@@ -24,18 +23,6 @@ impl WindowState {
             size: Mutex::from((1200.0, 650.0)),
             position: Mutex::from((-1.0, -1.0)),
         }
-    }
-}
-
-pub struct AssetPort(u16);
-impl AssetPort {
-    pub fn init() -> Self {
-        // dont accidentally block port 2999 which the LoL ingame API uses
-        // use a "ephemeral"/"dynamic" port for temporary applications
-        Self(free_local_port_in_range(49152, 65535).expect("no free port available"))
-    }
-    pub fn get(&self) -> u16 {
-        self.0
     }
 }
 

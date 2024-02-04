@@ -239,7 +239,7 @@ pub fn start(app_handle: &AppHandle) {
             }
         }
 
-        app_handle.trigger_global("recorder_shutdown", None);
+        // app_handle.trigger_global("recorder_shutdown", None);
         log::info!("recorder shutdown");
     });
 }
