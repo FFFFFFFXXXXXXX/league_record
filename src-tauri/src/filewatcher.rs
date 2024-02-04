@@ -41,7 +41,7 @@ pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
                     _ = app_handle.emit_all("recordings_changed", ());
                 }
 
-                if json_paths.len() > 0 {
+                if !json_paths.is_empty() {
                     _ = app_handle.emit_all("metadata_changed", json_paths);
                 }
             }
