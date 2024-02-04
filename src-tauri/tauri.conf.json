@@ -24,8 +24,8 @@
         "icons/icon.ico"
       ],
       "resources": [
-        "./libobs/",
-        "./licenses/*"
+        "./licenses/",
+        "./libobs/"
       ],
       "copyright": "gpl-2.0",
       "category": "Utility",

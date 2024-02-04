@@ -14,44 +14,44 @@ use std::{
 use crate::{
     helpers::{self, compare_time, get_recordings, show_window},
     recorder::data::GameData,
-    state::{AssetPort, MarkerFlags, Settings, SettingsFile},
+    state::{AssetPort, MarkerFlags, SettingsFile, SettingsWrapper},
 };
 use tauri::{api::shell, AppHandle, Manager, State};
 
+#[cfg_attr(test, specta::specta)]
 #[tauri::command]
-#[specta::specta]
 pub async fn show_app_window(app_handle: AppHandle) {
     if let Some(main) = app_handle.windows().get("main") {
         show_window(main);
     }
 }
 
+#[cfg_attr(test, specta::specta)]
 #[tauri::command]
-#[specta::specta]
-pub fn get_marker_flags(settings: State<'_, Settings>) -> MarkerFlags {
+pub fn get_marker_flags(settings: State<'_, SettingsWrapper>) -> MarkerFlags {
     settings.get_marker_flags()
 }
 
+#[cfg_attr(test, specta::specta)]
 #[tauri::command]
-#[specta::specta]
 pub fn set_marker_flags(
     marker_flags: MarkerFlags,
-    settings: State<'_, Settings>,
+    settings: State<'_, SettingsWrapper>,
     settings_file: State<'_, SettingsFile>,
 ) {
     settings.set_marker_flags(marker_flags);
     settings.write_to_file(&settings_file.get());
 }
 
+#[cfg_attr(test, specta::specta)]
 #[tauri::command]
-#[specta::specta]
 pub fn get_asset_port(port_state: State<'_, AssetPort>) -> u16 {
     port_state.get()
 }
 
+#[cfg_attr(test, specta::specta)]
 #[tauri::command]
-#[specta::specta]
-pub fn get_recordings_size(settings_state: State<'_, Settings>) -> f32 {
+pub fn get_recordings_size(settings_state: State<'_, SettingsWrapper>) -> f32 {
     let mut size = 0;
     for file in get_recordings(&settings_state.get_recordings_path()) {
         if let Ok(metadata) = metadata(file) {
@@ -61,9 +61,9 @@ pub fn get_recordings_size(settings_state: State<'_, Settings>) -> f32 {
     size as f32 / 1_000_000_000.0 // in Gigabyte
 }
 
+#[cfg_attr(test, specta::specta)]
 #[tauri::command]
-#[specta::specta]
-pub fn get_recordings_list(settings_state: State<'_, Settings>) -> Vec<String> {
+pub fn get_recordings_list(settings_state: State<'_, SettingsWrapper>) -> Vec<String> {
     let mut recordings = get_recordings(&settings_state.get_recordings_path());
     // sort by time created (index 0 is newest)
     recordings.sort_by(|a, b| compare_time(a, b).unwrap_or(Ordering::Equal));
@@ -78,9 +78,9 @@ pub fn get_recordings_list(settings_state: State<'_, Settings>) -> Vec<String> {
     ret
 }
 
+#[cfg_attr(test, specta::specta)]
 #[tauri::command]
-#[specta::specta]
-pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, Settings>) {
+pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, SettingsWrapper>) {
     _ = shell::open(
         &app_handle.shell_scope(),
         helpers::path_to_string(&state.get_recordings_path()),
@@ -88,9 +88,9 @@ pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, Settings>)
     );
 }
 
+#[cfg_attr(test, specta::specta)]
 #[tauri::command]
-#[specta::specta]
-pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, Settings>) -> bool {
+pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, SettingsWrapper>) -> bool {
     let new = PathBuf::from(&new_video_id);
     let Some(new_filename) = new.file_name() else { return false };
 
@@ -112,9 +112,9 @@ pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, Set
     true
 }
 
+#[cfg_attr(test, specta::specta)]
 #[tauri::command]
-#[specta::specta]
-pub fn delete_video(video_id: String, state: State<'_, Settings>) -> bool {
+pub fn delete_video(video_id: String, state: State<'_, SettingsWrapper>) -> bool {
     // remove video
     let mut path = state.get_recordings_path();
     path.push(PathBuf::from(&video_id));
@@ -129,9 +129,9 @@ pub fn delete_video(video_id: String, state: State<'_, Settings>) -> bool {
     true
 }
 
+#[cfg_attr(test, specta::specta)]
 #[tauri::command]
-#[specta::specta]
-pub fn get_metadata(video_id: String, state: State<'_, Settings>) -> Option<GameData> {
+pub fn get_metadata(video_id: String, state: State<'_, SettingsWrapper>) -> Option<GameData> {
     let mut path = state.get_recordings_path().join(video_id);
     path.set_extension("json");
 

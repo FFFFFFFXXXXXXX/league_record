@@ -105,46 +105,22 @@ This is just a rough estimate with the default settings so you can get a sense f
 ## Release / Build
 
 There is a release for Windows-x64, but you can build the project on your own.
-This project relies on libobs-recorder (and indirectly libobs) to record the game.
-For build prerequisites look at [libobs-recorder](https://github.com/FFFFFFFXXXXXXX/libobs-recorder)
 
-> Because the libobs-recorder dependency requires the `bindeps` nightly feature and `Tauri` does currently not support using 
-> nightly features the build process is a little weird.
->
-> The easy way is to not create an installer via `cargo tauri build` but to manually compile and copy the files to an
-> output directory.
->
-> The third line in build.rs (`tauri_build::build();`) causes the build errors. 
-> So comment out the third line in `build.rs` and compile the project with `cargo +nightly build -Z bindeps --release`.
->
-> Now copy `./libobs/` and `./target/release/app.exe` into a seperate folder. If you want, rename `app.exe` to `LeagueRecord.exe` and you're done!
->
-> Alternatively you could also run
->
-> ```bash
-> 7z a -tzip LeagueRecord.zip ./licenses/ ./libobs/ ./target/release/LeagueRecord.exe; # create archive
-> 7z rn ./LeagueRecord.zip target/release/LeagueRecord.exe LeagueRecord.exe; # move .exe to correct position
-> ```
->
-> to create a .zip file with all the required files.
+You need the cargo tauri CLI: `cargo install tauri`, [NPM](https://nodejs.org/en) and the nightly Rust toolchain `rustup toolchain install nightly`.
 
-### Build process when cargo bindeps are stable
-
-Build with `cargo tauri build` to create an installer.
-In order to pack the compiles files into a standalone archive, run
+Build the project with `cargo tauri build` to create an msi installer.
+In order to pack the compiles files into a standalone archive, run the following commands after a successful `cargo tauri build`:
 
 ```bash
-tar -cvzf LeagueRecord.tar.gz -C ./src-tauri/ ./licenses/ ./libobs/ -C ./target/release/ ./LeagueRecord.exe
+tar -cvzf LeagueRecord.tar.gz -C ./target/release/ ./licenses/ ./libobs/ ./LeagueRecord.exe
 ```
 
 or
 
 ```bash
-7z a -tzip LeagueRecord.zip ./licenses/ ./libobs/ ./target/release/LeagueRecord.exe; # create archive
-7z rn ./LeagueRecord.zip target/release/LeagueRecord.exe LeagueRecord.exe; # move .exe to correct position
+cd target/release
+7z a -tzip LeagueRecord.zip ./licenses/ ./libobs/ ./LeagueRecord.exe
 ```
-
-(assuming that you have all your obs .dll's and the data/plugin folders in src-tauri/libobs/)
 
 ## License
 
@@ -154,4 +130,4 @@ The Javascript library [videojs](https://github.com/videojs/video.js) is license
 
 This project (LeagueRecord) is distributed under the GNU General Public License v3 (GPLv3).
 
-In case you have any problems, suggestions or questions feel free to open an issue. :)
+In case you have any problems, suggestions or questions feel free to open an issue or email me at fffffffxxxxxxxfffffffxxxxxxx@gmail.com.

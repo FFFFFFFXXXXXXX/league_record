@@ -52,7 +52,8 @@ impl SettingsFile {
     }
 }
 
-#[derive(Serialize, Debug, Clone, PartialEq, Eq, specta::Type)]
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct MarkerFlags {
     kill: bool,
     death: bool,
@@ -138,28 +139,15 @@ impl Default for MarkerFlags {
     }
 }
 
-// impl PartialEq for MarkerFlags {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.kill == other.kill
-//             && self.death == other.death
-//             && self.assist == other.assist
-//             && self.turret == other.turret
-//             && self.inhibitor == other.inhibitor
-//             && self.dragon == other.dragon
-//             && self.herald == other.herald
-//             && self.baron == other.baron
-//     }
-// }
-
 #[derive(Debug)]
-pub struct Settings(RwLock<SettingsInner>);
+pub struct SettingsWrapper(RwLock<Settings>);
 
-impl Settings {
+impl SettingsWrapper {
     pub fn load_from_file(&self, settings_path: &PathBuf) {
         let Ok(json) = fs::read_to_string(settings_path) else {
             return;
         };
-        let mut settings = serde_json::from_str::<SettingsInner>(json.as_str()).unwrap_or_default();
+        let mut settings = serde_json::from_str::<Settings>(json.as_str()).unwrap_or_default();
 
         // if recordings_folder is absolute the whole path gets replaced by the absolute path
         // if recordings_folder is relative the path gets appened to the system video directory
@@ -226,15 +214,16 @@ impl Settings {
     }
 }
 
-impl Default for Settings {
+impl Default for SettingsWrapper {
     fn default() -> Self {
-        Self(RwLock::from(SettingsInner::default()))
+        Self(RwLock::from(Settings::default()))
     }
 }
 
+#[cfg_attr(test, derive(specta::Type))]
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct SettingsInner {
+pub struct Settings {
     // only used in the tauri application
     marker_flags: MarkerFlags,
     check_for_updates: bool,
@@ -271,7 +260,7 @@ fn default_framerate() -> Framerate {
     Framerate::new(30, 1)
 }
 
-impl Default for SettingsInner {
+impl Default for Settings {
     fn default() -> Self {
         Self {
             check_for_updates: DEFAULT_UPDATE_CHECK,
@@ -289,24 +278,24 @@ impl Default for SettingsInner {
 }
 
 // custom deserializer that uses default values on deserialization errors instead of failing
-impl<'de> Deserialize<'de> for SettingsInner {
+impl<'de> Deserialize<'de> for Settings {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         struct SettingsVisitor;
         impl<'de> Visitor<'de> for SettingsVisitor {
-            type Value = SettingsInner;
+            type Value = Settings;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("struct SettingsInner")
             }
 
-            fn visit_map<V>(self, mut map: V) -> Result<SettingsInner, V::Error>
+            fn visit_map<V>(self, mut map: V) -> Result<Settings, V::Error>
             where
                 V: MapAccess<'de>,
             {
-                let mut settings = SettingsInner::default();
+                let mut settings = Settings::default();
 
                 while let Some(key) = map.next_key()? {
                     match key {

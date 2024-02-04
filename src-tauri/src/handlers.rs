@@ -15,12 +15,14 @@ use crate::{
         save_window_state, sync_autostart,
     },
     recorder,
-    state::{FileWatcher, Settings, SettingsFile},
+    state::{FileWatcher, SettingsFile, SettingsWrapper},
     AssetPort,
 };
 
 pub fn create_system_tray() -> SystemTray {
-    SystemTray::new().with_menu(create_tray_menu())
+    SystemTray::new()
+        .with_tooltip("LeagueRecord")
+        .with_menu(create_tray_menu())
 }
 
 pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent) {
@@ -37,7 +39,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                         let path = app_handle.state::<SettingsFile>().get();
 
                         if ensure_settings_exist(&path) {
-                            let settings = app_handle.state::<Settings>();
+                            let settings = app_handle.state::<SettingsWrapper>();
                             let old_recordings_path = settings.get_recordings_path();
                             let old_log = settings.debug_log();
 
@@ -146,7 +148,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     let config_path = app_config_dir(app_handle.config().as_ref()).expect("Error getting app directory");
 
     let settings_path = config_path.join("settings.json");
-    let settings = app_handle.state::<Settings>();
+    let settings = app_handle.state::<SettingsWrapper>();
     // create settings.json file if missing
     ensure_settings_exist(&settings_path);
     // load settings and set state

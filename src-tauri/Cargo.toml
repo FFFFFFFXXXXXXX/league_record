@@ -11,31 +11,29 @@ build = "build.rs"
 
 [dependencies]
 # dependencies for main app and UI
-tauri = { version = "1.5.2", features = [ "shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
+tauri = { version = "1.5.4", features = ["shell-open", "system-tray", "window-set-fullscreen", "window-set-title"] }
 tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 log = "0.4.20"
 single-instance = "0.3.3"
 port_check = "0.1.5"
-reqwest = { version = "0.11.10", features = ["blocking"] }
-serde = "1.0.137"
-serde_json = "1.0"
+reqwest = { version = "0.11.24", features = ["blocking"] }
+serde = "1.0.196"
+serde_json = "1.0.113"
 open = "5.0.1"
 notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
 # dependencies for the fileserver module
-hyper = { version = "0.14.20", features = ["http1", "server", "stream", "tcp"] }
-tokio = { version = "1.21.1", features = ["fs", "io-util", "rt-multi-thread", "macros"] }
-tokio-util = { version = "0.7.4", features = ["io"] }
-futures-util = "0.3.24"
-bytes = "1.2.1"
-percent-encoding = "2.3.0"
+hyper = { version = "0.14.28", features = ["http1", "server", "stream", "tcp"] }
+tokio = { version = "1.36.0", features = ["fs", "io-util", "rt-multi-thread", "macros"] }
+tokio-util = { version = "0.7.10", features = ["io"] }
+futures-util = "0.3.30"
+bytes = "1.5.0"
+percent-encoding = "2.3.1"
 # dependencies for the recorder module
-libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder" }
+libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git", features = ["specta"] }
 shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
-futures = "0.3.26"
-chrono = "0.4.19"
-specta = { version = "1.0.5", features = ["export"] }
-tauri-specta = { version = "1.0.2", features = ["typescript"] }
+futures = "0.3.30"
+chrono = "0.4.33"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.52.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }
@@ -44,10 +42,14 @@ windows = { version = "0.52.0", features = ["Win32_Foundation", "Win32_UI_Window
 [target.'cfg(target_os = "macos")'.dependencies]
 # todo
 
+[dev-dependencies]
+specta = { version = "1.0.5", features = ["export"] }
+tauri-specta = { version = "1.0.2", features = ["typescript"] }
+
 [build-dependencies]
-tauri-build = { version = "1.1.1" }
-# artifact/binary dependencies still require using 'cargo +nightly -Z bindeps {cmd}'
-# libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder", artifact = "bin:extprocess_recorder" }
+tauri-build = { version = "1.5.1" }
+libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git", artifact = "bin:extprocess_recorder" }
+build-helper = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git" }
 
 [features]
 # by default Tauri runs in production mode
@@ -57,10 +59,10 @@ default = ["custom-protocol"]
 # DO NOT remove this
 custom-protocol = ["tauri/custom-protocol"]
 
-[profile.release]
-opt-level = 3
-strip = "debuginfo"
-debug = false
-debug-assertions = false
-lto = "fat"
-panic = "abort"
+# [profile.release]
+# opt-level = 3
+# strip = "debuginfo"
+# debug = false
+# debug-assertions = false
+# lto = "fat"
+# panic = "abort"

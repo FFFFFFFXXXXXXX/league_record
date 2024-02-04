@@ -1,11 +1,6 @@
 {
     "rust-analyzer.cargoRunner": null,
-    "rust-analyzer.cargo.extraArgs": [
-        "-Z",
-        "bindeps"
-    ],
     "rust-analyzer.cargo.buildScripts.enable": false,
-    "rust-analyzer.procMacro.enable": true,
     "rust-analyzer.linkedProjects": [
         "src-tauri/Cargo.toml"
     ]

@@ -38,7 +38,7 @@ fn main() {
         .manage(WindowState::init())
         .manage(AssetPort::init())
         .manage(SettingsFile::default())
-        .manage(Settings::default())
+        .manage(SettingsWrapper::default())
         .manage(FileWatcher::default())
         .invoke_handler(tauri::generate_handler![
             show_app_window,
@@ -62,7 +62,7 @@ fn main() {
 }
 
 #[test]
-fn export_bindings() {
+fn generate_command_bindings() {
     tauri_specta::ts::export(
         specta::collect_types![
             show_app_window,
@@ -79,4 +79,9 @@ fn export_bindings() {
         "../src/bindings.ts",
     )
     .unwrap();
+}
+
+#[test]
+fn generate_type_bindings() {
+    specta::export::ts("../src/settings.ts").unwrap();
 }

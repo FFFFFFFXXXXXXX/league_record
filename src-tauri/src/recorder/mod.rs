@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::mpsc::{channel, RecvTimeoutError},
     time::{Duration, Instant},
 };
@@ -37,7 +37,7 @@ use windows::{
     },
 };
 
-use crate::{helpers::set_recording_tray_item, state::Settings};
+use crate::{helpers::set_recording_tray_item, state::SettingsWrapper};
 
 pub mod data;
 
@@ -110,7 +110,7 @@ pub fn start(app_handle: &AppHandle) {
                         break 'inner;
                     };
 
-                    let settings_state = app_handle.state::<Settings>();
+                    let settings_state = app_handle.state::<SettingsWrapper>();
 
                     // either get the explicitly set resolution or choose the default resolution for the LoL window aspect ratio
                     let output_resolution = settings_state
@@ -144,23 +144,11 @@ pub fn start(app_handle: &AppHandle) {
                         break 'inner;
                     }
 
-                    // if LeagueRecord gets launched by Windows Autostart the CWD is system32 instead of the installation folder
-                    // get directory to current executable so we can locate extprocess_recorder.exe
-                    let exe_dir = match std::env::current_exe()
-                        .ok()
-                        .and_then(|exe| exe.parent().map(|a| a.to_path_buf()))
-                    {
-                        Some(exe_dir) => {
-                            log::info!("executable directory: {:?}", exe_dir);
-                            exe_dir
-                        }
-                        None => {
-                            log::warn!("unable to get executable directory - trying relative path instead");
-                            PathBuf::from("./")
-                        }
-                    };
                     let mut recorder = match Recorder::new_with_paths(
-                        Some(exe_dir.join(Path::new("libobs/extprocess_recorder.exe")).as_path()),
+                        app_handle
+                            .path_resolver()
+                            .resolve_resource("libobs/extprocess_recorder.exe")
+                            .as_ref(),
                         None,
                         None,
                         None,

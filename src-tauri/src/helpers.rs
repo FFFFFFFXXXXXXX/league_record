@@ -10,7 +10,7 @@ use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTra
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::LogTarget;
 
-use crate::state::{Settings, WindowState};
+use crate::state::{SettingsWrapper, WindowState};
 
 const GITHUB_LATEST: &str = "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest";
 
@@ -71,7 +71,7 @@ pub fn check_updates(app_handle: &AppHandle) {
 }
 
 pub fn sync_autostart(app_handle: &AppHandle) {
-    let settings = app_handle.state::<Settings>();
+    let settings = app_handle.state::<SettingsWrapper>();
     let autostart_manager = app_handle.autolaunch();
 
     match autostart_manager.is_enabled() {
