@@ -1,0 +1,20 @@
+{
+  "name": "@fffffffxxxxxxx/league_record_types",
+  "version": "1.17.0",
+  "description": "Typescript type definitions for the LeagueRecord settings.json file as well as the video metadata .json files",
+  "main": "",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "cd ../src-tauri/; cargo test generate_type_bindings"
+  },
+  "keywords": [
+    "LeagueRecord"
+  ],
+  "author": "FX",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FFFFFFFXXXXXXX/league_record",
+    "directory": "league_record_types"
+  },
+  "license": "MIT"
+}
