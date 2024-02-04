@@ -34,8 +34,9 @@ fn main() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .manage(WindowState::init())
+        .manage(WindowState::default())
         .manage(SettingsWrapper::default())
+        .manage(CurrentlyRecording::default())
         .invoke_handler(tauri::generate_handler![
             show_app_window,
             get_marker_flags,

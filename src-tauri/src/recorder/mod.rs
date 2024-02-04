@@ -37,7 +37,7 @@ use windows::{
     },
 };
 
-use crate::{helpers::set_recording_tray_item, state::SettingsWrapper};
+use crate::{helpers::set_recording_tray_item, state::SettingsWrapper, CurrentlyRecording};
 
 pub mod data;
 
@@ -169,6 +169,11 @@ pub fn start(app_handle: &AppHandle) {
                         break 'inner;
                     }
 
+                    // make filewatcher ignore the video / metadata files while the recording is going on
+                    app_handle
+                        .state::<CurrentlyRecording>()
+                        .set(Some(filename_path.clone()));
+
                     // --- ingame data collection ---
                     let cancel_token = CancellationToken::new();
                     let handle = async_runtime::spawn({
@@ -178,7 +183,12 @@ pub fn start(app_handle: &AppHandle) {
                         filename_path.set_extension("json");
 
                         // actual task
-                        async move { collect_ingame_data(app_handle, cancel_subtoken, recorder, filename_path).await }
+                        async move {
+                            collect_ingame_data(app_handle.clone(), cancel_subtoken, recorder, filename_path).await;
+                            // recording is done - tell filewatcher not to ignore these files
+                            // do this here instead of in collect_ingame_data(...) since that function has mutliple return point
+                            app_handle.state::<CurrentlyRecording>().set(None);
+                        }
                     });
                     log::info!("ingame task spawned: {handle:?}");
 
@@ -453,7 +463,7 @@ async fn collect_ingame_data(
             let result = serde_json::to_writer(&file, &game_data);
             log::info!("metadata saved: {result:?}");
 
-            _ = app_handle.emit_all("new_recording_metadata", ());
+            _ = app_handle.emit_all("recordings_changed", ());
         }
     });
 }

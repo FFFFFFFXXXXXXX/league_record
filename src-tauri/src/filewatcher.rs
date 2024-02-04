@@ -1,25 +1,48 @@
-use std::path::Path;
+use std::{ffi::OsStr, path::Path};
 
 use notify::Watcher;
 use tauri::{AppHandle, Manager};
 
-use crate::state::FileWatcher;
+use crate::{state::FileWatcher, CurrentlyRecording};
 
 pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
     let watcher = notify::recommended_watcher({
         let app_handle = app_handle.clone();
         move |res: notify::Result<notify::Event>| {
-            log::info!("filewatcher event: {:?}", res);
-
-            // only trigger UI reload if one of the changed paths is a video (.mp4) file
             if let Ok(event) = res {
-                let contains_mp4_path = event
+                let currently_recording = app_handle.state::<CurrentlyRecording>().get();
+
+                log::info!("filewatcher event: {:?}", event.paths);
+                log::info!("currently recording: {:?}", currently_recording);
+
+                // only trigger UI sidebar reload if one of the changed paths is a video (.mp4) file
+                let contains_mp4_path = event.paths.iter().any(|p| {
+                    p.extension().and_then(OsStr::to_str) == Some("mp4")
+                        && !currently_recording.as_ref().is_some_and(|curr_rec| curr_rec == p)
+                });
+
+                // only trigger UI metadata reload if one of the changed paths is a metadata file (.json) file
+                let json_paths: Vec<_> = event
                     .paths
                     .iter()
-                    .any(|p| p.extension().is_some_and(|ext| ext == "mp4"));
+                    .filter_map(|p| {
+                        if p.extension().and_then(OsStr::to_str) == Some("json") {
+                            return p.file_stem().and_then(OsStr::to_str);
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+
+                log::info!("filewatcher event contains .mp4 path: {contains_mp4_path}");
+                log::info!("filewatcher event json paths: {:?}", json_paths);
 
                 if contains_mp4_path {
-                    _ = app_handle.emit_all("reload_recordings", ());
+                    _ = app_handle.emit_all("recordings_changed", ());
+                }
+
+                if json_paths.len() > 0 {
+                    _ = app_handle.emit_all("metadata_changed", json_paths);
                 }
             }
         }

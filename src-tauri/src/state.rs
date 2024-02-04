@@ -17,8 +17,8 @@ pub struct WindowState {
     pub position: Mutex<(f64, f64)>,
 }
 
-impl WindowState {
-    pub fn init() -> Self {
+impl Default for WindowState {
+    fn default() -> Self {
         Self {
             size: Mutex::from((1200.0, 650.0)),
             position: Mutex::from((-1.0, -1.0)),
@@ -142,7 +142,7 @@ impl SettingsWrapper {
             .expect("video_dir doesn't exist")
             .join(settings.recordings_folder);
         if fs::create_dir_all(settings.recordings_folder.as_path()).is_err() && settings.debug_log {
-            log::error!("Unable to create recordings_folder");
+            log::error!("unable to create recordings_folder");
         }
 
         *self.0.write().unwrap() = settings;
@@ -275,7 +275,7 @@ impl<'de> Deserialize<'de> for Settings {
             type Value = Settings;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("struct SettingsInner")
+                formatter.write_str("struct Settings")
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Settings, V::Error>
@@ -340,5 +340,18 @@ impl FileWatcher {
     pub fn set(&self, watcher: notify::RecommendedWatcher) {
         // dropping the previous filewatcher stops it
         drop(std::mem::replace(&mut *self.0.lock().unwrap(), watcher));
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct CurrentlyRecording(Mutex<Option<PathBuf>>);
+
+impl CurrentlyRecording {
+    pub fn set(&self, path: Option<PathBuf>) {
+        *self.0.lock().unwrap() = path;
+    }
+
+    pub fn get(&self) -> Option<PathBuf> {
+        self.0.lock().unwrap().clone()
     }
 }

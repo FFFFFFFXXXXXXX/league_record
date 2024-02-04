@@ -73,7 +73,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                             let recordings_path = settings.get_recordings_path();
                             if recordings_path != old_recordings_path {
                                 filewatcher::replace(&app_handle, &recordings_path);
-                                _ = app_handle.emit_all("reload_recordings", ());
+                                _ = app_handle.emit_all("recordings_changed", ());
                             }
                         }
                     }

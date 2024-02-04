@@ -1,7 +1,8 @@
 import type videojs from 'video.js';
 import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
 import type { MarkerFlags, GameData } from './bindings';
-import type { WindowManager } from '@tauri-apps/api/window';
+import type { WebviewWindow } from '@tauri-apps/api/window';
+import { toVideoName } from './util';
 
 export default class UI {
 
@@ -23,13 +24,13 @@ export default class UI {
     private readonly checkboxBaron;
 
     private readonly vjs: typeof videojs;
-    private readonly windowManager: WindowManager;
+    private readonly windowHandle: WebviewWindow;
 
     private readonly boundHideModal;
 
-    constructor(vjs: typeof videojs, windowManager: WindowManager) {
+    constructor(vjs: typeof videojs, windowHandle: WebviewWindow) {
         this.vjs = vjs;
-        this.windowManager = windowManager;
+        this.windowHandle = windowHandle;
         this.boundHideModal = this.hideModal.bind(this);
 
         this.modal = document.querySelector<HTMLDivElement>('[id="modal"]')!;
@@ -51,11 +52,11 @@ export default class UI {
     }
 
     public async setFullscreen(fullscreen: boolean) {
-        await this.windowManager.setFullscreen(fullscreen);
+        await this.windowHandle.setFullscreen(fullscreen);
     }
 
     public setWindowTitle(title: string) {
-        this.windowManager.setTitle('League Record - ' + title);
+        this.windowHandle.setTitle('League Record - ' + title);
     }
 
     public setRecordingsFolderBtnOnClickHandler(handler: (e: MouseEvent) => void) {
@@ -81,7 +82,7 @@ export default class UI {
         onDelete: (videoId: string) => void
     ) {
         const videoLiElements = videoIds.map(videoId => {
-            const videoName = videoId.slice(0, -4);
+            const videoName = toVideoName(videoId);
 
             // call event.stopPropagation(); to stop the onclick event from also effecting the element under the clicked X button
             const renameBtn = this.vjs.dom.createEl(
@@ -144,7 +145,7 @@ export default class UI {
         videoIds: ReadonlyArray<string>,
         rename: (videoId: string, newVideoId: string) => void
     ) {
-        const videoName = videoId.slice(0, -4);
+        const videoName = toVideoName(videoId);
 
         const input = this.vjs.dom.createEl(
             'input',
@@ -216,7 +217,7 @@ export default class UI {
     }
 
     public async showDeleteModal(videoId: string, deleteVideo: (videoId: string) => void) {
-        const videoName = videoId.slice(0, -4);
+        const videoName = toVideoName(videoId);
 
         const prompt = this.vjs.dom.createEl('p', {}, {}, ['Delete recording: ', this.vjs.dom.createEl('u', {}, {}, videoName), '?']);
         const buttons = this.vjs.dom.createEl('p', {}, {}, [

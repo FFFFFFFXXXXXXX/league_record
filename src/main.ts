@@ -3,12 +3,12 @@ import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import { MarkersPlugin, type Settings, type MarkerOptions } from '@fffffffxxxxxxx/videojs-markers';
 
-import { WindowManager } from '@tauri-apps/api/window';
+import { appWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
 import * as tauri from './bindings';
 
 import UI from './ui';
-import { sleep } from './util';
+import { sleep, splitRight, toVideoName } from './util';
 import { convertFileSrc } from '@tauri-apps/api/tauri';
 import { sep, join } from '@tauri-apps/api/path';
 
@@ -16,9 +16,7 @@ import { sep, join } from '@tauri-apps/api/path';
 // jumps to (eventTime - EVENT_DELAY) when a marker is clicked
 const EVENT_DELAY = 3;
 
-// this windows name is 'main', the name can be changed and is set when opening the window on the rust side
-const windowManager = new WindowManager('main');
-const ui = new UI(videojs, windowManager);
+const ui = new UI(videojs, appWindow);
 
 let currentEvents = new Array<tauri.GameEvent>();
 
@@ -65,10 +63,11 @@ async function main() {
         // because player.reset() for example triggers a 'sourceset' event with { src: "" }
         if (!src) return;
 
-        // split src ('https://asset.localhost/league_recordings/{videoId}') at the last '/' to get the video from the src
-        // since {videoId} has to be a valid filename and filenames can't contain '/' this works always
-        const videoPath = decodeURIComponent(src.substring(src.lastIndexOf('/') + 1, src.length));
-        const videoId = videoPath.substring(videoPath.lastIndexOf(sep) + 1, videoPath.length);
+        // split src ('https://asset.localhost/{path_to_file}') at the last '/' to get the video path from the src
+        // to get the videoId split path/to/file.mp4 at the last directory separator which can be '/' or '\' (=> sep)
+        // since videoId has to be a valid filename and filenames can't contain '/' this works always
+        const videoPath = decodeURIComponent(splitRight(src, '/'));
+        const videoId = splitRight(videoPath, sep);
         ui.setActiveVideoId(videoId);
         setMetadata(videoId);
 
@@ -88,10 +87,13 @@ async function main() {
     // handle keybord shortcuts
     addEventListener('keydown', handleKeyboardEvents);
 
-    listen<void>('reload_recordings', updateSidebar);
-    listen<void>('new_recording_metadata', () => {
+    listen<void>('recordings_changed', updateSidebar);
+    listen<Array<string>>('metadata_changed', ({ payload }) => {
         const activeVideoId = ui.getActiveVideoId();
-        if (activeVideoId) setMetadata(activeVideoId);
+        if (activeVideoId !== null && payload.includes(toVideoName(activeVideoId))) {
+            // update metadata for currently selected recording
+            setMetadata(activeVideoId);
+        }
     });
 
     // load data
