@@ -100,7 +100,14 @@ pub fn add_log_plugin(app_handle: &AppHandle) -> Result<(), tauri::Error> {
             .targets([LogTarget::LogDir, LogTarget::Stdout])
             .log_name(format!("{}", chrono::Local::now().format("%Y-%m-%d_%H-%M")))
             .level(LevelFilter::Info)
-            .format(|out, msg, record| out.finish(format_args!("[{}]: {}", record.metadata().level(), msg)))
+            .format(|out, msg, record| {
+                out.finish(format_args!(
+                    "[{}][{}]: {}",
+                    chrono::Local::now().format("%H:%M:%S"),
+                    record.level(),
+                    msg
+                ))
+            })
             .build(),
     )
 }
@@ -125,12 +132,6 @@ pub fn get_recordings(rec_folder: &Path) -> Vec<PathBuf> {
             continue;
         }
 
-        // skip files that can't be renamed which means they are being written to - only works on windows
-        #[cfg(target_os = "windows")]
-        if std::fs::rename(&path, &path).is_err() {
-            continue;
-        }
-
         if let Some(ext) = path.extension() {
             if ext == "mp4" {
                 recordings.push(path);
@@ -140,7 +141,7 @@ pub fn get_recordings(rec_folder: &Path) -> Vec<PathBuf> {
     recordings
 }
 
-pub fn path_to_string(path: &PathBuf) -> String {
+pub fn path_to_string(path: &Path) -> String {
     path.to_owned().into_os_string().into_string().expect("invalid path")
 }
 
@@ -195,7 +196,7 @@ pub fn save_window_state(app_handle: &AppHandle, window: &Window) {
     }
 }
 
-pub fn ensure_settings_exist(settings_file: &PathBuf) -> bool {
+pub fn ensure_settings_exist(settings_file: &Path) -> bool {
     if !settings_file.is_file() {
         // get directory of settings file
         let Some(parent) = settings_file.parent() else {

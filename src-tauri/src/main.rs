@@ -35,9 +35,7 @@ fn main() {
             None,
         ))
         .manage(WindowState::init())
-        .manage(SettingsFile::default())
         .manage(SettingsWrapper::default())
-        .manage(FileWatcher::default())
         .invoke_handler(tauri::generate_handler![
             show_app_window,
             get_marker_flags,
@@ -81,5 +79,5 @@ fn generate_command_bindings() {
 
 #[test]
 fn generate_type_bindings() {
-    specta::export::ts("../src/settings.ts").unwrap();
+    specta::export::ts("../league_record_types/index.d.ts").unwrap();
 }

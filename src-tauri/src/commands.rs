@@ -40,13 +40,13 @@ pub fn set_marker_flags(
     settings_file: State<'_, SettingsFile>,
 ) {
     settings.set_marker_flags(marker_flags);
-    settings.write_to_file(&settings_file.get());
+    settings.write_to_file(settings_file.get());
 }
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
 pub fn get_recordings_path(settings: State<'_, SettingsWrapper>) -> PathBuf {
-    settings.get_recordings_path()
+    settings.get_recordings_path().to_path_buf()
 }
 
 #[cfg_attr(test, specta::specta)]
@@ -116,8 +116,7 @@ pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, Set
 #[tauri::command]
 pub fn delete_video(video_id: String, state: State<'_, SettingsWrapper>) -> bool {
     // remove video
-    let mut path = state.get_recordings_path();
-    path.push(PathBuf::from(&video_id));
+    let mut path = state.get_recordings_path().join(video_id);
     if remove_file(&path).is_err() {
         // if video delete fails return and dont delete json file
         return false;

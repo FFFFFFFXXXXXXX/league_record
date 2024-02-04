@@ -5,7 +5,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::state::FileWatcher;
 
-pub fn replace_filewatcher(app_handle: &AppHandle, recordings_path: &Path) {
+pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
     let watcher = notify::recommended_watcher({
         let app_handle = app_handle.clone();
         move |res: notify::Result<notify::Event>| {
@@ -31,7 +31,11 @@ pub fn replace_filewatcher(app_handle: &AppHandle, recordings_path: &Path) {
 
             // store Watcher so it doesn't drop and stop watching
             // also drop old watcher
-            app_handle.state::<FileWatcher>().set(watcher);
+            if let Some(fw_state) = app_handle.try_state::<FileWatcher>() {
+                fw_state.set(watcher);
+            } else {
+                app_handle.manage::<FileWatcher>(FileWatcher::new(watcher));
+            }
         }
         Err(e) => log::error!("failed to start filewatcher: {e}"),
     }

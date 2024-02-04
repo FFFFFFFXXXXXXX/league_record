@@ -38,13 +38,14 @@ async function main() {
 
     // configure and start marker plugin
     player.markers({
-        'markerTip': {
-            'display': true,
-            'innerHtml': marker => marker.text ?? '',
+        markerTip: {
+            display: true,
+            innerHtml: marker => marker.text ?? '',
         },
-        'markerStyle': {
-            'minWidth': '4px',
-            'borderRadius': '30%'
+        markerStyle: {
+            minWidth: '4px',
+            maxWidth: '15px',
+            borderRadius: '30%'
         }
     });
 

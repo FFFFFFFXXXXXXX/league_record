@@ -137,7 +137,7 @@ pub fn start(app_handle: &AppHandle) {
                     }
                     let mut filename_path = settings_state
                         .get_recordings_path()
-                        .join(format!("{}", chrono::Local::now().format(filename.as_str())));
+                        .join(format!("{}", chrono::Local::now().format(&filename)));
                     if let Some(filename_path_str) = filename_path.to_str() {
                         settings.set_output_path(filename_path_str);
                     } else {
@@ -335,9 +335,13 @@ async fn collect_ingame_data(
     log::info!("Starting EventStream - listening to ingame events");
 
     let mut ingame_events = EventStream::from_ingame_client(ingame_client, None);
-    while let Some(event) =
-        tokio::select! { event = ingame_events.next() => event, _ = cancel_subtoken.cancelled() => None }
-    {
+    while let Some(event) = tokio::select! {
+        event = ingame_events.next() => event,
+        _ = cancel_subtoken.cancelled() => {
+            log::info!("task cancelled while listening for ingame API events");
+            None
+        }
+    } {
         use data::EventName;
 
         let time = recording_start.elapsed().as_secs_f32();
@@ -385,12 +389,12 @@ async fn collect_ingame_data(
         }
     }
 
-    log::info!("Ingame window has closed");
+    log::info!("Ingame API connection stopped");
 
     let stopped = recorder.stop_recording();
+    log::info!("recorder stopped: {stopped:?}");
     let shutdown = recorder.shutdown();
     log::info!("recorder shutdown: {shutdown:?}");
-    log::info!("recorder stopped: {stopped:?}");
     set_recording_tray_item(&app_handle, false);
 
     log::info!("waiting for post game stats");
@@ -432,7 +436,7 @@ async fn collect_ingame_data(
                             game_data.stats = stats;
                             log::info!("collected post game stats successfully");
                         }
-                        Err(e) => log::warn!("Error deserializing end of game stats: {e:?}"),
+                        Err(e) => log::warn!("error deserializing end of game stats: {e:?}"),
                     }
                 } else {
                     log::warn!("LCU event listener timed out");

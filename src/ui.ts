@@ -1,6 +1,7 @@
 import type videojs from 'video.js';
 import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
 import type { MarkerFlags, GameData } from './bindings';
+import type { WindowManager } from '@tauri-apps/api/window';
 
 export default class UI {
 
@@ -22,11 +23,11 @@ export default class UI {
     private readonly checkboxBaron;
 
     private readonly vjs: typeof videojs;
-    private readonly windowManager: any;
+    private readonly windowManager: WindowManager;
 
     private readonly boundHideModal;
 
-    constructor(vjs: typeof videojs, windowManager: any) {
+    constructor(vjs: typeof videojs, windowManager: WindowManager) {
         this.vjs = vjs;
         this.windowManager = windowManager;
         this.boundHideModal = this.hideModal.bind(this);

@@ -15,7 +15,7 @@ use crate::{
         save_window_state, sync_autostart,
     },
     recorder,
-    state::{FileWatcher, SettingsFile, SettingsWrapper},
+    state::{SettingsFile, SettingsWrapper},
 };
 
 pub fn create_system_tray() -> SystemTray {
@@ -35,21 +35,22 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                 thread::spawn({
                     let app_handle = app_handle.clone();
                     move || {
-                        let path = app_handle.state::<SettingsFile>().get();
+                        let settings_file = app_handle.state::<SettingsFile>();
+                        let settings_file = settings_file.get();
 
-                        if ensure_settings_exist(&path) {
+                        if ensure_settings_exist(settings_file) {
                             let settings = app_handle.state::<SettingsWrapper>();
                             let old_recordings_path = settings.get_recordings_path();
                             let old_log = settings.debug_log();
 
                             // hardcode 'notepad' since league_record currently only works on windows anyways
                             Command::new("notepad")
-                                .arg(&path)
+                                .arg(settings_file)
                                 .status()
                                 .expect("failed to start text editor");
 
                             // reload settings from settings.json
-                            settings.load_from_file(&path);
+                            settings.load_from_file(settings_file);
                             log::info!("Settings updated: {:?}", settings.inner());
 
                             // check and update autostart if necessary
@@ -69,7 +70,9 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                             }
 
                             // check if UI window needs to be updated
-                            if settings.get_recordings_path() != old_recordings_path {
+                            let recordings_path = settings.get_recordings_path();
+                            if recordings_path != old_recordings_path {
+                                filewatcher::replace(&app_handle, &recordings_path);
                                 _ = app_handle.emit_all("reload_recordings", ());
                             }
                         }
@@ -82,9 +85,6 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                 if let Some(main) = app_handle.windows().get("main") {
                     _ = main.close();
                 }
-
-                // stop filewatcher
-                app_handle.state::<FileWatcher>().drop();
 
                 // setup event listeners
                 let (tx, rx) = tokio::sync::oneshot::channel::<()>();
@@ -122,7 +122,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     let app_handle = app.app_handle();
 
     // get path to config directory
-    let config_path = app_config_dir(app_handle.config().as_ref()).expect("Error getting app directory");
+    let config_path = app_config_dir(&app_handle.config()).expect("Error getting app directory");
 
     let settings_path = config_path.join("settings.json");
     let settings = app_handle.state::<SettingsWrapper>();
@@ -130,7 +130,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     ensure_settings_exist(&settings_path);
     // load settings and set state
     settings.load_from_file(&settings_path);
-    app_handle.state::<SettingsFile>().set(settings_path);
+    app_handle.manage::<SettingsFile>(SettingsFile::new(settings_path));
 
     let debug_log = settings.debug_log();
 
@@ -165,7 +165,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     let recordings_path = settings.get_recordings_path();
     log::info!("video folder: {:?}", recordings_path);
 
-    filewatcher::replace_filewatcher(&app_handle, &recordings_path);
+    filewatcher::replace(&app_handle, &recordings_path);
     recorder::start(&app_handle);
     Ok(())
 }

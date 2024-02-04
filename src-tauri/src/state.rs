@@ -1,6 +1,6 @@
 use std::{
     fmt, fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{Mutex, RwLock},
 };
 
@@ -26,16 +26,16 @@ impl WindowState {
     }
 }
 
-#[derive(Default, Debug)]
-pub struct SettingsFile(RwLock<Option<PathBuf>>);
+#[derive(Debug)]
+pub struct SettingsFile(PathBuf);
 
 impl SettingsFile {
-    pub fn get(&self) -> PathBuf {
-        self.0.read().unwrap().to_owned().unwrap()
+    pub fn new(pathbuf: PathBuf) -> Self {
+        Self(pathbuf)
     }
 
-    pub fn set(&self, folder: PathBuf) {
-        *self.0.write().unwrap() = Some(folder);
+    pub fn get(&self) -> &Path {
+        self.0.as_path()
     }
 }
 
@@ -130,7 +130,7 @@ impl Default for MarkerFlags {
 pub struct SettingsWrapper(RwLock<Settings>);
 
 impl SettingsWrapper {
-    pub fn load_from_file(&self, settings_path: &PathBuf) {
+    pub fn load_from_file(&self, settings_path: &Path) {
         let Ok(json) = fs::read_to_string(settings_path) else {
             return;
         };
@@ -151,7 +151,7 @@ impl SettingsWrapper {
         self.write_to_file(settings_path);
     }
 
-    pub fn write_to_file(&self, settings_path: &PathBuf) {
+    pub fn write_to_file(&self, settings_path: &Path) {
         let json = serde_json::to_string_pretty(&*self.0.read().unwrap()).unwrap();
         _ = fs::write(settings_path, json);
     }
@@ -329,15 +329,16 @@ impl<'de> Deserialize<'de> for Settings {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct FileWatcher(Mutex<Option<notify::RecommendedWatcher>>);
+#[derive(Debug)]
+pub struct FileWatcher(Mutex<notify::RecommendedWatcher>);
 
 impl FileWatcher {
-    pub fn set(&self, watcher: notify::RecommendedWatcher) {
-        *self.0.lock().unwrap() = Some(watcher);
+    pub fn new(watcher: notify::RecommendedWatcher) -> Self {
+        FileWatcher(Mutex::new(watcher))
     }
 
-    pub fn drop(&self) {
-        self.0.lock().unwrap().take();
+    pub fn set(&self, watcher: notify::RecommendedWatcher) {
+        // dropping the previous filewatcher stops it
+        drop(std::mem::replace(&mut *self.0.lock().unwrap(), watcher));
     }
 }
