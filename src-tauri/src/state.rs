@@ -141,7 +141,7 @@ impl SettingsWrapper {
         settings.recordings_folder = video_dir()
             .expect("video_dir doesn't exist")
             .join(settings.recordings_folder);
-        if fs::create_dir_all(settings.recordings_folder.as_path()).is_err() && settings.debug_log {
+        if fs::create_dir_all(settings.recordings_folder.as_path()).is_err() {
             log::error!("unable to create recordings_folder");
         }
 

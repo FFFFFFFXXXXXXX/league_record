@@ -86,24 +86,17 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                     _ = main.close();
                 }
 
-                // setup event listeners
-                let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-                app_handle.once_global("recorder_shutdown", |_| _ = tx.send(()));
-                app_handle.trigger_global("shutdown_recorder", None);
-
-                // await shutdown of recorder module or timeout
+                // always exit after 3s
                 tauri::async_runtime::spawn({
                     let app_handle = app_handle.clone();
                     async move {
-                        tokio::select! {
-                            _ = rx => {}
-                            _ = tokio::time::sleep(Duration::from_secs(3)) => {
-                                log::warn!("forcing app shutdown");
-                            }
-                        }
-                        app_handle.exit(0);
+                        tokio::time::sleep(Duration::from_secs(3)).await;
+                        app_handle.exit(1);
                     }
                 });
+
+                // stop recorder, recorder calls app_handle.exit(0) after shutting down
+                app_handle.trigger_global("shutdown_recorder", None);
             }
             "update" => {
                 _ = shell::open(
