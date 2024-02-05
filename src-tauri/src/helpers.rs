@@ -10,7 +10,10 @@ use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTra
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::LogTarget;
 
-use crate::state::{SettingsWrapper, WindowState};
+use crate::{
+    state::{SettingsWrapper, WindowState},
+    CurrentlyRecording,
+};
 
 const GITHUB_LATEST: &str = "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest";
 
@@ -118,17 +121,19 @@ pub fn remove_log_plugin(app_handle: &AppHandle) {
     app_handle.remove_plugin("log");
 }
 
-pub fn get_recordings(rec_folder: &Path) -> Vec<PathBuf> {
+pub fn get_recordings(app_handle: &AppHandle) -> Vec<PathBuf> {
     // get all mp4 files in ~/Videos/%folder-name%
     let mut recordings = Vec::<PathBuf>::new();
-    let Ok(read_dir) = rec_folder.read_dir() else {
+    let Ok(read_dir) = app_handle.state::<SettingsWrapper>().get_recordings_path().read_dir() else {
         return vec![];
     };
+
+    let currently_recording = app_handle.state::<CurrentlyRecording>().get();
 
     for entry in read_dir.flatten() {
         let path = entry.path();
 
-        if !path.is_file() {
+        if !path.is_file() || Some(&path) == currently_recording.as_ref() {
             continue;
         }
 

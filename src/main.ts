@@ -8,7 +8,7 @@ import { listen } from '@tauri-apps/api/event';
 import * as tauri from './bindings';
 
 import UI from './ui';
-import { sleep, splitRight, toVideoName } from './util';
+import { splitRight, toVideoName } from './util';
 import { convertFileSrc } from '@tauri-apps/api/tauri';
 import { sep, join } from '@tauri-apps/api/path';
 
@@ -104,13 +104,14 @@ async function main() {
         setVideo(firstVideo);
         player.one('canplay', tauri.showAppWindow);
     } else {
-        player.reset();
+        setVideo(null);
         player.ready(tauri.showAppWindow);
     }
 }
 
 // --- SIDEBAR, VIDEO PLAYER, DESCRIPTION  ---
 
+// use this function to update the sidebar
 async function updateSidebar() {
     const activeVideoId = ui.getActiveVideoId();
 
@@ -118,12 +119,19 @@ async function updateSidebar() {
     ui.updateSideBar(recordingsSize, videoIds, setVideo, showRenameModal, showDeleteModal);
 
     if (!ui.setActiveVideoId(activeVideoId)) {
-        player.reset();
+        setVideo(null);
     }
 
     return videoIds;
 }
-async function setVideo(videoId: string) {
+
+// use this function to set the video (null => no video)
+async function setVideo(videoId: string | null) {
+    if (videoId === null) {
+        player.reset();
+        return;
+    }
+
     if (videoId === ui.getActiveVideoId()) {
         return;
     }
@@ -213,15 +221,21 @@ async function showRenameModal(videoId: string) {
     ui.showRenameModal(videoId, await tauri.getRecordingsList(), renameVideo);
 }
 
-async function renameVideo(videoId: string, newVideoName: string) {
-    if (videoId === ui.getActiveVideoId()) {
-        // make sure the video is not in use before renaming it
-        player.reset();
-        await sleep(250);
+async function renameVideo(videoId: string, newVideoId: string) {
+    const activeVideoId = ui.getActiveVideoId();
+    let time = null;
+    if (videoId === activeVideoId) {
+        time = player.currentTime()!;
     }
 
-    const ok = await tauri.renameVideo(videoId, newVideoName + '.mp4');
-    if (!ok) {
+    const ok = await tauri.renameVideo(videoId, newVideoId);
+    if (ok) {
+        if (time !== null) {
+            await updateSidebar();
+            await setVideo(newVideoId);
+            player.currentTime(time);
+        }
+    } else {
         ui.showErrorModal('Error renaming video!');
     }
 }
@@ -231,12 +245,6 @@ function showDeleteModal(videoId: string) {
 }
 
 async function deleteVideo(videoId: string) {
-    if (videoId === document.querySelector('#sidebar-content li.active')?.id) {
-        // make sure the video is not in use before deleting it
-        player.reset();
-        await sleep(250);
-    }
-
     const ok = await tauri.deleteVideo(videoId);
     if (!ok) {
         ui.showErrorModal('Error deleting video!');

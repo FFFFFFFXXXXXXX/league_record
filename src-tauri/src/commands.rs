@@ -51,9 +51,9 @@ pub fn get_recordings_path(settings: State<'_, SettingsWrapper>) -> PathBuf {
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn get_recordings_size(settings_state: State<'_, SettingsWrapper>) -> f32 {
+pub fn get_recordings_size(app_handle: AppHandle) -> f32 {
     let mut size = 0;
-    for file in get_recordings(&settings_state.get_recordings_path()) {
+    for file in get_recordings(&app_handle) {
         if let Ok(metadata) = metadata(file) {
             size += metadata.len();
         }
@@ -63,8 +63,8 @@ pub fn get_recordings_size(settings_state: State<'_, SettingsWrapper>) -> f32 {
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn get_recordings_list(settings_state: State<'_, SettingsWrapper>) -> Vec<String> {
-    let mut recordings = get_recordings(&settings_state.get_recordings_path());
+pub fn get_recordings_list(app_handle: AppHandle) -> Vec<String> {
+    let mut recordings = get_recordings(&app_handle);
     // sort by time created (index 0 is newest)
     recordings.sort_by(|a, b| compare_time(a, b).unwrap_or(Ordering::Equal));
     let mut ret = Vec::<String>::new();

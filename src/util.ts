@@ -1,7 +1,3 @@
-export function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 export function toVideoName(videoId: string): string {
     return videoId.substring(0, videoId.lastIndexOf('.'));
 }

@@ -2,7 +2,7 @@ import type videojs from 'video.js';
 import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
 import type { MarkerFlags, GameData } from './bindings';
 import type { WebviewWindow } from '@tauri-apps/api/window';
-import { toVideoName } from './util';
+import { toVideoId, toVideoName } from './util';
 
 export default class UI {
 
@@ -162,7 +162,7 @@ export default class UI {
 
         // set validity checker initial value and add 'input' event listener
         const validityChecker = (_e: Event) => {
-            if (videoIds.includes(input.value + '.mp4')) {
+            if (videoIds.includes(toVideoId(input.value))) {
                 input.setCustomValidity('there is already a file with this name');
                 saveButton.setAttribute('disabled', 'true');
             } else {
@@ -182,7 +182,7 @@ export default class UI {
             if (input.checkValidity() && (!keyboardEvent || e.key === 'Enter')) {
                 e.preventDefault();
                 this.boundHideModal();
-                rename(videoId, input.value);
+                rename(videoId, toVideoId(input.value));
 
                 // clean up eventlisteners for this renameHandler and the validityChecker
                 input.removeEventListener('keydown', renameHandler);
