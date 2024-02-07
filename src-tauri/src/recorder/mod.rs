@@ -5,6 +5,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use anyhow::{anyhow, Context, Result};
 use futures_util::StreamExt;
 use libobs_recorder::{
     settings::{RateControl, Resolution, Size, Window},
@@ -37,7 +38,14 @@ use windows::{
     },
 };
 
-use crate::{helpers::set_recording_tray_item, state::SettingsWrapper, CurrentlyRecording};
+use crate::{
+    helpers::set_recording_tray_item,
+    recorder::data::{GameInfo, Stats},
+    state::SettingsWrapper,
+    CurrentlyRecording,
+};
+
+use self::data::GameData;
 
 pub mod data;
 
@@ -95,79 +103,23 @@ pub fn start(app_handle: &AppHandle) {
 
         let mut state = State::Idle;
 
-        'recorder: loop {
+        '_loop: loop {
             match state {
-                State::Idle => 'inner: {
+                State::Idle => '_match: {
                     // --- initialize recorder if LoL window is found ---
                     let Some(window_handle) = get_lol_window() else {
-                        break 'inner;
+                        break '_match;
                     };
 
                     log::info!("LoL Window found");
 
-                    let Ok(window_size) = get_window_size(window_handle) else {
-                        log::error!("unable to get window size of League of Legends.exe");
-                        break 'inner;
-                    };
-
-                    let settings_state = app_handle.state::<SettingsWrapper>();
-
-                    // either get the explicitly set resolution or choose the default resolution for the LoL window aspect ratio
-                    let output_resolution = settings_state
-                        .get_output_resolution()
-                        .unwrap_or_else(|| closest_resolution_to_size(&window_size));
-
-                    log::info!("Using resolution ({output_resolution:?}) for window ({window_size:?})");
-
-                    let mut settings = RecorderSettings::new();
-                    settings.set_window(Window::new(
-                        WINDOW_TITLE,
-                        Some(WINDOW_CLASS.into()),
-                        Some(WINDOW_PROCESS.into()),
-                    ));
-                    settings.set_input_resolution(window_size);
-                    settings.set_output_resolution(output_resolution);
-                    settings.set_framerate(settings_state.get_framerate());
-                    settings.set_rate_control(RateControl::CQP(settings_state.get_encoding_quality()));
-                    settings.record_audio(settings_state.get_audio_source());
-
-                    let mut filename = settings_state.get_filename_format();
-                    if !filename.ends_with(".mp4") {
-                        filename.push_str(".mp4");
-                    }
-                    let mut filename_path = settings_state
-                        .get_recordings_path()
-                        .join(format!("{}", chrono::Local::now().format(&filename)));
-                    if let Some(filename_path_str) = filename_path.to_str() {
-                        settings.set_output_path(filename_path_str);
-                    } else {
-                        break 'inner;
-                    }
-
-                    let mut recorder = match Recorder::new_with_paths(
-                        app_handle
-                            .path_resolver()
-                            .resolve_resource("libobs/extprocess_recorder.exe")
-                            .as_ref(),
-                        None,
-                        None,
-                        None,
-                        settings_state.debug_log(),
-                    ) {
-                        Ok(rec) => rec,
+                    let (recorder, filename_path) = match setup_recorder(window_handle, &app_handle) {
+                        Ok(value) => value,
                         Err(e) => {
-                            log::error!("failed to create recorder: {e}");
-                            break 'inner;
+                            log::error!("error creating recorder: {e}");
+                            break '_match;
                         }
                     };
-
-                    let configured = recorder.configure(&settings);
-                    log::info!("recorder configured: {configured:?}");
-                    log::info!("Available encoders: {:?}", recorder.available_encoders());
-                    log::info!("Selected encoder: {:?}", recorder.selected_encoder());
-                    if configured.is_err() {
-                        break 'inner;
-                    }
 
                     // make filewatcher ignore the video / metadata files while the recording is going on
                     app_handle
@@ -180,17 +132,19 @@ pub fn start(app_handle: &AppHandle) {
                         // preparation for task
                         let app_handle = app_handle.clone();
                         let cancel_subtoken = cancel_token.child_token();
-                        filename_path.set_extension("json");
+                        let mut metadata_path = filename_path;
+                        metadata_path.set_extension("json");
 
                         // actual task
                         async move {
-                            collect_ingame_data(app_handle.clone(), cancel_subtoken, recorder, filename_path).await;
+                            collect_ingame_data(app_handle.clone(), cancel_subtoken, recorder, metadata_path).await;
                             // recording is done - tell filewatcher not to ignore these files
                             // do this here instead of in collect_ingame_data(...) since that function has mutliple return point
                             app_handle.state::<CurrentlyRecording>().set(None);
                         }
                     });
-                    log::info!("ingame task spawned: {handle:?}");
+
+                    log::info!("ingame task spawned");
 
                     state = State::Recording((handle, cancel_token));
                 }
@@ -208,7 +162,7 @@ pub fn start(app_handle: &AppHandle) {
                         break 'inner;
                     }
 
-                    // spawn async thread to cleanup the gamedata task
+                    // spawn async thread to cleanup the gamedata task no matter what after a certain delay
                     async_runtime::spawn(async move {
                         // wait for 90s for EOG lobby before trying to cancel the task
                         if timeout(Duration::from_secs(90), &mut handle).await.is_ok() {
@@ -243,7 +197,7 @@ pub fn start(app_handle: &AppHandle) {
                         }
                     }
 
-                    break 'recorder;
+                    break '_loop;
                 }
                 Err(RecvTimeoutError::Timeout) => {}
             }
@@ -254,14 +208,68 @@ pub fn start(app_handle: &AppHandle) {
     });
 }
 
+fn setup_recorder(window_handle: HWND, app_handle: &AppHandle) -> Result<(Recorder, PathBuf)> {
+    let settings_state = app_handle.state::<SettingsWrapper>();
+
+    let window_size =
+        get_window_size(window_handle).map_err(|_| anyhow!("unable to get window size of League of Legends.exe"))?;
+
+    // either get the explicitly set resolution or choose the default resolution for the LoL window aspect ratio
+    let output_resolution = settings_state
+        .get_output_resolution()
+        .unwrap_or_else(|| closest_resolution_to_size(&window_size));
+
+    log::info!("Using resolution ({output_resolution:?}) for window ({window_size:?})");
+
+    let mut settings = RecorderSettings::new();
+    settings.set_window(Window::new(
+        WINDOW_TITLE,
+        Some(WINDOW_CLASS.into()),
+        Some(WINDOW_PROCESS.into()),
+    ));
+    settings.set_input_resolution(window_size);
+    settings.set_output_resolution(output_resolution);
+    settings.set_framerate(settings_state.get_framerate());
+    settings.set_rate_control(RateControl::CQP(settings_state.get_encoding_quality()));
+    settings.record_audio(settings_state.get_audio_source());
+
+    let mut filename = settings_state.get_filename_format();
+    if !filename.ends_with(".mp4") {
+        filename.push_str(".mp4");
+    }
+    let filename_path = settings_state
+        .get_recordings_path()
+        .join(format!("{}", chrono::Local::now().format(&filename)));
+    settings.set_output_path(
+        filename_path
+            .to_str()
+            .context("filename_path is not a valid UTF-8 string")?,
+    );
+
+    let mut recorder = Recorder::new_with_paths(
+        app_handle
+            .path_resolver()
+            .resolve_resource("libobs/extprocess_recorder.exe"),
+        None,
+        None,
+        None,
+    )?;
+
+    recorder.configure(&settings)?;
+    log::info!("recorder configured");
+    log::info!("Available encoders: {:?}", recorder.available_encoders());
+    log::info!("Selected encoder: {:?}", recorder.selected_encoder());
+
+    Ok((recorder, filename_path))
+}
+
 async fn collect_ingame_data(
     app_handle: AppHandle,
     cancel_subtoken: CancellationToken,
     mut recorder: Recorder,
     outfile: PathBuf,
 ) {
-    // IngameClient::new() never actually returns Err()
-    let ingame_client = IngameClient::new().unwrap();
+    let ingame_client = IngameClient::new();
 
     log::info!("waiting for game to start");
 
@@ -286,42 +294,51 @@ async fn collect_ingame_data(
         log::info!("recorder shutdown: {shutdown:?}");
         return;
     } else {
-        log::info!("game started")
+        log::info!("game started");
     }
 
-    let mut game_data = data::GameData::default();
-    if let Ok(data) = ingame_client.all_game_data(None).await {
-        game_data.game_info.game_mode = data.game_data.game_mode.to_string();
+    let Ok(all_game_data) = ingame_client.all_game_data(None).await else {
+        log::error!("unable to collect initial game infos - aborting");
+        let shutdown = recorder.shutdown();
+        log::info!("recorder shutdown: {shutdown:?}");
+        return;
+    };
+    let game_info = {
+        let game_mode = all_game_data.game_data.game_mode.to_string();
 
-        if let Some(active_player) = data.active_player {
-            // the summoner name in ActivePlayer now has the format <name>#<tag>
-            // but the summoner_name in the all-player list is just the <name> part
-            game_data.game_info.summoner_name = active_player
-                .summoner_name
-                .rsplit_once('#')
-                .unwrap_or_default()
-                .0
-                .to_owned();
-        }
+        // the summoner name in ActivePlayer now has the format <name>#<tag>
+        // but the summoner_name in the all-player list is just the <name> part
+        let summoner_name = all_game_data
+            .active_player
+            .map(|active_player| {
+                active_player
+                    .summoner_name
+                    .rsplit_once('#')
+                    .unwrap_or_default()
+                    .0
+                    .to_owned()
+            })
+            .unwrap_or_default();
 
-        let champion_name = data.all_players.into_iter().find_map(|p| {
-            if p.summoner_name == game_data.game_info.summoner_name {
+        let champion_name = all_game_data.all_players.into_iter().find_map(|p| {
+            if p.summoner_name == summoner_name {
                 Some(p.champion_name)
             } else {
                 None
             }
         });
-        if let Some(champion_name) = champion_name {
-            game_data.game_info.champion_name = champion_name;
-        } else {
-            log::error!(
-                "no champion for player with name {} found",
-                game_data.game_info.summoner_name
-            );
+        if champion_name.is_none() {
+            log::error!("no champion for player with name {} found", summoner_name);
         }
-    }
 
-    log::info!("initial data parsed: {game_data:?}");
+        GameInfo {
+            game_mode,
+            summoner_name,
+            champion_name: champion_name.unwrap_or_default(),
+        }
+    };
+
+    log::info!("initial data parsed: {:?}", game_info);
 
     // if initial game_data is successful => start recording
     let start_recording = recorder.start_recording();
@@ -342,14 +359,121 @@ async fn collect_ingame_data(
 
     let mut ws_client = subscribe_to_postgame_stats().await;
 
-    log::info!("Starting EventStream - listening to ingame events");
+    // if the window still exists after the ingame API has stopped responding
+    // assume the ingame API is buggy and continue recording
+    let mut prev_game_data = None;
+    let mut game_data = loop {
+        // if cancelled via the token break out of loop immediately
+        let (game_data, cancelled) = process_ingame_events(&game_info, recording_start, &cancel_subtoken).await;
 
-    let mut ingame_events = EventStream::from_ingame_client(ingame_client, None);
+        // just to be sure wait for a short amout after the API has stopped responding
+        // before checking if the LoL window still exists
+        if !cancelled {
+            tokio::time::sleep(Duration::from_millis(500)).await;
+        }
+
+        if cancelled || get_lol_window().is_none() {
+            // if we somehow get less information in the retry than in the previous attempt
+            // return previous data instead of the new data
+            if prev_game_data
+                .as_ref()
+                .is_some_and(|prev: &GameData| prev.events.len() > game_data.events.len())
+            {
+                break prev_game_data.unwrap(); // unwrap is ok since we check in .is_some_and
+            } else {
+                break game_data;
+            }
+        }
+
+        prev_game_data = Some(game_data);
+    };
+
+    let stopped = recorder.stop_recording();
+    log::info!("recorder stopped: {stopped:?}");
+    let shutdown = recorder.shutdown();
+    log::info!("recorder shutdown: {shutdown:?}");
+    set_recording_tray_item(&app_handle, false);
+
+    log::info!("waiting for post game stats");
+
+    // after the game has ended retry connecting to LeagueClient for 10s
+    // (if not already connected) in case the LeagueClient gets closed during the game
+    for _ in 0..10 {
+        if ws_client.is_some() {
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        ws_client = subscribe_to_postgame_stats().await;
+    }
+
+    if let Some(mut ws_client) = ws_client {
+        tokio::select! {
+            _ = cancel_subtoken.cancelled() => log::info!("canceled waiting for post game stats"),
+            event = ws_client.next() => {
+                if let Some(mut event) = event {
+                    log::info!("EOG stats: {:#?}", event.data);
+
+                    let json_stats = event.data["localPlayer"]["stats"].take();
+
+                    if game_data.win.is_none() {
+                        // on win the data contains a "WIN" key with a value of '1'
+                        // on lose the data contains a "LOSE" key with a value of '1'
+                        // So if json_stats["WIN"] is not null => WIN
+                        // and if json_stats["LOSE"] is not null => LOSE
+                        if !json_stats["WIN"].is_null() {
+                            game_data.win = Some(true);
+                        } else if !json_stats["LOSE"].is_null() {
+                            game_data.win = Some(false);
+                        }
+                    }
+
+                    match serde_json::from_value(json_stats) {
+                        Ok(stats) => {
+                            game_data.stats = stats;
+                            log::info!("collected post game stats successfully");
+                        }
+                        Err(e) => log::warn!("error deserializing end of game stats: {e:?}"),
+                    }
+                } else {
+                    log::warn!("LCU event listener timed out");
+                }
+            }
+        }
+    }
+
+    async_runtime::spawn_blocking(move || {
+        log::info!("writing game metadata to file: {outfile:?}");
+
+        // serde_json requires a std::fs::File
+        if let Ok(file) = std::fs::File::create(&outfile) {
+            let result = serde_json::to_writer(&file, &game_data);
+            log::info!("metadata saved: {result:?}");
+
+            _ = app_handle.emit_all("recordings_changed", ());
+        }
+    });
+}
+
+async fn process_ingame_events(
+    game_data: &GameInfo,
+    recording_start: Instant,
+    cancel_subtoken: &CancellationToken,
+) -> (GameData, bool) {
+    let mut game_data = GameData {
+        win: None,
+        game_info: game_data.clone(),
+        stats: Stats::default(),
+        events: Vec::new(),
+    };
+
+    log::info!("Starting EventStream - listening to ingame events");
+    let mut ingame_events = EventStream::new();
     while let Some(event) = tokio::select! {
         event = ingame_events.next() => event,
         _ = cancel_subtoken.cancelled() => {
             log::info!("task cancelled while listening for ingame API events");
-            None
+            return (game_data, true);
         }
     } {
         use data::EventName;
@@ -401,71 +525,7 @@ async fn collect_ingame_data(
 
     log::info!("Ingame API connection stopped");
 
-    let stopped = recorder.stop_recording();
-    log::info!("recorder stopped: {stopped:?}");
-    let shutdown = recorder.shutdown();
-    log::info!("recorder shutdown: {shutdown:?}");
-    set_recording_tray_item(&app_handle, false);
-
-    log::info!("waiting for post game stats");
-
-    // after the game has ended retry connecting to LeagueClient for 10s
-    // (if not already connected) in case the LeagueClient gets closed during the game
-    for _ in 0..10 {
-        if ws_client.is_some() {
-            break;
-        }
-
-        tokio::time::sleep(Duration::from_secs(1)).await;
-        ws_client = subscribe_to_postgame_stats().await;
-    }
-
-    if let Some(mut ws_client) = ws_client {
-        tokio::select! {
-            _ = cancel_subtoken.cancelled() => log::info!("canceled waiting for post game stats"),
-            event = ws_client.next() => {
-                if let Some(mut event) = event {
-                    log::info!("EOG stats: {:?}", event.data);
-
-                    let json_stats = event.data["localPlayer"]["stats"].take();
-
-                    if game_data.win.is_none() {
-                        // on win the data contains a "WIN" key with a value of '1'
-                        // on lose the data contains a "LOSE" key with a value of '1'
-                        // So if json_stats["WIN"] is not null => WIN
-                        // and if json_stats["LOSE"] is not null => LOSE
-                        if !json_stats["WIN"].is_null() {
-                            game_data.win = Some(true);
-                        } else if !json_stats["LOSE"].is_null() {
-                            game_data.win = Some(false);
-                        }
-                    }
-
-                    match serde_json::from_value(json_stats) {
-                        Ok(stats) => {
-                            game_data.stats = stats;
-                            log::info!("collected post game stats successfully");
-                        }
-                        Err(e) => log::warn!("error deserializing end of game stats: {e:?}"),
-                    }
-                } else {
-                    log::warn!("LCU event listener timed out");
-                }
-            }
-        }
-    }
-
-    async_runtime::spawn_blocking(move || {
-        log::info!("writing game metadata to file: {outfile:?}");
-
-        // serde_json requires a std::fs::File
-        if let Ok(file) = std::fs::File::create(&outfile) {
-            let result = serde_json::to_writer(&file, &game_data);
-            log::info!("metadata saved: {result:?}");
-
-            _ = app_handle.emit_all("recordings_changed", ());
-        }
-    });
+    (game_data, false)
 }
 
 async fn subscribe_to_postgame_stats() -> Option<LcuWebsocketClient> {

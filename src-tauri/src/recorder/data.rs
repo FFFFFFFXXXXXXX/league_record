@@ -1,7 +1,7 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 
 #[cfg_attr(test, derive(specta::Type))]
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameData {
     pub win: Option<bool>,
@@ -11,7 +11,7 @@ pub struct GameData {
 }
 
 #[cfg_attr(test, derive(specta::Type))]
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameInfo {
     pub game_mode: String,
@@ -20,7 +20,7 @@ pub struct GameInfo {
 }
 
 #[cfg_attr(test, derive(specta::Type))]
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Stats {
     #[serde(alias = "CHAMPIONS_KILLED")]
@@ -44,7 +44,7 @@ pub struct Stats {
 }
 
 #[cfg_attr(test, derive(specta::Type))]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameEvent {
     pub name: EventName,
@@ -52,7 +52,7 @@ pub struct GameEvent {
 }
 
 #[cfg_attr(test, derive(specta::Type))]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub enum EventName {
     Kill,
     Death,
