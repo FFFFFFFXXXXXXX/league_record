@@ -12,9 +12,6 @@ pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
             if let Ok(event) = res {
                 let currently_recording = app_handle.state::<CurrentlyRecording>().get();
 
-                log::info!("filewatcher event: {:?}", event.paths);
-                log::info!("currently recording: {:?}", currently_recording);
-
                 // only trigger UI sidebar reload if one of the changed paths is a video (.mp4) file
                 let contains_mp4_path = event.paths.iter().any(|p| {
                     p.extension().and_then(OsStr::to_str) == Some("mp4")
@@ -34,14 +31,18 @@ pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
                     })
                     .collect();
 
-                log::info!("filewatcher event contains .mp4 path: {contains_mp4_path}");
-                log::info!("filewatcher event json paths: {:?}", json_paths);
+                if contains_mp4_path || !json_paths.is_empty() {
+                    log::info!("filewatcher event: {:?}", event.paths);
+                    log::info!("currently recording: {:?}", currently_recording);
+                }
 
                 if contains_mp4_path {
+                    log::info!("filewatcher event contains .mp4 path: {contains_mp4_path}");
                     _ = app_handle.emit_all("recordings_changed", ());
                 }
 
                 if !json_paths.is_empty() {
+                    log::info!("filewatcher event json paths: {:?}", json_paths);
                     _ = app_handle.emit_all("metadata_changed", json_paths);
                 }
             }
