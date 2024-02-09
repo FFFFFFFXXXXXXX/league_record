@@ -1,0 +1,31 @@
+
+name: Build Release Artifacts
+
+on:
+  push:
+    tags: ['*']
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  release:
+    name: cargo release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install tauri
+      - run: cargo tauri build
+      - run: cd ./src-tauri/target/release/ && 7z a -tzip LeagueRecord_${{  github.ref_name }}_x64_en-US.zip ./licenses/ ./libobs/ ./LeagueRecord.exe
+
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "./src-tauri/target/release/*.zip, ./src-tauri/target/release/bundle/*.exe"
+          prerelease: true
+          body: |
+            Windows-x64 installer and portable version.
+            The \"portable\" requires a version of the webview2 runtime to be installed and won't work without it.
+            Windows 11 should have the Webview2 runtime installed by default.
