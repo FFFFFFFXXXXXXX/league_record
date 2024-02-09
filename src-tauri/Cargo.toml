@@ -29,7 +29,7 @@ serde_json = "1.0.113"
 open = "5.0.1"
 notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
 # dependencies for the recorder module
-libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git", features = ["bindgen", "specta"] }
+libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git", features = ["specta"] }
 shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
 tokio = { version = "1.36.0", features = ["fs", "io-util", "rt-multi-thread", "macros"] }
 tokio-util = { version = "0.7.10", features = ["io"] }
