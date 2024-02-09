@@ -16,10 +16,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+
+      - uses: dtolnay/rust-toolchain@nightly
       - run: cargo install tauri-cli
       - run: cargo tauri build
-      - run: cd ./src-tauri/target/release/ && 7z a -tzip LeagueRecord_${{  github.ref_name }}_x64_en-US.zip ./licenses/ ./libobs/ ./LeagueRecord.exe
+        working-directory: ./src-tauri/
+      - run: 7z a -tzip LeagueRecord_${{  github.ref_name }}_x64_en-US.zip ./licenses/ ./libobs/ ./LeagueRecord.exe
+        working-directory: ./src-tauri/target/release/
 
       - uses: ncipollo/release-action@v1
         with:
