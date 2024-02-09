@@ -28,7 +28,7 @@ jobs:
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "./src-tauri/target/release/*.zip, ./src-tauri/target/release/bundle/*.exe"
+          artifacts: "./src-tauri/target/release/*.zip, ./src-tauri/target/release/bundle/*.msi"
           prerelease: true
           body: |
             Windows-x64 installer and portable version.
