@@ -10,14 +10,14 @@ on:
 jobs:
   release:
     name: cargo release
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
       
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo install tauri
+      - run: cargo install tauri-cli
       - run: cargo tauri build
       - run: cd ./src-tauri/target/release/ && 7z a -tzip LeagueRecord_${{  github.ref_name }}_x64_en-US.zip ./licenses/ ./libobs/ ./LeagueRecord.exe
 
