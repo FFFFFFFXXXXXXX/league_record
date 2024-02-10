@@ -357,6 +357,8 @@ async fn collect_ingame_data(
     let recording_start = Instant::now();
     set_recording_tray_item(&app_handle, true);
 
+    // try subscribing to postgame stats
+    // might fail if user has client setting enabled that closes the client during a game
     let mut ws_client = subscribe_to_postgame_stats().await;
 
     // if the window still exists after the ingame API has stopped responding
@@ -365,16 +367,17 @@ async fn collect_ingame_data(
     let mut game_data = loop {
         // if cancelled via the token break out of loop immediately
         let (game_data, cancelled) = process_ingame_events(&game_info, recording_start, &cancel_subtoken).await;
+        log::info!("Ingame API connection stopped (cancelled={cancelled})");
 
         // just to be sure wait for a short amout after the API has stopped responding
         // before checking if the LoL window still exists
-        if !cancelled {
-            tokio::time::sleep(Duration::from_millis(500)).await;
+        if !cancelled && get_lol_window().is_some() {
+            tokio::time::sleep(Duration::from_secs(1)).await;
         }
 
+        // check again after delay
         if cancelled || get_lol_window().is_none() {
-            // if we somehow get less information in the retry than in the previous attempt
-            // return previous data instead of the new data
+            // if we somehow get less information in the retry than in the previous attempt return previous data
             if prev_game_data
                 .as_ref()
                 .is_some_and(|prev: &GameData| prev.events.len() > game_data.events.len())
@@ -386,6 +389,7 @@ async fn collect_ingame_data(
         }
 
         prev_game_data = Some(game_data);
+        log::warn!("ingame api stopped responding early - trying to reconnect");
     };
 
     let stopped = recorder.stop_recording();
@@ -522,8 +526,6 @@ async fn process_ingame_events(
             game_data.events.push(data::GameEvent { name, time })
         }
     }
-
-    log::info!("Ingame API connection stopped");
 
     (game_data, false)
 }
