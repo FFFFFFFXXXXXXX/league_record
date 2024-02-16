@@ -10,10 +10,7 @@ use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTra
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::LogTarget;
 
-use crate::{
-    state::{SettingsWrapper, WindowState},
-    CurrentlyRecording,
-};
+use crate::state::{CurrentlyRecording, SettingsWrapper, WindowState};
 
 const GITHUB_LATEST: &str = "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest";
 

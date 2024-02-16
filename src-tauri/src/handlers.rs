@@ -5,18 +5,13 @@ use tauri::{
         path::{app_config_dir, video_dir},
         shell,
     },
-    App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
+    async_runtime, App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
 };
 
-use crate::{
-    filewatcher,
-    helpers::{
-        add_log_plugin, check_updates, create_tray_menu, create_window, ensure_settings_exist, remove_log_plugin,
-        save_window_state, sync_autostart,
-    },
-    recorder,
-    state::{SettingsFile, SettingsWrapper},
-};
+use crate::filewatcher;
+use crate::helpers::*;
+use crate::recorder;
+use crate::state::{SettingsFile, SettingsWrapper};
 
 pub fn create_system_tray() -> SystemTray {
     SystemTray::new()
@@ -159,7 +154,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     log::info!("video folder: {:?}", recordings_path);
 
     filewatcher::replace(&app_handle, &recordings_path);
-    recorder::start(&app_handle);
+    async_runtime::spawn(recorder::start_recorder(app_handle));
     Ok(())
 }
 

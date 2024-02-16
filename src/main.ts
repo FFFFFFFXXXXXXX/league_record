@@ -2,6 +2,7 @@ import 'video.js/dist/video-js.min.css';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import { MarkersPlugin, type Settings, type MarkerOptions } from '@fffffffxxxxxxx/videojs-markers';
+import type { GameEvent } from '@fffffffxxxxxxx/league_record_types';
 
 import { appWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
@@ -18,7 +19,13 @@ const EVENT_DELAY = 3;
 
 const ui = new UI(videojs, appWindow);
 
-let currentEvents = new Array<tauri.GameEvent>();
+type RecordingEvents = {
+    participantId: number,
+    recordingOffset: number
+    events: Array<GameEvent>
+}
+
+let currentEvents: RecordingEvents | null = null;
 
 const player = videojs('video_player', {
     aspectRatio: '16:9',
@@ -144,75 +151,99 @@ async function setMetadata(videoId: string) {
     const data = await tauri.getMetadata(videoId);
     if (data) {
         ui.setVideoDescriptionStats(data);
+        currentEvents = {
+            participantId: data.participantId,
+            recordingOffset: data.ingameTimeRecStartOffset,
+            events: data.events
+        }
     } else {
         ui.setVideoDescription('', 'No Data');
+        currentEvents = null;
     }
 
-    currentEvents = data?.events ?? [];
     changeMarkers();
 }
 
 function changeMarkers() {
-    const arr = new Array<MarkerOptions>();
+    player.markers().removeAll();
+    if (currentEvents === null) {
+        return;
+    }
+
     const checkbox = ui.getCheckboxes();
-    for (const e of currentEvents) {
-        let visible = false;
-        switch (e['name']) {
-            case 'Kill':
-                visible = checkbox.kill;
-                break;
-            case 'Death':
-                visible = checkbox.death;
-                break;
-            case 'Assist':
-                visible = checkbox.assist;
-                break;
-            case 'Turret':
-                visible = checkbox.turret;
-                break;
-            case 'Inhibitor':
-                visible = checkbox.inhibitor;
-                break;
-            case 'InfernalDragon':
-            case 'OceanDragon':
-            case 'MountainDragon':
-            case 'CloudDragon':
-            case 'HextechDragon':
-            case 'ChemtechDragon':
-            case 'ElderDragon':
-                visible = checkbox.dragon;
-                break;
-            case 'Voidgrub':
-            case 'Herald':
-                visible = checkbox.herald;
-                break;
-            case 'Baron':
-                visible = checkbox.baron;
-                break;
-            default:
-                break;
-        }
-        if (visible) {
-            arr.push({
-                time: e['time'] - EVENT_DELAY,
-                text: e['name'],
-                class: e['name']?.toLowerCase(),
-                duration: 5
-            });
+    const { participantId, recordingOffset } = currentEvents;
+
+    const markers = new Array<MarkerOptions>();
+    for (const e of currentEvents.events) {
+        if ('ChampionKill' in e) {
+            const event = e.ChampionKill;
+
+            if (checkbox.kill && event.killer_id === participantId) {
+                markers.push(createMarker(event.timestamp, recordingOffset, 'Kill'));
+            } else if (checkbox.assist && event.assisting_participant_ids.includes(participantId)) {
+                markers.push(createMarker(event.timestamp, recordingOffset, 'Assist'));
+            } else if (checkbox.death && event.victim_id === participantId) {
+                markers.push(createMarker(event.timestamp, recordingOffset, 'Death'));
+            }
+        } else if ('BuildingKill' in e) {
+            const event = e.BuildingKill;
+
+            if (checkbox.turret && 'TOWER_BUILDING' in event.building_type) {
+                markers.push(createMarker(event.timestamp, recordingOffset, 'Turret'));
+            } else if (checkbox.inhibitor && 'INHIBITOR_BUILDING' in event.building_type) {
+                markers.push(createMarker(event.timestamp, recordingOffset, 'Inhibitor'));
+            }
+        } else if ('EliteMonsterKill' in e) {
+            const event = e.EliteMonsterKill;
+            const monsterType = event.monster_type;
+
+            if (checkbox.herald && monsterType.monsterType === 'HORDE') {
+                markers.push(createMarker(event.timestamp, recordingOffset, 'Voidgrub'));
+            } else if (checkbox.herald && monsterType.monsterType === 'RIFTHERALD') {
+                markers.push(createMarker(event.timestamp, recordingOffset, 'Herald'));
+            } else if (checkbox.baron && monsterType.monsterType === 'BARON_NASHOR') {
+                markers.push(createMarker(event.timestamp, recordingOffset, 'Baron'));
+            } else if (checkbox.dragon && monsterType.monsterType === 'DRAGON') {
+                switch (monsterType.monsterSubType) {
+                    case "FIRE_DRAGON":
+                        markers.push(createMarker(event.timestamp, recordingOffset, 'Infernal-Dragon'));
+                        break;
+                    case "EARTH_DRAGON":
+                        markers.push(createMarker(event.timestamp, recordingOffset, 'Mountain-Dragon'));
+                        break;
+                    case "WATER_DRAGON":
+                        markers.push(createMarker(event.timestamp, recordingOffset, 'Ocean-Dragon'));
+                        break;
+                    case "AIR_DRAGON":
+                        markers.push(createMarker(event.timestamp, recordingOffset, 'Cloud-Dragon'));
+                        break;
+                    case "HEXTECH_DRAGON":
+                        markers.push(createMarker(event.timestamp, recordingOffset, 'Hextech-Dragon'));
+                        break;
+                    case "CHEMTECH_DRAGON":
+                        markers.push(createMarker(event.timestamp, recordingOffset, 'Chemtech-Dragon'));
+                        break;
+                    case "ELDER_DRAGON":
+                        markers.push(createMarker(event.timestamp, recordingOffset, 'Elder-Dragon'));
+                        break;
+                }
+            }
         }
     }
-    player.markers().removeAll();
-    player.markers().add(arr);
-    tauri.setMarkerFlags({
-        kill: checkbox.kill,
-        death: checkbox.death,
-        assist: checkbox.assist,
-        turret: checkbox.turret,
-        inhibitor: checkbox.inhibitor,
-        dragon: checkbox.dragon,
-        herald: checkbox.herald,
-        baron: checkbox.baron
-    });
+
+    player.markers().add(markers);
+}
+
+type EventType = 'Kill' | 'Death' | 'Assist' | 'Turret' | 'Inhibitor' | 'Voidgrub' | 'Herald' | 'Baron'
+    | 'Infernal-Dragon' | 'Ocean-Dragon' | 'Mountain-Dragon' | 'Cloud-Dragon' | 'Hextech-Dragon' | 'Chemtech-Dragon' | 'Elder-Dragon';
+
+function createMarker(timestamp: number, recordingOffset: number, eventType: EventType): MarkerOptions {
+    return {
+        time: (timestamp / 1000 - recordingOffset) - EVENT_DELAY,
+        text: eventType,
+        class: eventType.toLowerCase(),
+        duration: 2 * EVENT_DELAY
+    };
 }
 
 // --- MODAL ---

@@ -1,6 +1,6 @@
 import type videojs from 'video.js';
 import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
-import type { MarkerFlags, GameData } from './bindings';
+import type { MarkerFlags, GameMetadata } from '@fffffffxxxxxxx/league_record_types';
 import type { WebviewWindow } from '@tauri-apps/api/window';
 import { toVideoId, toVideoName } from './util';
 
@@ -253,29 +253,27 @@ export default class UI {
         this.vjs.dom.insertContent(this.descriptionCenter, center);
     }
 
-    public setVideoDescriptionStats(data: GameData) {
+    public setVideoDescriptionStats(data: GameMetadata) {
         if (!data) {
             this.setVideoDescription('', 'No Data');
             return;
         }
 
-        const stats = data['stats'];
+        const stats = data.stats;
 
         const summoner = this.vjs.dom.createEl(
             'span',
             {},
             { class: 'summoner-name' },
-            data['gameInfo']['summonerName']
+            data.player.gameName
         );
-        const score1 = `${data['gameInfo']['championName']} - ${stats['kills']}/${stats['deaths']}/${stats['assists']}`;
-        const score2 = `${stats['minionsKilled']! + stats['neutralMinionsKilled']!} CS | ${stats['wardScore']!.toFixed(2).toString()} WS`;
+        const score1 = `${data.championName} - ${stats.kills}/${stats.deaths}/${stats.assists} `;
+        const score2 = `${stats.totalMinionsKilled} CS | ${stats.visionScore} WS`;
 
-        const gameMode = `Game Mode: ${data['gameInfo']['gameMode']}`;
-        const result = data['win'] !== null && (
-            data['win'] ?
-                this.vjs.dom.createEl('span', {}, { class: 'win' }, 'Victory')
-                : this.vjs.dom.createEl('span', {}, { class: 'loss' }, 'Defeat')
-        );
+        const gameMode = `Game Mode: ${data.queue.name} `;
+        const result = data.stats.win ?
+            this.vjs.dom.createEl('span', {}, { class: 'win' }, 'Victory')
+            : this.vjs.dom.createEl('span', {}, { class: 'loss' }, 'Defeat');
 
         this.setVideoDescription(
             [

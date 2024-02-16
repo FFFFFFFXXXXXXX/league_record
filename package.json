@@ -9,9 +9,7 @@
         "vite.config.ts"
     ],
     "scripts": {
-        "predev": "cd src-tauri && cargo test generate_command_bindings",
         "dev": "vite",
-        "prebuild": "cd src-tauri && cargo test generate_command_bindings --release",
         "build": "tsc && vite build",
         "preview": "vite preview",
         "tauri": "tauri"
@@ -19,7 +17,8 @@
     "dependencies": {
         "video.js": "^8.10.0",
         "@fffffffxxxxxxx/videojs-markers": "^1.1.6",
-        "@tauri-apps/api": "^1.5.2"
+        "@tauri-apps/api": "^1.5.2",
+        "@fffffffxxxxxxx/league_record_types": "file:league_record_types/"
     },
     "devDependencies": {
         "@tauri-apps/cli": "^1.5.8",

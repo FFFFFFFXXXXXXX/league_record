@@ -15,25 +15,14 @@ mod recorder;
 mod state;
 
 fn main() {
-    // Only check if this is the only instance of LeagueRecord if the check succeeds (= true|false).
-    // It is better to accidentally open two instances instead of none because something went wrong
-    //
-    // Don't drop single_instance around until the end of main()
-    let single_instance = single_instance::SingleInstance::new("LEAGUE_RECORD_APPLICATION");
-    if let Ok(single_instance) = single_instance.as_ref() {
-        if !single_instance.is_single() {
-            println!("There is already an instance of LeagueRecord running!");
-            return;
-        }
-    } else {
-        println!("Something went wrong when checking for other instances of LeagueRecord");
-    }
-
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            helpers::create_window(app)
+        }))
         .manage(WindowState::default())
         .manage(SettingsWrapper::default())
         .manage(CurrentlyRecording::default())
@@ -60,7 +49,7 @@ fn main() {
 
 #[test]
 fn generate_command_bindings() {
-    tauri_specta::ts::export(
+    tauri_specta::ts::export_with_cfg(
         specta::collect_types![
             show_app_window,
             get_marker_flags,
@@ -72,7 +61,11 @@ fn generate_command_bindings() {
             delete_video,
             rename_video,
             get_metadata
-        ],
+        ]
+        .unwrap(),
+        specta::ts::ExportConfiguration::new()
+            .bigint(specta::ts::BigIntExportBehavior::Number)
+            .export_by_default(Some(false)),
         "../src/bindings.ts",
     )
     .unwrap();
@@ -80,5 +73,11 @@ fn generate_command_bindings() {
 
 #[test]
 fn generate_type_bindings() {
-    specta::export::ts("../league_record_types/index.d.ts").unwrap();
+    use specta::ts::{BigIntExportBehavior, ExportConfiguration};
+
+    specta::export::ts_with_cfg(
+        "../league_record_types/index.d.ts",
+        &ExportConfiguration::new().bigint(BigIntExportBehavior::Number),
+    )
+    .unwrap();
 }

@@ -11,12 +11,11 @@ use std::{
     path::PathBuf,
 };
 
-use crate::{
-    helpers::{self, compare_time, get_recordings, show_window},
-    recorder::data::GameData,
-    state::{MarkerFlags, SettingsFile, SettingsWrapper},
-};
 use tauri::{api::shell, AppHandle, Manager, State};
+
+use crate::helpers::{self, compare_time, get_recordings, show_window};
+use crate::recorder::GameMetadata;
+use crate::state::{MarkerFlags, SettingsFile, SettingsWrapper};
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
@@ -130,10 +129,10 @@ pub fn delete_video(video_id: String, state: State<'_, SettingsWrapper>) -> bool
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn get_metadata(video_id: String, state: State<'_, SettingsWrapper>) -> Option<GameData> {
+pub fn get_metadata(video_id: String, state: State<'_, SettingsWrapper>) -> Option<GameMetadata> {
     let mut path = state.get_recordings_path().join(video_id);
     path.set_extension("json");
 
     let reader = BufReader::new(File::open(path).ok()?);
-    serde_json::from_reader::<_, GameData>(reader).ok()
+    serde_json::from_reader::<_, GameMetadata>(reader).ok()
 }

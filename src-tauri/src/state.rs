@@ -4,13 +4,12 @@ use std::{
     sync::{Mutex, RwLock},
 };
 
+use libobs_recorder::settings::{AudioSource, Framerate, Resolution};
 use serde::{
     de::{MapAccess, Visitor},
     Deserialize, Serialize,
 };
 use tauri::api::path::video_dir;
-
-use libobs_recorder::settings::{AudioSource, Framerate, Resolution};
 
 pub struct WindowState {
     pub size: Mutex<(f64, f64)>,
@@ -192,6 +191,10 @@ impl SettingsWrapper {
         self.0.write().unwrap().marker_flags = marker_flags;
     }
 
+    pub fn only_record_ranked(&self) -> bool {
+        self.0.read().unwrap().only_record_ranked
+    }
+
     pub fn autostart(&self) -> bool {
         self.0.read().unwrap().autostart
     }
@@ -223,6 +226,7 @@ pub struct Settings {
     output_resolution: Option<Resolution>,
     framerate: Framerate,
     record_audio: AudioSource,
+    only_record_ranked: bool,
     autostart: bool,
 }
 
@@ -230,6 +234,7 @@ const DEFAULT_UPDATE_CHECK: bool = true;
 const DEFAULT_DEBUG_LOG: bool = false;
 const DEFAULT_ENCODING_QUALITY: u32 = 25;
 const DEFAULT_RECORD_AUDIO: AudioSource = AudioSource::APPLICATION;
+const DEFAULT_ONLY_RECORD_RANKED: bool = false;
 const DEFAULT_AUTOSTART: bool = false;
 
 #[inline]
@@ -259,6 +264,7 @@ impl Default for Settings {
             output_resolution: None,
             framerate: default_framerate(),
             record_audio: DEFAULT_RECORD_AUDIO,
+            only_record_ranked: DEFAULT_ONLY_RECORD_RANKED,
             autostart: false,
         }
     }
@@ -313,6 +319,9 @@ impl<'de> Deserialize<'de> for Settings {
                         }
                         "recordAudio" => {
                             settings.record_audio = map.next_value().unwrap_or(DEFAULT_RECORD_AUDIO);
+                        }
+                        "onlyRecordRanked" => {
+                            settings.only_record_ranked = map.next_value().unwrap_or(DEFAULT_ONLY_RECORD_RANKED);
                         }
                         "autostart" => {
                             settings.autostart = map.next_value().unwrap_or(DEFAULT_AUTOSTART);

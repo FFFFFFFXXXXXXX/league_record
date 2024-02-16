@@ -20,5 +20,6 @@
     1
   ],
   "recordAudio": "APPLICATION",
+  "onlyRecordRanked": false,
   "autostart": false
 }
