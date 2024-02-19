@@ -9,4 +9,5 @@ This package has no dependencies and is just for type hints when working with sa
 
 ## Changelog
 
+- 1.18.0: `GameData` is now `GameMetadata` and basically all the types related to it changed. The type for the settings.json file had a new property `onlyRecordRanked` added.
 - 1.17.0: Changed `EventName` dragon names from `{Type}-Dragon` to `{Type}Dragon` - so for example `Infernal-Dragon` is now `InfernalDragon`
