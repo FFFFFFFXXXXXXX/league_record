@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::game_data::GameId;
+use crate::game_data::GameId;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]

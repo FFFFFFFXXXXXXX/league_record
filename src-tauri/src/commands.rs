@@ -4,17 +4,15 @@
     return just a value
 */
 
-use std::{
-    cmp::Ordering,
-    fs::{metadata, remove_file, rename, File},
-    io::BufReader,
-    path::PathBuf,
-};
+use std::cmp::Ordering;
+use std::fs::{metadata, remove_file, rename, File};
+use std::io::BufReader;
+use std::path::PathBuf;
 
 use tauri::{api::shell, AppHandle, Manager, State};
 
+use crate::game_data::GameMetadata;
 use crate::helpers::{self, compare_time, get_recordings, show_window};
-use crate::recorder::GameMetadata;
 use crate::state::{MarkerFlags, SettingsFile, SettingsWrapper};
 
 #[cfg_attr(test, specta::specta)]

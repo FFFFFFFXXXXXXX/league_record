@@ -7,13 +7,12 @@ use shaco::rest::LcuRestClient;
 use tokio::{select, time::sleep, try_join};
 use tokio_util::sync::CancellationToken;
 
-use super::{
-    game::{Game, Player, Stats},
-    objects::Champion,
-    timeline::{GameEvent, Timeline},
-    GameId, ParticipantId,
-};
-use crate::recorder::{game_data::objects::Queue, util::cancellable};
+use super::game::{Game, Player, Stats};
+use super::objects::Champion;
+use super::objects::Queue;
+use super::timeline::{GameEvent, Timeline};
+use super::{GameId, ParticipantId};
+use crate::cancellable;
 
 pub async fn process_data(
     ingame_time_rec_start_offset: f64,

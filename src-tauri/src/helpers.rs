@@ -1,16 +1,18 @@
-use std::{
-    cmp::Ordering,
-    fs, io,
-    path::{Path, PathBuf},
-};
+use std::cmp::Ordering;
+use std::fs;
+use std::io;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use log::LevelFilter;
 use reqwest::{blocking::Client, redirect::Policy, StatusCode};
+use tauri::async_runtime;
 use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem, Window};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::LogTarget;
 
-use crate::state::{CurrentlyRecording, SettingsWrapper, WindowState};
+use crate::filewatcher;
+use crate::state::{CurrentlyRecording, SettingsFile, SettingsWrapper, WindowState};
 
 const GITHUB_LATEST: &str = "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest";
 
@@ -214,4 +216,76 @@ pub fn ensure_settings_exist(settings_file: &Path) -> bool {
         };
     }
     true
+}
+
+pub fn let_user_edit_settings(app_handle: &AppHandle) {
+    // spawn a separate thread to avoid blocking the main thread with Command::status()
+    async_runtime::spawn_blocking({
+        let app_handle = app_handle.clone();
+        move || {
+            let settings_file = app_handle.state::<SettingsFile>();
+            let settings_file = settings_file.get();
+
+            if ensure_settings_exist(settings_file) {
+                let settings = app_handle.state::<SettingsWrapper>();
+                let old_recordings_path = settings.get_recordings_path();
+                let old_log = settings.debug_log();
+
+                // hardcode 'notepad' since league_record currently only works on windows anyways
+                Command::new("notepad")
+                    .arg(settings_file)
+                    .status()
+                    .expect("failed to start text editor");
+
+                // reload settings from settings.json
+                settings.load_from_file(settings_file);
+                log::info!("Settings updated: {:?}", settings.inner());
+
+                // check and update autostart if necessary
+                sync_autostart(&app_handle);
+
+                // add / remove logs plugin if needed
+                if old_log != settings.debug_log() {
+                    if settings.debug_log() {
+                        if add_log_plugin(&app_handle).is_err() {
+                            // retry
+                            remove_log_plugin(&app_handle);
+                            _ = add_log_plugin(&app_handle);
+                        }
+                    } else {
+                        remove_log_plugin(&app_handle);
+                    }
+                }
+
+                // check if UI window needs to be updated
+                let recordings_path = settings.get_recordings_path();
+                if recordings_path != old_recordings_path {
+                    filewatcher::replace(&app_handle, &recordings_path);
+                    _ = app_handle.emit_all("recordings_changed", ());
+                }
+            }
+        }
+    });
+}
+
+#[macro_export]
+macro_rules! cancellable {
+    ($function:expr, $cancel_token:expr, Option) => {
+        select! {
+            option = $function => option,
+            _ = $cancel_token.cancelled() => None
+        }
+    };
+    ($function:expr, $cancel_token:expr, Result) => {
+        select! {
+            result = $function => result.map_err(|e| anyhow!("{e}")),
+            _ = $cancel_token.cancelled() => Err(anyhow!("cancelled"))
+        }
+    };
+    ($function:expr, $cancel_token:expr, ()) => {
+        select! {
+            _ = $function => false,
+            _ = $cancel_token.cancelled() => true
+        }
+    };
 }

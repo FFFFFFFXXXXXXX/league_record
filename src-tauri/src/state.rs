@@ -1,14 +1,10 @@
-use std::{
-    fmt, fs,
-    path::{Path, PathBuf},
-    sync::{Mutex, RwLock},
-};
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, RwLock};
+use std::{fmt, fs};
 
-use libobs_recorder::settings::{AudioSource, Framerate, Resolution};
-use serde::{
-    de::{MapAccess, Visitor},
-    Deserialize, Serialize,
-};
+use libobs_recorder::settings::{AudioSource, Framerate, StdResolution};
+use serde::de::{MapAccess, Visitor};
+use serde::{Deserialize, Serialize};
 use tauri::api::path::video_dir;
 
 pub struct WindowState {
@@ -167,7 +163,7 @@ impl SettingsWrapper {
         self.0.read().unwrap().encoding_quality
     }
 
-    pub fn get_output_resolution(&self) -> Option<Resolution> {
+    pub fn get_output_resolution(&self) -> Option<StdResolution> {
         self.0.read().unwrap().output_resolution
     }
 
@@ -223,7 +219,7 @@ pub struct Settings {
     filename_format: String,
     encoding_quality: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    output_resolution: Option<Resolution>,
+    output_resolution: Option<StdResolution>,
     framerate: Framerate,
     record_audio: AudioSource,
     only_record_ranked: bool,

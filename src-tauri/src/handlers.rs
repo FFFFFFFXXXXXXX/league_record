@@ -1,17 +1,12 @@
-use std::{error::Error, process::Command, thread, time::Duration};
+use std::error::Error;
 
-use tauri::{
-    api::{
-        path::{app_config_dir, video_dir},
-        shell,
-    },
-    async_runtime, App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry,
-};
+use tauri::api::path::{app_config_dir, video_dir};
+use tauri::api::shell;
+use tauri::{App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry};
 
-use crate::filewatcher;
 use crate::helpers::*;
-use crate::recorder;
 use crate::state::{SettingsFile, SettingsWrapper};
+use crate::{filewatcher, recorder::RecordLeagueGames};
 
 pub fn create_system_tray() -> SystemTray {
     SystemTray::new()
@@ -25,73 +20,15 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
             create_window(app_handle);
         }
         SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-            "settings" => {
-                // spawn a separate thread to avoid blocking the main thread with .status()
-                thread::spawn({
-                    let app_handle = app_handle.clone();
-                    move || {
-                        let settings_file = app_handle.state::<SettingsFile>();
-                        let settings_file = settings_file.get();
-
-                        if ensure_settings_exist(settings_file) {
-                            let settings = app_handle.state::<SettingsWrapper>();
-                            let old_recordings_path = settings.get_recordings_path();
-                            let old_log = settings.debug_log();
-
-                            // hardcode 'notepad' since league_record currently only works on windows anyways
-                            Command::new("notepad")
-                                .arg(settings_file)
-                                .status()
-                                .expect("failed to start text editor");
-
-                            // reload settings from settings.json
-                            settings.load_from_file(settings_file);
-                            log::info!("Settings updated: {:?}", settings.inner());
-
-                            // check and update autostart if necessary
-                            sync_autostart(&app_handle);
-
-                            // add / remove logs plugin if needed
-                            if old_log != settings.debug_log() {
-                                if settings.debug_log() {
-                                    if add_log_plugin(&app_handle).is_err() {
-                                        // retry
-                                        remove_log_plugin(&app_handle);
-                                        _ = add_log_plugin(&app_handle);
-                                    }
-                                } else {
-                                    remove_log_plugin(&app_handle);
-                                }
-                            }
-
-                            // check if UI window needs to be updated
-                            let recordings_path = settings.get_recordings_path();
-                            if recordings_path != old_recordings_path {
-                                filewatcher::replace(&app_handle, &recordings_path);
-                                _ = app_handle.emit_all("recordings_changed", ());
-                            }
-                        }
-                    }
-                });
-            }
+            "settings" => let_user_edit_settings(&app_handle),
             "open" => create_window(app_handle),
             "quit" => {
                 // close UI window
                 if let Some(main) = app_handle.windows().get("main") {
                     _ = main.close();
                 }
-
-                // always exit after 3s
-                tauri::async_runtime::spawn({
-                    let app_handle = app_handle.clone();
-                    async move {
-                        tokio::time::sleep(Duration::from_secs(3)).await;
-                        app_handle.exit(1);
-                    }
-                });
-
-                // stop recorder, recorder calls app_handle.exit(0) after shutting down
-                app_handle.trigger_global("shutdown_recorder", None);
+                app_handle.state::<RecordLeagueGames>().stop();
+                app_handle.exit(0);
             }
             "update" => {
                 _ = shell::open(
@@ -154,7 +91,8 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     log::info!("video folder: {:?}", recordings_path);
 
     filewatcher::replace(&app_handle, &recordings_path);
-    async_runtime::spawn(recorder::start_recorder(app_handle));
+
+    app_handle.manage(RecordLeagueGames::start(app_handle.clone()));
     Ok(())
 }
 
