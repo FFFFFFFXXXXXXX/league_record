@@ -2,7 +2,7 @@ use std::{fmt::Display, path::PathBuf, time::Duration};
 
 use anyhow::{anyhow, bail, Context, Result};
 use futures_util::StreamExt;
-use libobs_recorder::settings::{RateControl, StdResolution, Window};
+use libobs_recorder::settings::{RateControl, Resolution, StdResolution, Window};
 use libobs_recorder::{Recorder, RecorderSettings};
 use riot_local_auth::Credentials;
 use shaco::ingame::IngameClient;
@@ -16,7 +16,7 @@ use tokio::time::{interval, sleep, timeout};
 use tokio_util::sync::CancellationToken;
 
 use super::session_event::{GameData, GamePhase, SessionEventData, SubscriptionResponse};
-use super::window::{get_lol_window, get_window_size, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
+use super::window::{self, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
 use crate::cancellable;
 use crate::game_data::{self, GameId};
 use crate::state::{CurrentlyRecording, SettingsWrapper};
@@ -358,23 +358,9 @@ impl RecordingTaskInner {
     }
 
     async fn setup_recorder(ctx: Ctx<'_>) -> Result<(Recorder, PathBuf)> {
-        // try to get window handle for 15s
-        let mut window_handle = None;
-        for _ in 0..30 {
-            window_handle = get_lol_window();
-
-            if window_handle.is_some() {
-                break;
-            }
-
-            sleep(Duration::from_millis(500)).await;
-        }
-
-        let window_size = get_window_size(window_handle.context("no LoL ingame window found")?)?;
-
         let settings_state = ctx.app_handle.state::<SettingsWrapper>();
 
-        // either get the explicitly set resolution or choose the default resolution for the LoL window aspect ratio
+        let window_size = Self::get_window_size().await?;
         let output_resolution = settings_state
             .get_output_resolution()
             .unwrap_or_else(|| StdResolution::closest_std_resolution(&window_size));
@@ -421,5 +407,28 @@ impl RecordingTaskInner {
         log::info!("Selected encoder: {:?}", recorder.selected_encoder());
 
         Ok((recorder, filename_path))
+    }
+
+    async fn get_window_size() -> Result<Resolution> {
+        let mut window_handle = None;
+        for _ in 0..30 {
+            window_handle = window::get_lol_window();
+            if window_handle.is_some() {
+                break;
+            }
+
+            sleep(Duration::from_millis(500)).await;
+        }
+
+        let Some(window_handle) = window_handle else { bail!("unable to get window_handle") };
+        for _ in 0..30 {
+            if let Ok(window_size) = window::get_window_size(window_handle) {
+                return Ok(window_size);
+            }
+
+            sleep(Duration::from_millis(500)).await;
+        }
+
+        bail!("unable to get window size");
     }
 }
