@@ -23,7 +23,7 @@ pub async fn process_data(
     let lcu_rest_client = LcuRestClient::from(credentials);
 
     let mut data = None;
-    for _ in 0..15 {
+    for _ in 0..60 {
         data = try_join!(
             lcu_rest_client.get::<Player>("/lol-summoner/v1/current-summoner"),
             lcu_rest_client.get::<Game>(format!("/lol-match-history/v1/games/{}", game_id)),
