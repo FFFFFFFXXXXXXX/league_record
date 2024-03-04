@@ -95,6 +95,7 @@ async function main() {
     addEventListener('keydown', handleKeyboardEvents);
 
     listen<void>('recordings_changed', updateSidebar);
+    listen<void>('markerflags_changed', () => tauri.getMarkerFlags().then(flags => ui.setCheckboxes(flags)));
     listen<Array<string>>('metadata_changed', ({ payload }) => {
         const activeVideoId = ui.getActiveVideoId();
         if (activeVideoId !== null && payload.includes(toVideoName(activeVideoId))) {

@@ -228,6 +228,7 @@ pub fn let_user_edit_settings(app_handle: &AppHandle) {
 
             if ensure_settings_exist(settings_file) {
                 let settings = app_handle.state::<SettingsWrapper>();
+                let old_marker_flags = settings.get_marker_flags();
                 let old_recordings_path = settings.get_recordings_path();
                 let old_log = settings.debug_log();
 
@@ -262,6 +263,11 @@ pub fn let_user_edit_settings(app_handle: &AppHandle) {
                 if recordings_path != old_recordings_path {
                     filewatcher::replace(&app_handle, &recordings_path);
                     _ = app_handle.emit_all("recordings_changed", ());
+                }
+
+                let marker_flags = settings.get_marker_flags();
+                if marker_flags != old_marker_flags {
+                    _ = app_handle.emit_all("markerflags_changed", ());
                 }
             }
         }
