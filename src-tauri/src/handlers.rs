@@ -6,7 +6,7 @@ use tauri::{App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, Wind
 
 use crate::helpers::*;
 use crate::state::{SettingsFile, SettingsWrapper};
-use crate::{filewatcher, recorder::RecordLeagueGames};
+use crate::{filewatcher, recorder::LeagueRecorder};
 
 pub fn create_system_tray() -> SystemTray {
     SystemTray::new()
@@ -23,11 +23,8 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
             "settings" => let_user_edit_settings(&app_handle),
             "open" => create_window(app_handle),
             "quit" => {
-                // close UI window
-                if let Some(main) = app_handle.windows().get("main") {
-                    _ = main.close();
-                }
-                app_handle.state::<RecordLeagueGames>().stop();
+                app_handle.windows().into_values().for_each(|window| _ = window.close());
+                app_handle.state::<LeagueRecorder>().stop();
                 app_handle.exit(0);
             }
             "update" => {
@@ -92,7 +89,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
 
     filewatcher::replace(&app_handle, &recordings_path);
 
-    app_handle.manage(RecordLeagueGames::start(app_handle.clone()));
+    app_handle.manage(LeagueRecorder::start(app_handle.clone()));
     Ok(())
 }
 

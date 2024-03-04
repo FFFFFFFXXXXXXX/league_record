@@ -3,4 +3,4 @@ mod session_event;
 #[cfg(target_os = "windows")]
 mod window;
 
-pub use rec::RecordLeagueGames;
+pub use rec::LeagueRecorder;

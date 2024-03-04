@@ -24,12 +24,12 @@ use crate::{helpers::set_recording_tray_item, recorder::session_event::Queue};
 
 const RECORDINGS_CHANGED_EVENT: &str = "recordings_changed";
 
-pub struct RecordLeagueGames {
+pub struct LeagueRecorder {
     cancel_token: CancellationToken,
     task: async_runtime::Mutex<JoinHandle<()>>,
 }
 
-impl RecordLeagueGames {
+impl LeagueRecorder {
     pub fn start(app_handle: AppHandle) -> Self {
         let cancel_token = CancellationToken::new();
         let task = async_runtime::spawn(wait_for_api(app_handle, cancel_token.child_token()));
@@ -54,7 +54,7 @@ impl RecordLeagueGames {
 
 enum State {
     Idle,
-    Recording(RecordingTaskInner),
+    Recording(RecordingTask),
     EndOfGame(Metadata),
 }
 
@@ -200,7 +200,7 @@ async fn state_transition(state: State, sub_resp: SubscriptionResponse, ctx: Ctx
                 phase: GamePhase::GameStart | GamePhase::InProgress,
                 game_data: GameData { queue, game_id },
             }) if queue.is_ranked || !ctx.app_handle.state::<SettingsWrapper>().only_record_ranked() => {
-                State::Recording(RecordingTaskInner::start(game_id, ctx))
+                State::Recording(RecordingTask::start(game_id, ctx))
             }
             _ => State::Idle,
         },
@@ -277,12 +277,12 @@ async fn state_transition(state: State, sub_resp: SubscriptionResponse, ctx: Ctx
     next_state
 }
 
-struct RecordingTaskInner {
+struct RecordingTask {
     join_handle: JoinHandle<Result<Rec>>,
     ctx: CtxOwned,
 }
 
-impl RecordingTaskInner {
+impl RecordingTask {
     fn start(game_id: GameId, ctx: Ctx<'_>) -> Self {
         let ctx = CtxOwned {
             cancel_token: ctx.cancel_token.child_token(),
