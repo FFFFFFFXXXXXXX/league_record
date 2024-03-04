@@ -1,0 +1,125 @@
+#main {
+    overflow: auto;
+}
+
+/* hide videojs player outline when focused */
+#main:focus {
+    outline: none;
+}
+
+#description {
+    color: lightgray;
+    font-size: 1.35rem;
+    margin: 5px 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-around;
+    align-content: center;
+    align-items: center;
+}
+
+#description-left {
+    flex: 0.5 1 auto;
+    text-align: center;
+}
+
+#description-center {
+    flex: 1 1 auto;
+    text-align: center;
+}
+
+.summoner-name {
+    font-size: 24px;
+    color: #947f51;
+}
+
+.win {
+    font-size: 30px;
+    color: #0acbe6;
+}
+
+.loss {
+    font-size: 30px;
+    color: #ff2345;
+}
+
+.marker-list {
+    flex: 0.1 0 auto;
+}
+
+/* EVENT MARKERS */
+.kill {
+    background-color: lawngreen !important;
+}
+
+.assist {
+    background-color: green !important;
+}
+
+.death {
+    background-color: red !important;
+}
+
+.turret {
+    background-color: brown !important;
+}
+
+.inhibitor {
+    background-color: mediumblue !important;
+}
+
+.infernal-dragon,
+.ocean-dragon,
+.mountain-dragon,
+.cloud-dragon,
+.hextech-dragon,
+.chemtech-dragon,
+.elder-dragon .dragon {
+    background-color: darkgoldenrod !important;
+}
+
+.voidgrub {
+    background-color: deeppink !important;
+}
+
+.herald {
+    background-color: magenta !important;
+}
+
+.baron {
+    background-color: darkmagenta !important;
+}
+
+/* CHECKBOX LABELS */
+#kill {
+    accent-color: lawngreen;
+}
+
+#assist {
+    accent-color: green;
+}
+
+#death {
+    accent-color: red;
+}
+
+#turret {
+    accent-color: brown;
+}
+
+#inhibitor {
+    accent-color: mediumblue;
+}
+
+#dragon {
+    accent-color: darkgoldenrod;
+}
+
+#herald {
+    accent-color: magenta;
+}
+
+#baron {
+    accent-color: darkmagenta;
+}

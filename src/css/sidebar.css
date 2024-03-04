@@ -1,0 +1,83 @@
+#sidebar {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: [header] 1fr [list] 11fr;
+
+    border-right: 1px solid white;
+}
+
+#sidebar #sidebar-info {
+    background: var(--background-color);
+    border-bottom: 1px solid white;
+}
+
+#sidebar #sidebar-info #size {
+    text-align: center;
+    color: var(--theme-color);
+}
+
+#sidebar #sidebar-content {
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+    text-decoration: none;
+
+    font-size: 20px;
+    color: lightgray;
+    line-height: 22px;
+
+    overflow: auto;
+}
+
+#sidebar #sidebar-content li {
+    display: grid;
+    grid-template-columns: 1fr;
+
+    justify-items: start;
+    align-items: center;
+
+    padding: 13px;
+    border-bottom: 1px solid lightgray;
+}
+
+#sidebar #sidebar-content li:hover {
+    grid-template-columns: 1fr 25px 25px;
+    column-gap: 5px;
+
+    padding-right: 0;
+}
+
+#sidebar #sidebar-content li span.video-name {
+    width: 100%;
+
+    /* All 'white-space' and 'overflow' are required for 'text-overflow' to do anything */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#sidebar #sidebar-content li:hover,
+#sidebar #sidebar-content li.active {
+    cursor: pointer;
+    color: white;
+    background-color: #445fa5;
+}
+
+#sidebar #sidebar-content li>span.rename,
+#sidebar #sidebar-content li>span.delete {
+    display: none;
+}
+
+#sidebar #sidebar-content li:hover>span.rename,
+#sidebar #sidebar-content li:hover>span.delete {
+    display: block;
+}
+
+#sidebar #sidebar-content li>span:hover.rename {
+    color: aqua;
+}
+
+#sidebar #sidebar-content li>span:hover.delete {
+    color: red;
+}

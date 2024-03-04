@@ -111,7 +111,11 @@ export default class UI {
                 'li',
                 { onclick: () => onVideo(videoId) },
                 { id: videoId },
-                [videoName, renameBtn, deleteBtn]
+                [
+                    this.vjs.dom.createEl('span', {}, { class: 'video-name' }, videoName),
+                    renameBtn,
+                    deleteBtn
+                ]
             );
         });
 

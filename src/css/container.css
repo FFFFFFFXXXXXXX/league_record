@@ -1,0 +1,33 @@
+#container {
+    display: grid;
+    grid-template-columns: [sidebar] 305px [video] 1fr;
+    grid-template-rows: 100vh;
+}
+
+.btn {
+    --btn-disabled-color: lightslategray;
+    --btn-hover-color: white;
+    --btn-hover-background: #445fa5;
+
+    display: block;
+    width: 165px;
+    margin: 10px auto;
+    padding: 6px 12px;
+    border-radius: 5px;
+    background: var(--background-color);
+    color: var(--theme-color);
+    border: 2px solid var(--theme-color);
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.btn:disabled {
+    color: var(--btn-disabled-color);
+    border-color: var(--btn-disabled-color);
+}
+
+.btn:hover:enabled {
+    border: 2px solid var(--btn-hover-color);
+    color: var(--btn-hover-color);
+    background: var(--btn-hover-background);
+}
