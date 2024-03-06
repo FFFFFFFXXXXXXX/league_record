@@ -44,7 +44,7 @@ impl LeagueRecorder {
             self.cancel_token.cancel();
 
             let mut task = self.task.lock().await;
-            if let Err(_) = timeout(Duration::from_secs(1), &mut *task).await {
+            if timeout(Duration::from_secs(1), &mut *task).await.is_err() {
                 log::warn!("RecordingTask stop() ran into timeout - aborting task");
                 task.abort();
             }

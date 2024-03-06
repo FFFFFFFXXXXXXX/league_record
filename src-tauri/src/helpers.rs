@@ -3,6 +3,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{Duration, SystemTime};
 
 use log::LevelFilter;
 use reqwest::{blocking::Client, redirect::Policy, StatusCode};
@@ -272,6 +273,46 @@ pub fn let_user_edit_settings(app_handle: &AppHandle) {
             }
         }
     });
+}
+
+pub fn cleanup_recordings_by_size(app_handle: &AppHandle) {
+    let Some(max_gb) = app_handle.state::<SettingsWrapper>().max_recordings_size() else { return };
+    let max_size = max_gb * 1_000_000_000; // convert to bytes
+
+    let mut recordings = get_recordings(app_handle);
+    recordings.sort_by(|a, b| compare_time(a, b).unwrap_or(Ordering::Equal));
+
+    let mut total_size = 0;
+    for recording in recordings {
+        if let Ok(metadata) = recording.metadata() {
+            total_size += metadata.len();
+        };
+
+        if total_size > max_size {
+            if let Err(e) = fs::remove_file(recording) {
+                log::error!("deleting file due to size limit failed: {e}");
+            }
+        }
+    }
+}
+
+pub fn cleanup_recordings_by_age(app_handle: &AppHandle) {
+    fn file_too_old(file: &Path, max_age: Duration, now: SystemTime) -> anyhow::Result<bool> {
+        let creation_time = file.metadata()?.created()?;
+        let time_passed = now.duration_since(creation_time)?;
+        Ok(time_passed > max_age)
+    }
+
+    let Some(max_days) = app_handle.state::<SettingsWrapper>().max_recording_age() else { return };
+    let max_age = Duration::from_secs(max_days * 24 * 60 * 60);
+    let now = SystemTime::now();
+    for recording in get_recordings(app_handle) {
+        if file_too_old(&recording, max_age, now).unwrap_or(false) {
+            if let Err(e) = fs::remove_file(recording) {
+                log::error!("deleting file due to age limit failed: {e}");
+            }
+        }
+    }
 }
 
 #[macro_export]

@@ -53,7 +53,7 @@ pub async fn process_data(
                 name: "Custom Game".into(),
                 description: "Custom Game".into(),
             },
-            id @ _ => {
+            id => {
                 lcu_rest_client
                     .get::<Queue>(format!("/lol-game-queues/v1/queues/{id}"))
                     .await?

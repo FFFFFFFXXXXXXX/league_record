@@ -195,6 +195,14 @@ impl SettingsWrapper {
         self.0.read().unwrap().autostart
     }
 
+    pub fn max_recording_age(&self) -> Option<u64> {
+        self.0.read().unwrap().max_recording_age
+    }
+
+    pub fn max_recordings_size(&self) -> Option<u64> {
+        self.0.read().unwrap().max_recordings_size
+    }
+
     pub fn debug_log(&self) -> bool {
         self.0.read().unwrap().debug_log || std::env::args().any(|e| e == "-d" || e == "--debug")
     }
@@ -218,12 +226,13 @@ pub struct Settings {
     recordings_folder: PathBuf,
     filename_format: String,
     encoding_quality: u32,
-    #[serde(skip_serializing_if = "Option::is_none")]
     output_resolution: Option<StdResolution>,
     framerate: Framerate,
     record_audio: AudioSource,
     only_record_ranked: bool,
     autostart: bool,
+    max_recording_age: Option<u64>,
+    max_recordings_size: Option<u64>,
 }
 
 const DEFAULT_UPDATE_CHECK: bool = true;
@@ -232,6 +241,8 @@ const DEFAULT_ENCODING_QUALITY: u32 = 25;
 const DEFAULT_RECORD_AUDIO: AudioSource = AudioSource::APPLICATION;
 const DEFAULT_ONLY_RECORD_RANKED: bool = false;
 const DEFAULT_AUTOSTART: bool = false;
+const DEFAULT_MAX_RECORDING_AGE: Option<u64> = None;
+const DEFAULT_MAX_RECORDINGS_SIZE: Option<u64> = None;
 
 #[inline]
 fn default_recordings_folder() -> PathBuf {
@@ -262,6 +273,8 @@ impl Default for Settings {
             record_audio: DEFAULT_RECORD_AUDIO,
             only_record_ranked: DEFAULT_ONLY_RECORD_RANKED,
             autostart: false,
+            max_recording_age: None,
+            max_recordings_size: None,
         }
     }
 }
@@ -321,6 +334,12 @@ impl<'de> Deserialize<'de> for Settings {
                         }
                         "autostart" => {
                             settings.autostart = map.next_value().unwrap_or(DEFAULT_AUTOSTART);
+                        }
+                        "maxRecordingAge" => {
+                            settings.max_recording_age = map.next_value().unwrap_or(DEFAULT_MAX_RECORDING_AGE);
+                        }
+                        "maxRecordingsSize" => {
+                            settings.max_recordings_size = map.next_value().unwrap_or(DEFAULT_MAX_RECORDINGS_SIZE);
                         }
                         _ => { /* ignored */ }
                     }

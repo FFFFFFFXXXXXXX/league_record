@@ -20,7 +20,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
             create_window(app_handle);
         }
         SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-            "settings" => let_user_edit_settings(&app_handle),
+            "settings" => let_user_edit_settings(app_handle),
             "open" => create_window(app_handle),
             "quit" => {
                 app_handle.windows().into_values().for_each(|window| _ = window.close());
@@ -84,12 +84,21 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
         _ = window.close();
     }
 
+    // start watching recordings folder for changes
     let recordings_path = settings.get_recordings_path();
     log::info!("video folder: {:?}", recordings_path);
-
     filewatcher::replace(&app_handle, &recordings_path);
 
+    // start checking for LoL games to record
     app_handle.manage(LeagueRecorder::start(app_handle.clone()));
+
+    // cleanup recordings if they are too old or the total size of the recordings gets too big
+    // this only happens if 'maxRecordingAge' or 'maxRecordingsSize' is configured in the settings
+    tauri::async_runtime::spawn_blocking(move || {
+        cleanup_recordings_by_age(&app_handle);
+        cleanup_recordings_by_size(&app_handle);
+    });
+
     Ok(())
 }
 
