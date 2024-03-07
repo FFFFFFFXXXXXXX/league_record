@@ -19,6 +19,7 @@ use super::session_event::{GameData, GamePhase, SessionEventData, SubscriptionRe
 use super::window::{self, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
 use crate::cancellable;
 use crate::game_data::{self, GameId};
+use crate::helpers::cleanup_recordings;
 use crate::state::{CurrentlyRecording, SettingsWrapper};
 use crate::{helpers::set_recording_tray_item, recorder::session_event::Queue};
 
@@ -300,6 +301,7 @@ impl RecordingTask {
         let shutdown = recorder.shutdown();
         log::info!("stopping recording: stopped={stopped:?}, shutdown={shutdown:?}");
 
+        cleanup_recordings(&self.ctx.app_handle);
         self.ctx.app_handle.state::<CurrentlyRecording>().set(None);
         set_recording_tray_item(&self.ctx.app_handle, false);
 

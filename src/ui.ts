@@ -1,6 +1,6 @@
 import type videojs from 'video.js';
 import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
-import type { MarkerFlags, GameMetadata } from '@fffffffxxxxxxx/league_record_types';
+import type { MarkerFlags, GameMetadata, Recording } from '@fffffffxxxxxxx/league_record_types';
 import type { WebviewWindow } from '@tauri-apps/api/window';
 import { toVideoId, toVideoName } from './util';
 
@@ -76,21 +76,41 @@ export default class UI {
 
     public updateSideBar(
         recordingsSizeGb: number,
-        videoIds: ReadonlyArray<string>,
+        recordings: ReadonlyArray<Recording>,
         onVideo: (videoId: string) => void,
+        onFavorite: (videoId: string) => Promise<boolean>,
         onRename: (videoId: string) => void,
         onDelete: (videoId: string) => void
     ) {
-        const videoLiElements = videoIds.map(videoId => {
-            const videoName = toVideoName(videoId);
+        const videoLiElements = recordings.map(recording => {
+            const videoName = toVideoName(recording.video_id);
 
             // call event.stopPropagation(); to stop the onclick event from also effecting the element under the clicked X button
+            const favorite = recording.metadata?.favorite ?? false;
+            const favoriteBtn = this.vjs.dom.createEl(
+                'span',
+                {
+                    onclick: (e: MouseEvent) => {
+                        e.stopPropagation();
+                        onFavorite(recording.video_id).then(fav => {
+                            favoriteBtn.innerHTML = fav ? '★' : '☆'
+                            favoriteBtn.style.color = fav ? 'gold' : ''
+                        })
+                    }
+                },
+                {
+                    class: 'favorite',
+                    ...(favorite ? { style: 'color: gold' } : {})
+                },
+                favorite ? '★' : '☆'
+            ) as HTMLSpanElement;
+
             const renameBtn = this.vjs.dom.createEl(
                 'span',
                 {
                     onclick: (e: MouseEvent) => {
                         e.stopPropagation();
-                        onRename(videoId);
+                        onRename(recording.video_id);
                     }
                 },
                 { class: 'rename' },
@@ -101,7 +121,7 @@ export default class UI {
                 {
                     onclick: (e: MouseEvent) => {
                         e.stopPropagation();
-                        onDelete(videoId);
+                        onDelete(recording.video_id);
                     }
                 },
                 { class: 'delete' },
@@ -109,10 +129,11 @@ export default class UI {
             );
             return this.vjs.dom.createEl(
                 'li',
-                { onclick: () => onVideo(videoId) },
-                { id: videoId },
+                { onclick: () => onVideo(recording.video_id) },
+                { id: recording },
                 [
                     this.vjs.dom.createEl('span', {}, { class: 'video-name' }, videoName),
+                    favoriteBtn,
                     renameBtn,
                     deleteBtn
                 ]

@@ -5,7 +5,7 @@
 */
 
 use std::cmp::Ordering;
-use std::fs::{metadata, remove_file, rename, File};
+use std::fs::{metadata, read_to_string, remove_file, rename, write, File};
 use std::io::BufReader;
 use std::path::PathBuf;
 
@@ -58,18 +58,27 @@ pub fn get_recordings_size(app_handle: AppHandle) -> f32 {
     size as f32 / 1_000_000_000.0 // in Gigabyte
 }
 
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Recording {
+    video_id: String,
+    metadata: Option<GameMetadata>,
+}
+
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn get_recordings_list(app_handle: AppHandle) -> Vec<String> {
+pub fn get_recordings_list(app_handle: AppHandle) -> Vec<Recording> {
     let mut recordings = get_recordings(&app_handle);
     // sort by time created (index 0 is newest)
     recordings.sort_by(|a, b| compare_time(a, b).unwrap_or(Ordering::Equal));
-    let mut ret = Vec::<String>::new();
+    let mut ret = Vec::new();
     for path in recordings {
-        if let Some(os_str_ref) = path.file_name() {
-            if let Ok(filename) = os_str_ref.to_os_string().into_string() {
-                ret.push(filename);
-            }
+        if let Some(video_id) = path
+            .file_name()
+            .and_then(|fname| fname.to_os_string().into_string().ok())
+        {
+            let metadata = helpers::get_metadata(&path).ok();
+            ret.push(Recording { video_id, metadata });
         }
     }
     ret
@@ -133,4 +142,20 @@ pub fn get_metadata(video_id: String, state: State<'_, SettingsWrapper>) -> Opti
 
     let reader = BufReader::new(File::open(path).ok()?);
     serde_json::from_reader::<_, GameMetadata>(reader).ok()
+}
+
+#[cfg_attr(test, specta::specta)]
+#[tauri::command]
+pub fn toggle_favorite(video_id: String, state: State<'_, SettingsWrapper>) -> Option<bool> {
+    let mut path = state.get_recordings_path().join(video_id);
+    path.set_extension("json");
+
+    let metadata_json = read_to_string(&path).ok()?;
+    let mut metadata = serde_json::from_str::<GameMetadata>(&metadata_json).ok()?;
+    metadata.favorite = !metadata.favorite;
+
+    let metadata_json = serde_json::to_string(&metadata).ok()?;
+    write(&path, metadata_json).ok()?;
+
+    Some(metadata.favorite)
 }

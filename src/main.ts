@@ -109,7 +109,7 @@ async function main() {
     const videoIds = await updateSidebar();
     const firstVideo = videoIds[0];
     if (firstVideo) {
-        setVideo(firstVideo);
+        setVideo(firstVideo.video_id);
         player.one('canplay', tauri.showAppWindow);
     } else {
         setVideo(null);
@@ -123,14 +123,14 @@ async function main() {
 async function updateSidebar() {
     const activeVideoId = ui.getActiveVideoId();
 
-    const [videoIds, recordingsSize] = await Promise.all([tauri.getRecordingsList(), tauri.getRecordingsSize()])
-    ui.updateSideBar(recordingsSize, videoIds, setVideo, showRenameModal, showDeleteModal);
+    const [recordings, recordingsSize] = await Promise.all([tauri.getRecordingsList(), tauri.getRecordingsSize()])
+    ui.updateSideBar(recordingsSize, recordings, setVideo, toggleFavorite, showRenameModal, showDeleteModal);
 
     if (!ui.setActiveVideoId(activeVideoId)) {
         setVideo(null);
     }
 
-    return videoIds;
+    return recordings;
 }
 
 // use this function to set the video (null => no video)
@@ -163,6 +163,10 @@ async function setMetadata(videoId: string) {
     }
 
     changeMarkers();
+}
+
+async function toggleFavorite(video_id: string): Promise<boolean> {
+    return await tauri.toggleFavorite(video_id)
 }
 
 function changeMarkers() {
@@ -250,7 +254,7 @@ function createMarker(timestamp: number, recordingOffset: number, eventType: Eve
 // --- MODAL ---
 
 async function showRenameModal(videoId: string) {
-    ui.showRenameModal(videoId, await tauri.getRecordingsList(), renameVideo);
+    ui.showRenameModal(videoId, (await tauri.getRecordingsList()).map(r => r.video_id), renameVideo);
 }
 
 async function renameVideo(videoId: string, newVideoId: string) {

@@ -1,6 +1,6 @@
 #container {
     display: grid;
-    grid-template-columns: [sidebar] 305px [video] 1fr;
+    grid-template-columns: [sidebar] 325px [video] 1fr;
     grid-template-rows: 100vh;
 }
 

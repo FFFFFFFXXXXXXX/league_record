@@ -1,6 +1,8 @@
 use std::cmp::Ordering;
 use std::fs;
+use std::fs::File;
 use std::io;
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime};
@@ -13,6 +15,7 @@ use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::LogTarget;
 
 use crate::filewatcher;
+use crate::game_data::GameMetadata;
 use crate::state::{CurrentlyRecording, SettingsFile, SettingsWrapper, WindowState};
 
 const GITHUB_LATEST: &str = "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest";
@@ -263,19 +266,28 @@ pub fn let_user_edit_settings(app_handle: &AppHandle) {
                 let recordings_path = settings.get_recordings_path();
                 if recordings_path != old_recordings_path {
                     filewatcher::replace(&app_handle, &recordings_path);
-                    _ = app_handle.emit_all("recordings_changed", ());
+                    if let Err(e) = app_handle.emit_all("recordings_changed", ()) {
+                        log::error!("failed to emit 'recordings_changed' event: {e}");
+                    }
                 }
 
                 let marker_flags = settings.get_marker_flags();
                 if marker_flags != old_marker_flags {
-                    _ = app_handle.emit_all("markerflags_changed", ());
+                    if let Err(e) = app_handle.emit_all("markerflags_changed", ()) {
+                        log::error!("failed to emit 'markerflags_changed' event: {e}");
+                    }
                 }
             }
         }
     });
 }
 
-pub fn cleanup_recordings_by_size(app_handle: &AppHandle) {
+pub fn cleanup_recordings(app_handle: &AppHandle) {
+    cleanup_recordings_by_age(app_handle);
+    cleanup_recordings_by_size(app_handle);
+}
+
+fn cleanup_recordings_by_size(app_handle: &AppHandle) {
     let Some(max_gb) = app_handle.state::<SettingsWrapper>().max_recordings_size() else { return };
     let max_size = max_gb * 1_000_000_000; // convert to bytes
 
@@ -288,7 +300,7 @@ pub fn cleanup_recordings_by_size(app_handle: &AppHandle) {
             total_size += metadata.len();
         };
 
-        if total_size > max_size {
+        if total_size > max_size && !get_metadata(&recording).map(|md| md.favorite).unwrap_or_default() {
             if let Err(e) = fs::remove_file(recording) {
                 log::error!("deleting file due to size limit failed: {e}");
             }
@@ -296,7 +308,7 @@ pub fn cleanup_recordings_by_size(app_handle: &AppHandle) {
     }
 }
 
-pub fn cleanup_recordings_by_age(app_handle: &AppHandle) {
+fn cleanup_recordings_by_age(app_handle: &AppHandle) {
     fn file_too_old(file: &Path, max_age: Duration, now: SystemTime) -> anyhow::Result<bool> {
         let creation_time = file.metadata()?.created()?;
         let time_passed = now.duration_since(creation_time)?;
@@ -307,12 +319,22 @@ pub fn cleanup_recordings_by_age(app_handle: &AppHandle) {
     let max_age = Duration::from_secs(max_days * 24 * 60 * 60);
     let now = SystemTime::now();
     for recording in get_recordings(app_handle) {
-        if file_too_old(&recording, max_age, now).unwrap_or(false) {
+        if file_too_old(&recording, max_age, now).unwrap_or(false)
+            && !get_metadata(&recording).map(|md| md.favorite).unwrap_or_default()
+        {
             if let Err(e) = fs::remove_file(recording) {
                 log::error!("deleting file due to age limit failed: {e}");
             }
         }
     }
+}
+
+pub fn get_metadata(video_path: &Path) -> anyhow::Result<GameMetadata> {
+    let mut video_path = video_path.to_owned();
+    video_path.set_extension("json");
+
+    let reader = BufReader::new(File::open(video_path)?);
+    Ok(serde_json::from_reader::<_, GameMetadata>(reader)?)
 }
 
 #[macro_export]

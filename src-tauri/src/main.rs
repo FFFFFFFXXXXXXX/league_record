@@ -37,7 +37,8 @@ fn main() {
             open_recordings_folder,
             delete_video,
             rename_video,
-            get_metadata
+            get_metadata,
+            toggle_favorite
         ])
         .system_tray(create_system_tray())
         .on_system_tray_event(system_tray_event_handler)
@@ -61,7 +62,8 @@ fn generate_command_bindings() {
             open_recordings_folder,
             delete_video,
             rename_video,
-            get_metadata
+            get_metadata,
+            toggle_favorite
         ]
         .unwrap(),
         specta::ts::ExportConfiguration::new()

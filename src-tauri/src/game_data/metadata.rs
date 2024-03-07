@@ -97,6 +97,7 @@ pub async fn process_data(
             stats: participant.stats,
             participant_id,
             events,
+            favorite: false,
         })
     } else {
         Err(anyhow!("unable to collect game data"))
@@ -114,4 +115,5 @@ pub struct GameMetadata {
     pub stats: Stats,
     pub participant_id: ParticipantId,
     pub events: Vec<GameEvent>,
+    pub favorite: bool,
 }

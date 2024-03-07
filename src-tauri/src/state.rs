@@ -148,7 +148,9 @@ impl SettingsWrapper {
 
     pub fn write_to_file(&self, settings_path: &Path) {
         let json = serde_json::to_string_pretty(&*self.0.read().unwrap()).unwrap();
-        _ = fs::write(settings_path, json);
+        if let Err(e) = fs::write(settings_path, json) {
+            log::error!("failed to write settings.json: {e}");
+        }
     }
 
     pub fn get_recordings_path(&self) -> PathBuf {
@@ -321,7 +323,7 @@ impl<'de> Deserialize<'de> for Settings {
                             settings.encoding_quality = map.next_value().unwrap_or(DEFAULT_ENCODING_QUALITY);
                         }
                         "outputResolution" => {
-                            settings.output_resolution = map.next_value().ok();
+                            settings.output_resolution = map.next_value().unwrap_or(None);
                         }
                         "framerate" => {
                             settings.framerate = map.next_value().unwrap_or_else(|_| default_framerate());

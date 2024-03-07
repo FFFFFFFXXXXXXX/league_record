@@ -42,7 +42,7 @@
 }
 
 #sidebar #sidebar-content li:hover {
-    grid-template-columns: 1fr 25px 25px;
+    grid-template-columns: 1fr 20px 25px 25px;
     column-gap: 5px;
 
     padding-right: 0;
@@ -64,14 +64,20 @@
     background-color: #445fa5;
 }
 
+#sidebar #sidebar-content li>span.favorite,
 #sidebar #sidebar-content li>span.rename,
 #sidebar #sidebar-content li>span.delete {
     display: none;
 }
 
+#sidebar #sidebar-content li:hover>span.favorite,
 #sidebar #sidebar-content li:hover>span.rename,
 #sidebar #sidebar-content li:hover>span.delete {
     display: block;
+}
+
+#sidebar #sidebar-content li>span:hover.favorite {
+    color: gold;
 }
 
 #sidebar #sidebar-content li>span:hover.rename {
