@@ -1,6 +1,6 @@
 {
   "name": "@fffffffxxxxxxx/league_record_types",
-  "version": "1.18.1",
+  "version": "1.19.0",
   "description": "Typescript type definitions for the LeagueRecord settings.json file as well as the video metadata .json files",
   "main": "",
   "types": "index.d.ts",
