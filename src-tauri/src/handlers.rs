@@ -16,9 +16,7 @@ pub fn create_system_tray() -> SystemTray {
 
 pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent) {
     match event {
-        SystemTrayEvent::DoubleClick { .. } => {
-            create_window(app_handle);
-        }
+        SystemTrayEvent::DoubleClick { .. } => create_window(app_handle),
         SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
             "settings" => let_user_edit_settings(app_handle),
             "open" => create_window(app_handle),

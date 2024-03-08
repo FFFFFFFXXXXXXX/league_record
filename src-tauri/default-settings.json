@@ -22,6 +22,6 @@
   "recordAudio": "APPLICATION",
   "onlyRecordRanked": false,
   "autostart": false,
-  "maxRecordingAge": null,
-  "maxRecordingsSize": null
+  "maxRecordingAgeDays": null,
+  "maxRecordingsSizeGb": null
 }

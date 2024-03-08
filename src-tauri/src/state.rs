@@ -198,11 +198,11 @@ impl SettingsWrapper {
     }
 
     pub fn max_recording_age(&self) -> Option<u64> {
-        self.0.read().unwrap().max_recording_age
+        self.0.read().unwrap().max_recording_age_days
     }
 
     pub fn max_recordings_size(&self) -> Option<u64> {
-        self.0.read().unwrap().max_recordings_size
+        self.0.read().unwrap().max_recordings_size_gb
     }
 
     pub fn debug_log(&self) -> bool {
@@ -233,8 +233,8 @@ pub struct Settings {
     record_audio: AudioSource,
     only_record_ranked: bool,
     autostart: bool,
-    max_recording_age: Option<u64>,
-    max_recordings_size: Option<u64>,
+    max_recording_age_days: Option<u64>,
+    max_recordings_size_gb: Option<u64>,
 }
 
 const DEFAULT_UPDATE_CHECK: bool = true;
@@ -243,8 +243,8 @@ const DEFAULT_ENCODING_QUALITY: u32 = 25;
 const DEFAULT_RECORD_AUDIO: AudioSource = AudioSource::APPLICATION;
 const DEFAULT_ONLY_RECORD_RANKED: bool = false;
 const DEFAULT_AUTOSTART: bool = false;
-const DEFAULT_MAX_RECORDING_AGE: Option<u64> = None;
-const DEFAULT_MAX_RECORDINGS_SIZE: Option<u64> = None;
+const DEFAULT_MAX_RECORDING_AGE_DAYS: Option<u64> = None;
+const DEFAULT_MAX_RECORDINGS_SIZE_GB: Option<u64> = None;
 
 #[inline]
 fn default_recordings_folder() -> PathBuf {
@@ -275,8 +275,8 @@ impl Default for Settings {
             record_audio: DEFAULT_RECORD_AUDIO,
             only_record_ranked: DEFAULT_ONLY_RECORD_RANKED,
             autostart: false,
-            max_recording_age: None,
-            max_recordings_size: None,
+            max_recording_age_days: None,
+            max_recordings_size_gb: None,
         }
     }
 }
@@ -337,11 +337,13 @@ impl<'de> Deserialize<'de> for Settings {
                         "autostart" => {
                             settings.autostart = map.next_value().unwrap_or(DEFAULT_AUTOSTART);
                         }
-                        "maxRecordingAge" => {
-                            settings.max_recording_age = map.next_value().unwrap_or(DEFAULT_MAX_RECORDING_AGE);
+                        "maxRecordingAgeDays" => {
+                            settings.max_recording_age_days =
+                                map.next_value().unwrap_or(DEFAULT_MAX_RECORDING_AGE_DAYS);
                         }
-                        "maxRecordingsSize" => {
-                            settings.max_recordings_size = map.next_value().unwrap_or(DEFAULT_MAX_RECORDINGS_SIZE);
+                        "maxRecordingsSizeGb" => {
+                            settings.max_recordings_size_gb =
+                                map.next_value().unwrap_or(DEFAULT_MAX_RECORDINGS_SIZE_GB);
                         }
                         _ => { /* ignored */ }
                     }

@@ -5,14 +5,14 @@
 */
 
 use std::cmp::Ordering;
-use std::fs::{metadata, read_to_string, remove_file, rename, write, File};
+use std::fs::{metadata, read_to_string, rename, write, File};
 use std::io::BufReader;
 use std::path::PathBuf;
 
 use tauri::{api::shell, AppHandle, Manager, State};
 
 use crate::game_data::GameMetadata;
-use crate::helpers::{self, compare_time, get_recordings, show_window};
+use crate::helpers::{self, compare_time, delete_recording, get_recordings, show_window};
 use crate::state::{MarkerFlags, SettingsFile, SettingsWrapper};
 
 #[cfg_attr(test, specta::specta)]
@@ -121,16 +121,11 @@ pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, Set
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
 pub fn delete_video(video_id: String, state: State<'_, SettingsWrapper>) -> bool {
-    // remove video
-    let mut path = state.get_recordings_path().join(video_id);
-    if remove_file(&path).is_err() {
-        // if video delete fails return and dont delete json file
-        return false;
+    let recording = state.get_recordings_path().join(video_id);
+    if let Err(e) = delete_recording(recording) {
+        log::error!("deleting video failed: {e}");
     }
 
-    // remove json file if it exists
-    path.set_extension("json");
-    _ = remove_file(path);
     true
 }
 

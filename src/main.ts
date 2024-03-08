@@ -85,7 +85,10 @@ async function main() {
 
     // add events to html elements
     ui.setRecordingsFolderBtnOnClickHandler(tauri.openRecordingsFolder);
-    ui.setCheckboxOnClickHandler(changeMarkers);
+    ui.setCheckboxOnClickHandler(() => {
+        changeMarkers()
+        tauri.setMarkerFlags(ui.getMarkerFlags())
+    });
 
     // listen if the videojs player fills the whole window
     // and keep the tauri fullscreen setting in sync
@@ -165,7 +168,7 @@ async function setMetadata(videoId: string) {
     changeMarkers();
 }
 
-async function toggleFavorite(video_id: string): Promise<boolean> {
+async function toggleFavorite(video_id: string): Promise<boolean | null> {
     return await tauri.toggleFavorite(video_id)
 }
 
@@ -175,7 +178,7 @@ function changeMarkers() {
         return;
     }
 
-    const checkbox = ui.getCheckboxes();
+    const checkbox = ui.getMarkerFlags();
     const { participantId, recordingOffset } = currentEvents;
 
     const markers = new Array<MarkerOptions>();

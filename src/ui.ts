@@ -78,7 +78,7 @@ export default class UI {
         recordingsSizeGb: number,
         recordings: ReadonlyArray<Recording>,
         onVideo: (videoId: string) => void,
-        onFavorite: (videoId: string) => Promise<boolean>,
+        onFavorite: (videoId: string) => Promise<boolean | null>,
         onRename: (videoId: string) => void,
         onDelete: (videoId: string) => void
     ) {
@@ -93,8 +93,10 @@ export default class UI {
                     onclick: (e: MouseEvent) => {
                         e.stopPropagation();
                         onFavorite(recording.video_id).then(fav => {
-                            favoriteBtn.innerHTML = fav ? '★' : '☆'
-                            favoriteBtn.style.color = fav ? 'gold' : ''
+                            if (fav !== null) {
+                                favoriteBtn.innerHTML = fav ? '★' : '☆'
+                                favoriteBtn.style.color = fav ? 'gold' : ''
+                            }
                         })
                     }
                 },
@@ -130,7 +132,7 @@ export default class UI {
             return this.vjs.dom.createEl(
                 'li',
                 { onclick: () => onVideo(recording.video_id) },
-                { id: recording },
+                { id: recording.video_id },
                 [
                     this.vjs.dom.createEl('span', {}, { class: 'video-name' }, videoName),
                     favoriteBtn,
@@ -334,7 +336,7 @@ export default class UI {
         this.checkboxBaron.checked = settings.baron;
     }
 
-    public getCheckboxes(): MarkerFlags {
+    public getMarkerFlags(): MarkerFlags {
         return {
             kill: this.checkboxKill.checked,
             death: this.checkboxDeath.checked,

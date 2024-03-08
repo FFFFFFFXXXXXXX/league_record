@@ -1,8 +1,6 @@
 use std::cmp::Ordering;
-use std::fs;
-use std::fs::File;
-use std::io;
-use std::io::BufReader;
+use std::fs::{self, File};
+use std::io::{self, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime};
@@ -17,8 +15,6 @@ use tauri_plugin_log::LogTarget;
 use crate::filewatcher;
 use crate::game_data::GameMetadata;
 use crate::state::{CurrentlyRecording, SettingsFile, SettingsWrapper, WindowState};
-
-const GITHUB_LATEST: &str = "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest";
 
 pub fn create_tray_menu() -> SystemTrayMenu {
     SystemTrayMenu::new()
@@ -38,6 +34,8 @@ pub fn set_recording_tray_item(app_handle: &AppHandle, recording: bool) {
 }
 
 pub fn check_updates(app_handle: &AppHandle) {
+    const GITHUB_LATEST: &str = "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest";
+
     let config = app_handle.config();
     let version = config.package.version.as_ref().unwrap();
 
@@ -277,6 +275,8 @@ pub fn let_user_edit_settings(app_handle: &AppHandle) {
                         log::error!("failed to emit 'markerflags_changed' event: {e}");
                     }
                 }
+
+                cleanup_recordings(&app_handle);
             }
         }
     });
@@ -295,13 +295,24 @@ fn cleanup_recordings_by_size(app_handle: &AppHandle) {
     recordings.sort_by(|a, b| compare_time(a, b).unwrap_or(Ordering::Equal));
 
     let mut total_size = 0;
+
+    // add size from video thats currently being recorded to the total (in case there is one)
+    // so the total size of all videos stays below the threshhold set in settings
+    if let Some(currently_recording_metadata) = app_handle
+        .state::<CurrentlyRecording>()
+        .get()
+        .and_then(|pb| pb.metadata().ok())
+    {
+        total_size += currently_recording_metadata.len();
+    }
+
     for recording in recordings {
         if let Ok(metadata) = recording.metadata() {
             total_size += metadata.len();
         };
 
         if total_size > max_size && !get_metadata(&recording).map(|md| md.favorite).unwrap_or_default() {
-            if let Err(e) = fs::remove_file(recording) {
+            if let Err(e) = delete_recording(recording) {
                 log::error!("deleting file due to size limit failed: {e}");
             }
         }
@@ -322,11 +333,21 @@ fn cleanup_recordings_by_age(app_handle: &AppHandle) {
         if file_too_old(&recording, max_age, now).unwrap_or(false)
             && !get_metadata(&recording).map(|md| md.favorite).unwrap_or_default()
         {
-            if let Err(e) = fs::remove_file(recording) {
+            if let Err(e) = delete_recording(recording) {
                 log::error!("deleting file due to age limit failed: {e}");
             }
         }
     }
+}
+
+pub fn delete_recording(recording: PathBuf) -> anyhow::Result<()> {
+    fs::remove_file(&recording)?;
+
+    let mut metadata_file = recording;
+    metadata_file.set_extension("json");
+    fs::remove_file(metadata_file)?;
+
+    Ok(())
 }
 
 pub fn get_metadata(video_path: &Path) -> anyhow::Result<GameMetadata> {
