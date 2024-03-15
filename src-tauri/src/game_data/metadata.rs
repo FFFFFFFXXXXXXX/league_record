@@ -115,5 +115,6 @@ pub struct GameMetadata {
     pub stats: Stats,
     pub participant_id: ParticipantId,
     pub events: Vec<GameEvent>,
+    #[serde(default)]
     pub favorite: bool,
 }

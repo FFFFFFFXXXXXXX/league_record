@@ -19,6 +19,7 @@ pub struct Frame {
     pub timestamp: Timestamp,
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE", rename_all_fields = "camelCase")]
 pub enum Event {
@@ -48,6 +49,7 @@ pub enum Event {
 
 // seperate struct for frontend compatability since Specta is a bit limited for now and doesn't support some of the
 // tags on the 'deserialization struct'
+#[allow(clippy::enum_variant_names)]
 #[cfg_attr(test, derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GameEvent {
@@ -129,6 +131,7 @@ pub enum BuildingType {
     TowerBuilding { lane_type: LaneType, tower_type: TowerType },
 }
 
+#[allow(clippy::enum_variant_names)]
 #[cfg_attr(test, derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -138,6 +141,7 @@ pub enum LaneType {
     BotLane,
 }
 
+#[allow(clippy::enum_variant_names)]
 #[cfg_attr(test, derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -161,6 +165,7 @@ pub enum MonsterType {
     },
 }
 
+#[allow(clippy::enum_variant_names)]
 #[cfg_attr(test, derive(specta::Type))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

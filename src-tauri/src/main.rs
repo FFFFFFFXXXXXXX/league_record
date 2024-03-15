@@ -16,7 +16,7 @@ mod recorder;
 mod state;
 
 fn main() {
-    let app = tauri::Builder::default()
+    tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -44,9 +44,8 @@ fn main() {
         .on_system_tray_event(system_tray_event_handler)
         .setup(setup_handler)
         .build(tauri::generate_context!())
-        .expect("error while running tauri application");
-
-    app.run(run_handler);
+        .expect("error while running tauri application")
+        .run(run_handler);
 }
 
 #[test]
