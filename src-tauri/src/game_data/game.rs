@@ -11,7 +11,7 @@ pub struct Game {
     pub map_id: i64,
     pub game_mode: GameMode,
     pub queue_id: i64,
-    pub game_duration: u64,
+    pub game_duration: i64,
     pub participant_identities: Vec<ParticipantIdentity>,
     pub participants: Vec<Participant>,
 }
@@ -47,17 +47,17 @@ pub struct Participant {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Stats {
-    pub kills: u64,
-    pub deaths: u64,
-    pub assists: u64,
-    pub largest_multi_kill: u64,
-    pub neutral_minions_killed: u64,
-    pub neutral_minions_killed_enemy_jungle: u64,
-    pub neutral_minions_killed_team_jungle: u64,
-    pub total_minions_killed: u64,
+    pub kills: i64,
+    pub deaths: i64,
+    pub assists: i64,
+    pub largest_multi_kill: i64,
+    pub neutral_minions_killed: i64,
+    pub neutral_minions_killed_enemy_jungle: i64,
+    pub neutral_minions_killed_team_jungle: i64,
+    pub total_minions_killed: i64,
     pub vision_score: f64,
-    pub vision_wards_bought_in_game: u64,
-    pub wards_placed: u64,
-    pub wards_killed: u64,
+    pub vision_wards_bought_in_game: i64,
+    pub wards_placed: i64,
+    pub wards_killed: i64,
     pub win: bool,
 }

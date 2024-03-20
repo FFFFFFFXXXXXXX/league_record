@@ -200,11 +200,11 @@ pub struct Position {
 #[serde(rename_all = "camelCase")]
 pub struct ParticipantFrame {
     pub participant_id: ParticipantId,
-    pub level: u64,
-    pub current_gold: u64,
-    pub total_gold: u64,
-    pub xp: u64,
-    pub minions_killed: u64,
-    pub jungle_minions_killed: u64,
+    pub level: i64,
+    pub current_gold: i64,
+    pub total_gold: i64,
+    pub xp: i64,
+    pub minions_killed: i64,
+    pub jungle_minions_killed: i64,
     pub position: Position,
 }
