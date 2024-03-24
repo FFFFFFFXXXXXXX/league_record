@@ -74,6 +74,7 @@ struct Rec {
     metadata: Metadata,
 }
 
+#[derive(Debug)]
 struct Metadata {
     game_id: GameId,
     output_filepath: PathBuf,
@@ -208,10 +209,11 @@ async fn state_transition(state: State, sub_resp: SubscriptionResponse, ctx: Ctx
 
         State::Recording(recording_task) => match sub_resp {
             SubscriptionResponse::Session(SessionEventData {
-                phase: GamePhase::FailedToLaunch | GamePhase::Reconnect,
+                phase: phase @ (GamePhase::FailedToLaunch | GamePhase::Reconnect),
                 ..
             }) => {
-                _ = recording_task.stop().await;
+                log::info!("stopping recording due to unexpected event: {phase:?}");
+                log::info!("recording stopped: {:?}", recording_task.stop().await);
                 State::Idle
             }
             SubscriptionResponse::Session(SessionEventData {
@@ -261,11 +263,13 @@ async fn state_transition(state: State, sub_resp: SubscriptionResponse, ctx: Ctx
                         if let Ok(file) = std::fs::File::create(&metadata_filepath) {
                             let result = serde_json::to_writer(&file, &game_metadata);
                             log::info!("metadata saved: {result:?}");
-
-                            _ = ctx.app_handle.emit_all(RECORDINGS_CHANGED_EVENT, ());
                         }
                     }
                     Err(e) => log::error!("unable to process data: {e}"),
+                }
+
+                if let Err(e) = ctx.app_handle.emit_all(RECORDINGS_CHANGED_EVENT, ()) {
+                    log::error!("failed to send 'RECORDINGS_CHANGED_EVENT' to UI: {e}");
                 }
 
                 State::Idle
