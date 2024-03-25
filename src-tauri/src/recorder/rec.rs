@@ -20,8 +20,8 @@ use super::window::{self, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
 use crate::cancellable;
 use crate::game_data::{self, GameId};
 use crate::helpers::cleanup_recordings;
+use crate::helpers::set_recording_tray_item;
 use crate::state::{CurrentlyRecording, SettingsWrapper};
-use crate::{helpers::set_recording_tray_item, recorder::session_event::Queue};
 
 const RECORDINGS_CHANGED_EVENT: &str = "recordings_changed";
 
@@ -169,7 +169,7 @@ async fn listen_for_games(ctx: Ctx<'_>) -> Result<()> {
         .await
     {
         Ok(init_event_data) => {
-            state = state_transition(state, SubscriptionResponse::Session(init_event_data), ctx).await;
+            state = state_transition(state, SubscriptionResponse::Session(init_event_data), ctx).await
         }
         Err(e) => log::info!("no initial event-data: {e}"),
     }
@@ -197,6 +197,7 @@ async fn listen_for_games(ctx: Ctx<'_>) -> Result<()> {
 
 async fn state_transition(state: State, sub_resp: SubscriptionResponse, ctx: Ctx<'_>) -> State {
     let next_state = match state {
+        // wait for game to record
         State::Idle => match sub_resp {
             SubscriptionResponse::Session(SessionEventData {
                 phase: GamePhase::GameStart | GamePhase::InProgress,
@@ -207,19 +208,18 @@ async fn state_transition(state: State, sub_resp: SubscriptionResponse, ctx: Ctx
             _ => State::Idle,
         },
 
+        // wait for game to end => stop recording
         State::Recording(recording_task) => match sub_resp {
             SubscriptionResponse::Session(SessionEventData {
-                phase: phase @ (GamePhase::FailedToLaunch | GamePhase::Reconnect),
+                phase:
+                    phase @ (GamePhase::FailedToLaunch
+                    | GamePhase::Reconnect
+                    | GamePhase::WaitingForStats
+                    | GamePhase::PreEndOfGame),
                 ..
             }) => {
-                log::info!("stopping recording due to unexpected event: {phase:?}");
-                log::info!("recording stopped: {:?}", recording_task.stop().await);
-                State::Idle
-            }
-            SubscriptionResponse::Session(SessionEventData {
-                phase: GamePhase::WaitingForStats,
-                ..
-            }) => {
+                log::info!("stopping recording due to session event phase: {phase:?}");
+
                 // make sure the task stops e.g. maybe IngameAPI didn't start => caught in waiting for game loop
                 match recording_task.stop().await {
                     Ok(metadata) => State::EndOfGame(metadata),
@@ -232,45 +232,53 @@ async fn state_transition(state: State, sub_resp: SubscriptionResponse, ctx: Ctx
             _ => State::Recording(recording_task),
         },
 
+        // wait for game-data to become available
         State::EndOfGame(metadata) => match sub_resp {
-            SubscriptionResponse::Eog {}
+            ws_msg @ (SubscriptionResponse::EogStatsBlock {}
             | SubscriptionResponse::Session(SessionEventData {
-                phase: GamePhase::TerminatedInError,
+                phase:
+                    GamePhase::EndOfGame | GamePhase::TerminatedInError | GamePhase::ChampSelect | GamePhase::GameStart,
                 ..
-            })
-            | SubscriptionResponse::Session(SessionEventData {
-                phase: GamePhase::EndOfGame,
-                game_data: GameData {
-                    queue: Queue { id: -1, .. }, ..
-                },
-            }) => {
-                let Metadata {
-                    game_id,
-                    output_filepath,
-                    ingame_time_rec_start_offset,
-                } = metadata;
+            })) => {
+                log::info!("triggered game-data collection due to msg: {ws_msg:?}");
 
-                let mut metadata_filepath = output_filepath;
-                metadata_filepath.set_extension("json");
+                // spawn task to handle collecting data so we don't block the recorder for too long
+                // because game_data::process_data(...) can take up to a minute to finish when re-trying
+                let ctx = CtxOwned::from(ctx);
+                async_runtime::spawn(async move {
+                    let Metadata {
+                        game_id,
+                        output_filepath,
+                        ingame_time_rec_start_offset,
+                    } = metadata;
 
-                match game_data::process_data(ingame_time_rec_start_offset, game_id, ctx.credentials, ctx.cancel_token)
+                    let mut metadata_filepath = output_filepath;
+                    metadata_filepath.set_extension("json");
+
+                    match game_data::process_data(
+                        ingame_time_rec_start_offset,
+                        game_id,
+                        &ctx.credentials,
+                        &ctx.cancel_token,
+                    )
                     .await
-                {
-                    Ok(game_metadata) => {
-                        log::info!("writing game metadata to file: {metadata_filepath:?}");
+                    {
+                        Ok(game_metadata) => {
+                            log::info!("writing game metadata to file: {metadata_filepath:?}");
 
-                        // serde_json requires a std::fs::File
-                        if let Ok(file) = std::fs::File::create(&metadata_filepath) {
-                            let result = serde_json::to_writer(&file, &game_metadata);
-                            log::info!("metadata saved: {result:?}");
+                            // serde_json requires a std::fs::File
+                            if let Ok(file) = std::fs::File::create(&metadata_filepath) {
+                                let result = serde_json::to_writer(&file, &game_metadata);
+                                log::info!("metadata saved: {result:?}");
+                            }
                         }
+                        Err(e) => log::error!("unable to process data: {e}"),
                     }
-                    Err(e) => log::error!("unable to process data: {e}"),
-                }
 
-                if let Err(e) = ctx.app_handle.emit_all(RECORDINGS_CHANGED_EVENT, ()) {
-                    log::error!("failed to send 'RECORDINGS_CHANGED_EVENT' to UI: {e}");
-                }
+                    if let Err(e) = ctx.app_handle.emit_all(RECORDINGS_CHANGED_EVENT, ()) {
+                        log::error!("failed to send 'RECORDINGS_CHANGED_EVENT' to UI: {e}");
+                    }
+                });
 
                 State::Idle
             }

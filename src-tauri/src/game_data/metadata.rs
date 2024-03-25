@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Context, Result};
 use riot_local_auth::Credentials;
 use serde::{Deserialize, Serialize};
 use shaco::rest::LcuRestClient;
@@ -41,67 +41,65 @@ pub async fn process_data(
         }
     }
 
-    if let Some((player, game, timeline)) = data {
-        let queue = match game.queue_id {
-            -1 => Queue {
-                id: -1,
-                name: "Practicetool".into(),
-                description: "Practicetool".into(),
-            },
-            0 => Queue {
-                id: 0,
-                name: "Custom Game".into(),
-                description: "Custom Game".into(),
-            },
-            id => {
-                lcu_rest_client
-                    .get::<Queue>(format!("/lol-game-queues/v1/queues/{id}"))
-                    .await?
-            }
-        };
+    let Some((player, game, timeline)) = data else { bail!("unable to collect game data") };
 
-        let participant_id = game
-            .participant_identities
-            .iter()
-            .find(|pi| pi.player == player)
-            .map(|pi| pi.participant_id)
-            .context("player not found in game info")?;
+    let queue = match game.queue_id {
+        -1 => Queue {
+            id: -1,
+            name: "Practicetool".into(),
+            description: "Practicetool".into(),
+        },
+        0 => Queue {
+            id: 0,
+            name: "Custom Game".into(),
+            description: "Custom Game".into(),
+        },
+        id => {
+            lcu_rest_client
+                .get::<Queue>(format!("/lol-game-queues/v1/queues/{id}"))
+                .await?
+        }
+    };
 
-        let participant = game
-            .participants
-            .into_iter()
-            .find(|p| p.participant_id == participant_id)
-            .context("player participant_id not found in game info")?;
+    let participant_id = game
+        .participant_identities
+        .iter()
+        .find(|pi| pi.player == player)
+        .map(|pi| pi.participant_id)
+        .context("player not found in game info")?;
 
-        let champion_name = lcu_rest_client
-            .get::<Champion>(format!(
-                "/lol-champions/v1/inventories/{}/champions/{}",
-                player.summoner_id.unwrap(),
-                participant.champion_id
-            ))
-            .await?
-            .name;
+    let participant = game
+        .participants
+        .into_iter()
+        .find(|p| p.participant_id == participant_id)
+        .context("player participant_id not found in game info")?;
 
-        let events: Vec<_> = timeline
-            .frames
-            .into_iter()
-            .flat_map(|frame| frame.events.into_iter())
-            .map(GameEvent::from)
-            .collect();
+    let champion_name = lcu_rest_client
+        .get::<Champion>(format!(
+            "/lol-champions/v1/inventories/{}/champions/{}",
+            player.summoner_id.unwrap(),
+            participant.champion_id
+        ))
+        .await?
+        .name;
 
-        Ok(GameMetadata {
-            ingame_time_rec_start_offset,
-            queue,
-            player,
-            champion_name,
-            stats: participant.stats,
-            participant_id,
-            events,
-            favorite: false,
-        })
-    } else {
-        Err(anyhow!("unable to collect game data"))
-    }
+    let events: Vec<_> = timeline
+        .frames
+        .into_iter()
+        .flat_map(|frame| frame.events.into_iter())
+        .map(GameEvent::from)
+        .collect();
+
+    Ok(GameMetadata {
+        ingame_time_rec_start_offset,
+        queue,
+        player,
+        champion_name,
+        stats: participant.stats,
+        participant_id,
+        events,
+        favorite: false,
+    })
 }
 
 #[cfg_attr(test, derive(specta::Type))]

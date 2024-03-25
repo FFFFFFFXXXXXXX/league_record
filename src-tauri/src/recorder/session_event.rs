@@ -6,7 +6,7 @@ use crate::game_data::GameId;
 #[serde(untagged)]
 pub enum SubscriptionResponse {
     Session(SessionEventData),
-    Eog {}, // curly braces are important - else deserialization fails if the data doesn't match SessionEventData
+    EogStatsBlock {}, // curly braces are important - else deserialization fails if the data doesn't match SessionEventData
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
