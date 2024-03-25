@@ -34,10 +34,8 @@ pub fn set_recording_tray_item(app_handle: &AppHandle, recording: bool) {
 }
 
 pub fn check_updates(app_handle: &AppHandle) {
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
     const GITHUB_LATEST: &str = "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest";
-
-    let config = app_handle.config();
-    let version = config.package.version.as_ref().unwrap();
 
     let client = match Client::builder().redirect(Policy::none()).build() {
         Ok(c) => c,
@@ -57,9 +55,9 @@ pub fn check_updates(app_handle: &AppHandle) {
         if let Ok(url) = url.to_str() {
             let new_version = url.rsplit_once("/v").unwrap().1;
 
-            log::info!("Checking for update: {}/{} (current/newest)", version, new_version);
+            log::info!("Checking for update: {}/{} (current/newest)", VERSION, new_version);
 
-            if let Ok(res) = compare(version, new_version) {
+            if let Ok(res) = compare(VERSION, new_version) {
                 if res == 1 {
                     let tray_menu = create_tray_menu()
                         .add_native_item(SystemTrayMenuItem::Separator)

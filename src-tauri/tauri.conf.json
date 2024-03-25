@@ -1,7 +1,6 @@
 {
   "package": {
-    "productName": "LeagueRecord",
-    "version": "1.19.3-beta"
+    "productName": "LeagueRecord"
   },
   "build": {
     "beforeDevCommand": "npm run dev",

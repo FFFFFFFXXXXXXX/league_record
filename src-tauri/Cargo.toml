@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "1.19.3-beta"
+version = "1.19.3"
 description = "Record and review LoL games"
 authors = ["FX"]
 license = "GPL-2.0"
