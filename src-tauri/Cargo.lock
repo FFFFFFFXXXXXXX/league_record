@@ -478,7 +478,7 @@ dependencies = [
 [[package]]
 name = "build-helper"
 version = "0.1.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git#92e71d47dc4a93d3df782a833d700d4d0f07f618"
+source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git#916ec3f1c8df8826d5bfb879a95827c260bfece8"
 dependencies = [
  "fs_extra",
 ]
@@ -2004,7 +2004,7 @@ dependencies = [
 [[package]]
 name = "intprocess-recorder"
 version = "0.1.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git#92e71d47dc4a93d3df782a833d700d4d0f07f618"
+source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git#916ec3f1c8df8826d5bfb879a95827c260bfece8"
 dependencies = [
  "libobs-sys",
  "serde",
@@ -2025,7 +2025,7 @@ dependencies = [
 [[package]]
 name = "ipc-link"
 version = "0.1.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git#92e71d47dc4a93d3df782a833d700d4d0f07f618"
+source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git#916ec3f1c8df8826d5bfb879a95827c260bfece8"
 dependencies = [
  "intprocess-recorder",
  "log",
@@ -2207,7 +2207,7 @@ dependencies = [
 [[package]]
 name = "libobs-recorder"
 version = "2.0.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git#92e71d47dc4a93d3df782a833d700d4d0f07f618"
+source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git#916ec3f1c8df8826d5bfb879a95827c260bfece8"
 dependencies = [
  "intprocess-recorder",
  "ipc-link",
@@ -2217,7 +2217,7 @@ dependencies = [
 [[package]]
 name = "libobs-sys"
 version = "0.1.0"
-source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git#92e71d47dc4a93d3df782a833d700d4d0f07f618"
+source = "git+https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git#916ec3f1c8df8826d5bfb879a95827c260bfece8"
 dependencies = [
  "build-helper",
 ]
