@@ -5,6 +5,8 @@
 LeagueRecord automatically detects when a League of Legends game is running and records it. \
 Currently only supports Windows.
 
+Downloads are available on the [Releases](https://github.com/FFFFFFFXXXXXXX/league_record/releases) page as an installer (\*.msi file) or as a portable version (\*.zip file)
+
 ## Table of Contents
 
 - [Usage](#usage)
