@@ -1,10 +1,10 @@
-#main {
-    overflow: auto;
+/* hide videojs player outline when focused */
+video {
+    outline: none !important;
 }
 
-/* hide videojs player outline when focused */
-#main:focus {
-    outline: none;
+#main {
+    overflow: auto;
 }
 
 #description {
