@@ -51,7 +51,7 @@ Just closing the window doesn't completely stop LeagueRecord because it needs to
 In order to completely stop LeagueRecord you have to right-click the tray-icon at the bottom right of your screen and click the 'Quit' button.
 
 > [!NOTE]
-> A bunch of stuff can be customized in the [Settings](#settings). Video resolution, framerate, record voice-comms or only game audio, autostart LeagueRecord when you turn on your PC, ...  
+> A bunch of stuff can be customized in the [Settings](#settings). Video resolution, framerate, only record ranked games, record voice-comms or only game audio, autostart LeagueRecord when you turn on your PC, ...  
 
 > [!NOTE]
 > In case LeagueRecord only records a black screen instead of the game, try running the software as Admin. That should fix the Problem!
