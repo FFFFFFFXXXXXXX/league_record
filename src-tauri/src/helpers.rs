@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime};
 
+use anyhow::Result;
 use log::LevelFilter;
 use reqwest::{blocking::Client, redirect::Policy, StatusCode};
 use tauri::async_runtime;
@@ -96,22 +97,22 @@ pub fn sync_autostart(app_handle: &AppHandle) {
     }
 }
 
-pub fn add_log_plugin(app_handle: &AppHandle) -> Result<(), tauri::Error> {
-    app_handle.plugin(
-        tauri_plugin_log::Builder::default()
-            .targets([LogTarget::LogDir, LogTarget::Stdout])
-            .log_name(format!("{}", chrono::Local::now().format("%Y-%m-%d_%H-%M")))
-            .level(LevelFilter::Info)
-            .format(|out, msg, record| {
-                out.finish(format_args!(
-                    "[{}][{}]: {}",
-                    chrono::Local::now().format("%H:%M:%S"),
-                    record.level(),
-                    msg
-                ))
-            })
-            .build(),
-    )
+pub fn add_log_plugin(app_handle: &AppHandle) -> Result<()> {
+    let plugin = tauri_plugin_log::Builder::default()
+        .targets([LogTarget::LogDir, LogTarget::Stdout])
+        .log_name(format!("{}", chrono::Local::now().format("%Y-%m-%d_%H-%M")))
+        .level(LevelFilter::Info)
+        .format(|out, msg, record| {
+            out.finish(format_args!(
+                "[{}][{}]: {}",
+                chrono::Local::now().format("%H:%M:%S"),
+                record.level(),
+                msg
+            ))
+        })
+        .build();
+
+    Ok(app_handle.plugin(plugin)?)
 }
 
 pub fn remove_log_plugin(app_handle: &AppHandle) {
@@ -156,7 +157,6 @@ pub fn compare_time(a: &Path, b: &Path) -> io::Result<Ordering> {
 }
 
 pub fn show_window(window: &Window) {
-    _ = window.show();
     _ = window.unminimize();
     _ = window.set_focus();
 }
@@ -169,16 +169,18 @@ pub fn create_window(app_handle: &AppHandle) {
 
         let builder = tauri::Window::builder(app_handle, "main", tauri::WindowUrl::App(PathBuf::from("/")));
 
-        let size = *window_state.size.lock().unwrap();
-        let position = *window_state.position.lock().unwrap();
-        builder
+        let size = window_state.get_size();
+        let position = window_state.get_position();
+        let window = builder
             .title("LeagueRecord")
             .inner_size(size.0, size.1)
             .position(position.0, position.1)
             .min_inner_size(800.0, 450.0)
-            .visible(false)
-            .build()
-            .expect("error creating window");
+            .visible(false);
+
+        if let Err(e) = window.build() {
+            log::error!("error creating window: {e}");
+        }
     }
 }
 
@@ -188,15 +190,11 @@ pub fn save_window_state(app_handle: &AppHandle, window: &Window) {
 
     if let Ok(size) = window.inner_size() {
         let size = ((size.width as f64) / scale_factor, (size.height as f64) / scale_factor);
-        *window_state.size.lock().expect("win-state mutex error") = size;
-
-        log::info!("saved window size: {}x{}", size.0, size.1);
+        window_state.set_size(size);
     }
     if let Ok(position) = window.outer_position() {
         let position = ((position.x as f64) / scale_factor, (position.y as f64) / scale_factor);
-        *window_state.position.lock().expect("win-state mutex error") = position;
-
-        log::info!("saved window position: {}x {}y", position.0, position.1);
+        window_state.set_position(position);
     }
 }
 
@@ -335,7 +333,7 @@ fn cleanup_recordings_by_size(app_handle: &AppHandle) {
 }
 
 fn cleanup_recordings_by_age(app_handle: &AppHandle) {
-    fn file_too_old(file: &Path, max_age: Duration, now: SystemTime) -> anyhow::Result<bool> {
+    fn file_too_old(file: &Path, max_age: Duration, now: SystemTime) -> Result<bool> {
         let creation_time = file.metadata()?.created()?;
         let time_passed = now.duration_since(creation_time)?;
         Ok(time_passed > max_age)
@@ -355,7 +353,7 @@ fn cleanup_recordings_by_age(app_handle: &AppHandle) {
     }
 }
 
-pub fn delete_recording(recording: PathBuf) -> anyhow::Result<()> {
+pub fn delete_recording(recording: PathBuf) -> Result<()> {
     fs::remove_file(&recording)?;
 
     let mut metadata_file = recording;
@@ -365,7 +363,7 @@ pub fn delete_recording(recording: PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn get_metadata(video_path: &Path) -> anyhow::Result<GameMetadata> {
+pub fn get_metadata(video_path: &Path) -> Result<GameMetadata> {
     let mut video_path = video_path.to_owned();
     video_path.set_extension("json");
 

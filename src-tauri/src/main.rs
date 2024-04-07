@@ -16,7 +16,7 @@ mod recorder;
 mod state;
 
 fn main() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -28,7 +28,6 @@ fn main() {
         .manage(SettingsWrapper::default())
         .manage(CurrentlyRecording::default())
         .invoke_handler(tauri::generate_handler![
-            show_app_window,
             get_marker_flags,
             set_marker_flags,
             get_recordings_path,
@@ -40,19 +39,24 @@ fn main() {
             get_metadata,
             toggle_favorite
         ])
+        .setup(setup_handler)
         .system_tray(create_system_tray())
         .on_system_tray_event(system_tray_event_handler)
-        .setup(setup_handler)
-        .build(tauri::generate_context!())
-        .expect("error while running tauri application")
-        .run(run_handler);
+        .build(tauri::generate_context!());
+
+    match app {
+        Ok(app) => app.run(run_handler),
+        Err(e) => {
+            println!("error starting LeagueRecord: {e:?}");
+            log::error!("error starting LeagueRecord: {e:?}");
+        }
+    }
 }
 
 #[test]
 fn generate_command_bindings() {
     tauri_specta::ts::export_with_cfg(
         specta::collect_types![
-            show_app_window,
             get_marker_flags,
             set_marker_flags,
             get_recordings_path,

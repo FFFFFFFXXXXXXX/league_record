@@ -12,16 +12,8 @@ use std::path::PathBuf;
 use tauri::{api::shell, AppHandle, Manager, State};
 
 use crate::game_data::GameMetadata;
-use crate::helpers::{self, compare_time, delete_recording, get_recordings, show_window};
+use crate::helpers::{self, compare_time, delete_recording, get_recordings};
 use crate::state::{MarkerFlags, SettingsFile, SettingsWrapper};
-
-#[cfg_attr(test, specta::specta)]
-#[tauri::command]
-pub async fn show_app_window(app_handle: AppHandle) {
-    if let Some(main) = app_handle.windows().get("main") {
-        show_window(main);
-    }
-}
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]

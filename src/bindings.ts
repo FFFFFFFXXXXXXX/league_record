@@ -12,10 +12,6 @@ declare global {
 // Function avoids 'window not defined' in SSR
 const invoke = () => window.__TAURI_INVOKE__;
 
-export function showAppWindow() {
-    return invoke()<null>("show_app_window")
-}
-
 export function getMarkerFlags() {
     return invoke()<MarkerFlags>("get_marker_flags")
 }

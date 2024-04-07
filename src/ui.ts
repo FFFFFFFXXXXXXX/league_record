@@ -1,11 +1,10 @@
 import type videojs from 'video.js';
 import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
 import type { MarkerFlags, GameMetadata, Recording } from '@fffffffxxxxxxx/league_record_types';
-import type { WebviewWindow } from '@tauri-apps/api/window';
 import { toVideoId, toVideoName } from './util';
+import { appWindow } from '@tauri-apps/api/window';
 
 export default class UI {
-
     private readonly modal;
     private readonly modalContent;
     private readonly sidebar;
@@ -24,13 +23,11 @@ export default class UI {
     private readonly checkboxBaron;
 
     private readonly vjs: typeof videojs;
-    private readonly windowHandle: WebviewWindow;
 
     private readonly boundHideModal;
 
-    constructor(vjs: typeof videojs, windowHandle: WebviewWindow) {
+    constructor(vjs: typeof videojs) {
         this.vjs = vjs;
-        this.windowHandle = windowHandle;
         this.boundHideModal = this.hideModal.bind(this);
 
         this.modal = document.querySelector<HTMLDivElement>('[id="modal"]')!;
@@ -51,12 +48,16 @@ export default class UI {
         this.checkboxBaron = document.querySelector<HTMLInputElement>('[id="baron"]')!;
     }
 
-    public async setFullscreen(fullscreen: boolean) {
-        await this.windowHandle.setFullscreen(fullscreen);
+    public setWindowTitle(title: string) {
+        appWindow.setTitle('League Record - ' + title);
     }
 
-    public setWindowTitle(title: string) {
-        this.windowHandle.setTitle('League Record - ' + title);
+    public showWindow() {
+        appWindow.show();
+    }
+
+    public setFullscreen(fullscreen: boolean) {
+        appWindow.setFullscreen(fullscreen);
     }
 
     public setRecordingsFolderBtnOnClickHandler(handler: (e: MouseEvent) => void) {
