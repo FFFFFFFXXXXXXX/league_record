@@ -1,12 +1,14 @@
 use std::error::Error;
+use std::fs;
+use std::io::ErrorKind;
 
 use tauri::api::path::{app_config_dir, video_dir};
-use tauri::api::shell;
+use tauri::api::{dialog, version};
 use tauri::{App, AppHandle, Manager, RunEvent, SystemTray, SystemTrayEvent, WindowEvent, Wry};
 
 use crate::helpers::*;
 use crate::state::{SettingsFile, SettingsWrapper};
-use crate::{filewatcher, recorder::LeagueRecorder};
+use crate::{filewatcher, recorder::LeagueRecorder, MAIN_WINDOW};
 
 pub fn create_system_tray() -> SystemTray {
     SystemTray::new()
@@ -25,13 +27,7 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
                 app_handle.state::<LeagueRecorder>().stop();
                 app_handle.exit(0);
             }
-            "update" => {
-                _ = shell::open(
-                    &app_handle.shell_scope(),
-                    "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest",
-                    None,
-                );
-            }
+            "update" => update(app_handle),
             _ => {}
         },
         _ => {}
@@ -39,6 +35,8 @@ pub fn system_tray_event_handler(app_handle: &AppHandle, event: SystemTrayEvent)
 }
 
 pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
+    const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
     let app_handle = app.app_handle();
 
     // get path to config directory
@@ -58,12 +56,31 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
         add_log_plugin(&app_handle)?;
     }
 
-    log::info!("LeagueRecord v{}", env!("CARGO_PKG_VERSION"));
+    let version_file = config_path.join(".version");
+    match fs::read_to_string(&version_file) {
+        Ok(version) => {
+            if version::is_greater(&version, CURRENT_VERSION).is_ok_and(|yes| yes) {
+                dialog::message(
+                    app_handle.get_window(MAIN_WINDOW).as_ref(),
+                    "Update successful!",
+                    format!("Successfully installed LeagueRecord v{CURRENT_VERSION}"),
+                );
+                _ = fs::write(&version_file, CURRENT_VERSION);
+            }
+        }
+        Err(e) => {
+            if e.kind() == ErrorKind::NotFound {
+                _ = fs::write(&version_file, CURRENT_VERSION);
+            }
+        }
+    }
+
+    log::info!("LeagueRecord v{}", CURRENT_VERSION);
     log::info!("{}", chrono::Local::now().format("%d-%m-%Y %H:%M"));
     log::info!("debug_log: {}", if debug_log { "enabled" } else { "disabled" });
 
     if settings.check_for_updates() {
-        check_updates(&app_handle);
+        check_for_update(&app_handle);
     }
 
     log::info!("Settings: {:?}", settings.inner());
@@ -77,7 +94,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     }
 
     // don't show window on startup and set initial window state
-    if let Some(window) = app_handle.get_window("main") {
+    if let Some(window) = app_handle.get_window(MAIN_WINDOW) {
         save_window_state(&app_handle, &window);
         _ = window.close();
     }
@@ -104,7 +121,7 @@ pub fn run_handler(app_handle: &AppHandle, event: RunEvent) {
             ..
         } => {
             // triggered on window close (X Button)
-            if let Some(window) = app_handle.get_window("main") {
+            if let Some(window) = app_handle.get_window(MAIN_WINDOW) {
                 save_window_state(app_handle, &window);
             }
         }

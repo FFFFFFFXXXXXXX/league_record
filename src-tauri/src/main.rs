@@ -15,6 +15,9 @@ mod helpers;
 mod recorder;
 mod state;
 
+pub const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const MAIN_WINDOW: &str = "main";
+
 fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
