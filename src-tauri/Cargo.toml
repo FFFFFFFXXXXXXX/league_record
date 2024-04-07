@@ -42,13 +42,14 @@ license = { workspace = true }
 
 [dependencies]
 tauri = { version = "1.5.4", features = [
-    "window-show",
     "path-all",
     "protocol-asset",
-    "shell-open",
     "system-tray",
     "window-set-fullscreen",
     "window-set-title",
+    "window-show",
+    "shell-open",
+    "updater",
 ] }
 tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }

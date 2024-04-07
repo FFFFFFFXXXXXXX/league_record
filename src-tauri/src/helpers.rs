@@ -7,16 +7,16 @@ use std::time::{Duration, SystemTime};
 
 use anyhow::Result;
 use log::LevelFilter;
-use reqwest::{blocking::Client, redirect::Policy, StatusCode};
 use riot_datatypes::GameMetadata;
+use tauri::api::dialog;
 use tauri::async_runtime;
-use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem, Window};
+use tauri::{AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem, Window};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::LogTarget;
 
-use crate::filewatcher;
 use crate::recorder::{process_data, MetadataFile};
 use crate::state::{CurrentlyRecording, SettingsFile, SettingsWrapper, WindowState};
+use crate::{filewatcher, MAIN_WINDOW};
 
 pub fn create_tray_menu() -> SystemTrayMenu {
     SystemTrayMenu::new()
@@ -35,43 +35,64 @@ pub fn set_recording_tray_item(app_handle: &AppHandle, recording: bool) {
     _ = item.set_enabled(false);
 }
 
-pub fn check_updates(app_handle: &AppHandle) {
-    const VERSION: &str = env!("CARGO_PKG_VERSION");
-    const GITHUB_LATEST: &str = "https://github.com/FFFFFFFXXXXXXX/league_record/releases/latest";
+pub fn check_for_update(app_handle: &AppHandle) {
+    let app_handle = app_handle.clone();
+    async_runtime::spawn(async move {
+        let update_check = match app_handle.updater().check().await {
+            Ok(update_check) => update_check,
+            Err(e) => {
+                log::error!("update check failed: {e}");
+                return;
+            }
+        };
 
-    let client = match Client::builder().redirect(Policy::none()).build() {
-        Ok(c) => c,
-        Err(_) => {
-            log::warn!("Error creating HTTP Client in 'check_updates'");
+        if update_check.is_update_available() {
+            let tray_menu = create_tray_menu()
+                .add_native_item(SystemTrayMenuItem::Separator)
+                .add_item(CustomMenuItem::new("update", "Update Available!"));
+
+            if let Err(e) = app_handle.tray_handle().set_menu(tray_menu) {
+                log::error!("failed to update tray with 'update available' button: {e}");
+            }
+        }
+    });
+}
+
+pub fn update(app_handle: &AppHandle) {
+    let update_check = match async_runtime::block_on(app_handle.updater().check()) {
+        Ok(update_check) => update_check,
+        Err(e) => {
+            log::error!("update check failed: {e}");
             return;
         }
     };
 
-    let Ok(result) = client.get(GITHUB_LATEST).send() else {
-        log::warn!("couldn't GET http result in 'check_updates");
+    let parent_window = app_handle.get_window(MAIN_WINDOW);
+
+    if !dialog::blocking::ask(
+        parent_window.as_ref(),
+        "LeagueRecord update available!",
+        format!(
+            "Version {} available!\n\n{}\n\nDo you want to update now?",
+            update_check.latest_version(),
+            update_check.body().map(String::as_str).unwrap_or_default()
+        ),
+    ) {
         return;
-    };
-
-    if result.status() == StatusCode::FOUND {
-        let url = result.headers().get("location").unwrap();
-        if let Ok(url) = url.to_str() {
-            let new_version = url.rsplit_once("/v").unwrap().1;
-
-            log::info!("Checking for update: {}/{} (current/newest)", VERSION, new_version);
-
-            if let Ok(res) = compare(VERSION, new_version) {
-                if res == 1 {
-                    let tray_menu = create_tray_menu()
-                        .add_native_item(SystemTrayMenuItem::Separator)
-                        .add_item(CustomMenuItem::new("update", "Update Available!"));
-                    _ = app_handle.tray_handle().set_menu(tray_menu);
-                }
-            }
-            return; // skip last log when there was a version to check against
-        }
     }
 
-    log::warn!("Error somewhere in the HTTP response from {}", GITHUB_LATEST);
+    if let Err(e) = async_runtime::block_on(update_check.download_and_install()) {
+        dialog::blocking::message(
+            parent_window.as_ref(),
+            "Update failed!",
+            "Failed to download and install update!",
+        );
+        log::error!("failed to download and install the update: {e}");
+    } else {
+        // "On macOS and Linux you will need to restart the app manually"
+        // https://tauri.app/v1/guides/distribution/updater/
+        app_handle.restart();
+    }
 }
 
 pub fn sync_autostart(app_handle: &AppHandle) {
@@ -163,12 +184,12 @@ pub fn show_window(window: &Window) {
 }
 
 pub fn create_window(app_handle: &AppHandle) {
-    if let Some(main) = app_handle.windows().get("main") {
+    if let Some(main) = app_handle.windows().get(MAIN_WINDOW) {
         show_window(main);
     } else {
         let window_state = app_handle.state::<WindowState>();
 
-        let builder = tauri::Window::builder(app_handle, "main", tauri::WindowUrl::App(PathBuf::from("/")));
+        let builder = Window::builder(app_handle, MAIN_WINDOW, tauri::WindowUrl::default());
 
         let size = window_state.get_size();
         let position = window_state.get_position();
@@ -186,9 +207,15 @@ pub fn create_window(app_handle: &AppHandle) {
 }
 
 pub fn save_window_state(app_handle: &AppHandle, window: &Window) {
-    let scale_factor = window.scale_factor().expect("Error getting window scale factor");
-    let window_state = app_handle.state::<WindowState>();
+    let scale_factor = match window.scale_factor() {
+        Ok(scale_factor) => scale_factor,
+        Err(e) => {
+            log::error!("Error getting window scale factor: {e}");
+            return;
+        }
+    };
 
+    let window_state = app_handle.state::<WindowState>();
     if let Ok(size) = window.inner_size() {
         let size = ((size.width as f64) / scale_factor, (size.height as f64) / scale_factor);
         window_state.set_size(size);
@@ -232,10 +259,10 @@ pub fn let_user_edit_settings(app_handle: &AppHandle) {
             let old_log = settings.debug_log();
 
             // hardcode 'notepad' since league_record currently only works on windows anyways
-            Command::new("notepad")
-                .arg(settings_file)
-                .status()
-                .expect("failed to start text editor");
+            if let Err(e) = Command::new("notepad").arg(settings_file).status() {
+                log::error!("failed to start text editor: {e}");
+                return;
+            }
 
             // reload settings from settings.json
             settings.load_from_file(settings_file);
