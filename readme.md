@@ -122,7 +122,7 @@ There is a release for Windows-x64, but you can build the project on your own.
 In order to build the project you need to have the [nightly](https://rust-lang.github.io/rustup/concepts/channels.html#working-with-nightly-rust) Rust toolchain and [NPM](https://nodejs.org/en) installed.  
 From the root folder of the project run `npm install` and then `npx tauri dev` to run the project in debug mode or `npx tauri build` to build in release-mode and create the installer.  
 
-In order to pack the compiles files into a standalone archive, run one of the following commands after a successful `npx tauri build`:
+In order to package the compiled files into a standalone archive, run one of the following commands after a successful `npx tauri build`:
 
 ```bash
 # outputs 'LeagueRecord.tar.gz' in the project root folder
@@ -138,7 +138,8 @@ cd src-tauri/target/release && 7z a -tzip ../../../LeagueRecord.zip LeagueRecord
 
 ## License
 
-This project (LeagueRecord) is distributed under the GNU General Public License v3 (GPLv3). This is mainly so I can comply with the licenses of all my dependencies:
+This project (LeagueRecord) is distributed under the GNU General Public License v3 (or any later version).  
+I want to release this project under an open-source license but that license needs to comply with the licenses of all my dependencies. GPLv3+ seems to be the [way to do that](https://stackoverflow.com/a/1978524).
 
 - [`obs-studio/libobs`](https://github.com/obsproject/obs-studio) is licensed under the GNU General Public License v2 (GPLv2).
 - [`videojs`](https://github.com/videojs/video.js) is licensed under the Apache License v2.0
