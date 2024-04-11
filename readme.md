@@ -5,7 +5,9 @@
 LeagueRecord automatically detects when a League of Legends game is running and records it. \
 Currently only supports Windows.
 
-Downloads are available on the [Releases](https://github.com/FFFFFFFXXXXXXX/league_record/releases) page as an installer (\*.msi file) or as a portable version (\*.zip file)
+Downloads are available on the [Releases](https://github.com/FFFFFFFXXXXXXX/league_record/releases) page as an installer (\*.msi file) or as a portable version (\*.zip file).
+
+In case you have any problems, questions or suggestions feel free to open an issue or send me an email (fffffffxxxxxxxfffffffxxxxxxx@gmail.com).
 
 ## Table of Contents
 
@@ -20,11 +22,13 @@ Downloads are available on the [Releases](https://github.com/FFFFFFFXXXXXXX/leag
 
 <!-- ![screenshot1](https://user-images.githubusercontent.com/37913466/187545060-f97961f2-346d-48b7-bf1b-c453cbd86776.png) -->
 
-LeagueRecord launches minimized to the windows tray to get out of your way.
+LeagueRecord launches minimized to the windows tray to get out of your way.  
+By default Windows puts the icon into the tray-icon drawer.
 
 ![screenshot-tray](https://user-images.githubusercontent.com/37913466/258664950-89779fd8-293a-42ed-be8c-95443bde2490.png)
 
-Right-clicking the LeagueRecord tray item opens a menu.
+It possible to drag the LeagueRecord icon out of the drawer (see next image).
+Right-clicking the LeagueRecord tray-icon opens a menu.
 
 ![screenshot-tray-menu](https://user-images.githubusercontent.com/37913466/258588802-c91c5cee-4192-4398-8582-bad709760e48.png)
 
@@ -39,13 +43,12 @@ Double left-clicking the LeagueRecord tray icon or clicking 'right-click' -> 'Op
 
 There are 3 parts to the window.
 
-1. At the top left there is a small info that shows you how much space your recordings take up as well as a box with a button to open the folder in which your recordings are stored.
-2. On the left side under the info box there is a list of all you recordings. The name of each recording is the timestamp of the game.
-    Clicking on a recording shows it in the right part of the window. When moving your mouse over a recording there is a button to mark a recording as a 'favorite' (see [Settings](#settings)).
-    There are also buttons to rename or delete a recording.
+1. In the top left corner there is an info-box where you can see how much space your recordings take up as well as a button that opens the folder in which your recordings are stored.
+2. On the left side under the info-box there is a list of all you recordings. The inital name of each recording is the timestamp of the game (can be adjusted in [Settings](#settings)).
+    Clicking on a recording shows it in the right part of the window. When moving your mouse over a recording there are buttons to mark a recording as a 'favorite' (see [Settings](#settings)), rename a recording and delete a recording.
 3. The right part of the window shows the currently selected recording with some information about the game at the bottom.
-    The timeline of the video includes colored markers for the most important events that happened in the game.
-    In case you don't want to see ALL events because they clutter the timeline you can enable/disable them by clicking the corresponding checkbox on the bottom right.
+    The timeline of the video shows colored markers for the most important events that happened in the game.
+    In case you don't want to see ALL events because they clutter the timeline you can show/hide eventtypes (Kills, Deaths, Assists, ...) by clicking the corresponding checkbox on the bottom right.
 
 Just closing the window doesn't completely stop LeagueRecord because it needs to run in the background to record your games.
 In order to completely stop LeagueRecord you have to right-click the tray-icon at the bottom right of your screen and click the 'Quit' button.
@@ -116,28 +119,27 @@ This is just a rough estimate with the default settings so you can get a sense f
 
 There is a release for Windows-x64, but you can build the project on your own.
 
-You need the cargo tauri CLI: `cargo install tauri`, [NPM](https://nodejs.org/en) and the nightly Rust toolchain `rustup toolchain install nightly`.
+In order to build the project you need to have the [nightly](https://rust-lang.github.io/rustup/concepts/channels.html#working-with-nightly-rust) Rust toolchain and [NPM](https://nodejs.org/en) installed.  
+From the root folder of the project run `npm install` and then `npx tauri dev` to run the project in debug mode or `npx tauri build` to build in release-mode and create the installer.  
 
-Build the project with `cargo tauri build` to create an msi installer.
-In order to pack the compiles files into a standalone archive, run the following commands after a successful `cargo tauri build`:
+In order to pack the compiles files into a standalone archive, run one of the following commands after a successful `npx tauri build`:
 
 ```bash
-tar -cvzf LeagueRecord.tar.gz -C ./target/release/ ./licenses/ ./libobs/ ./LeagueRecord.exe
+# outputs 'LeagueRecord.tar.gz' in the project root folder
+tar -czv -f LeagueRecord.tar.gz -C ./src-tauri/target/release/ LeagueRecord.exe libobs licenses
 ```
 
 or
 
 ```bash
-cd target/release
-7z a -tzip LeagueRecord.zip ./licenses/ ./libobs/ ./LeagueRecord.exe
+# outputs 'LeagueRecord.zip' in the project root folder
+cd src-tauri/target/release && 7z a -tzip ../../../LeagueRecord.zip LeagueRecord.exe libobs licenses && cd ../../..
 ```
 
 ## License
 
-The libobs library is licensed under the GNU General Public License v2 (GPLv2).
+This project (LeagueRecord) is distributed under the GNU General Public License v3 (GPLv3). This is mainly so I can comply with the licenses of all my dependencies:
 
-The Javascript library [videojs](https://github.com/videojs/video.js) is licensed under the Apache License v2.0 and the plugin video-js markers is licensed under the MIT License.
-
-This project (LeagueRecord) is distributed under the GNU General Public License v3 (GPLv3).
-
-In case you have any problems, suggestions or questions feel free to open an issue or email me at fffffffxxxxxxxfffffffxxxxxxx@gmail.com.
+- [`obs-studio/libobs`](https://github.com/obsproject/obs-studio) is licensed under the GNU General Public License v2 (GPLv2).
+- [`videojs`](https://github.com/videojs/video.js) is licensed under the Apache License v2.0
+- [`videojs-markers`](https://github.com/FFFFFFFXXXXXXX/videojs-markers) is licensed under the MIT License.
