@@ -1,3 +1,8 @@
+This product bundles:
+- libobs (https://github.com/obsproject/obs-studio), which is available under a GPLv2 (or later) license. For details, see licenses/GPLv2_LICENSE.txt.
+- videojs (https://github.com/videojs/video.js), which is available under a Apache License v2.0 license. For details, see licenses/Apache-2.0_LICENSE.txt.
+- videojs-markers (https://github.com/FFFFFFFXXXXXXX/videojs-markers), which is available under a MIT license. For details, see licenses/MIT_LICENSE.txt.
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 

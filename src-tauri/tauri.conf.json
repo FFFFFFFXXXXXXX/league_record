@@ -22,11 +22,11 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "resources": [
-        "./licenses/",
-        "./libobs/"
-      ],
-      "copyright": "gpl-2.0",
+      "resources": {
+        "./libobs/": "./libobs/",
+        "../licenses/": "./licenses/",
+        "../LICENSE.txt": "./"
+      },
       "category": "Utility",
       "shortDescription": "Record and review LoL games",
       "longDescription": "Record and review League of Legends games",
