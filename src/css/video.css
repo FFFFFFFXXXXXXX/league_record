@@ -75,7 +75,8 @@ video {
 .cloud-dragon,
 .hextech-dragon,
 .chemtech-dragon,
-.elder-dragon .dragon {
+.elder-dragon,
+.dragon {
     background-color: darkgoldenrod !important;
 }
 

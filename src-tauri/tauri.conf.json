@@ -55,7 +55,8 @@
       },
       "window": {
         "setTitle": true,
-        "setFullscreen": true
+        "setFullscreen": true,
+        "show": true
       },
       "path": {
         "all": true

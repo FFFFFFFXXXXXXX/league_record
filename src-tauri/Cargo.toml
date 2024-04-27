@@ -12,6 +12,7 @@ build = "build.rs"
 [dependencies]
 # dependencies for main app and UI
 tauri = { version = "1.5.4", features = [
+    "window-show",
     "path-all",
     "protocol-asset",
     "shell-open",
