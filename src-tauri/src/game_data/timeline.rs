@@ -5,7 +5,7 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use super::{ParticipantId, Timestamp};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Timeline {
     pub frames: Vec<Frame>,

@@ -22,16 +22,21 @@ pub async fn process_data(
 ) -> Result<GameMetadata> {
     let lcu_rest_client = LcuRestClient::from(credentials);
 
-    let mut data = None;
+    let mut player_info = None;
+    let mut timeline_data = None;
     for _ in 0..60 {
-        data = try_join!(
+        player_info = try_join!(
             lcu_rest_client.get::<Player>("/lol-summoner/v1/current-summoner"),
             lcu_rest_client.get::<Game>(format!("/lol-match-history/v1/games/{}", game_id)),
-            lcu_rest_client.get::<Timeline>(format!("/lol-match-history/v1/game-timelines/{}", game_id)),
         )
         .ok();
 
-        if data.is_some() {
+        timeline_data = lcu_rest_client
+            .get::<Timeline>(format!("/lol-match-history/v1/game-timelines/{}", game_id))
+            .await
+            .ok();
+
+        if player_info.is_some() && timeline_data.is_some() {
             break;
         }
 
@@ -41,7 +46,8 @@ pub async fn process_data(
         }
     }
 
-    let Some((player, game, timeline)) = data else { bail!("unable to collect game data") };
+    let Some((player, game)) = player_info else { bail!("unable to collect game data") };
+    let timeline = timeline_data.unwrap_or_default();
 
     let queue = match game.queue_id {
         -1 => Queue {
