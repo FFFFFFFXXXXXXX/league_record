@@ -5,8 +5,7 @@
 */
 
 use std::cmp::Ordering;
-use std::fs::{metadata, read_to_string, rename, write, File};
-use std::io::BufReader;
+use std::fs::{metadata, rename};
 use std::path::PathBuf;
 
 use tauri::{api::shell, AppHandle, Manager, State};
@@ -124,25 +123,18 @@ pub fn delete_video(video_id: String, state: State<'_, SettingsWrapper>) -> bool
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
 pub fn get_metadata(video_id: String, state: State<'_, SettingsWrapper>) -> Option<GameMetadata> {
-    let mut path = state.get_recordings_path().join(video_id);
-    path.set_extension("json");
-
-    let reader = BufReader::new(File::open(path).ok()?);
-    serde_json::from_reader::<_, GameMetadata>(reader).ok()
+    let path = state.get_recordings_path().join(video_id);
+    helpers::get_metadata(&path).ok()
 }
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
 pub fn toggle_favorite(video_id: String, state: State<'_, SettingsWrapper>) -> Option<bool> {
-    let mut path = state.get_recordings_path().join(video_id);
-    path.set_extension("json");
+    let path = state.get_recordings_path().join(video_id);
 
-    let metadata_json = read_to_string(&path).ok()?;
-    let mut metadata = serde_json::from_str::<GameMetadata>(&metadata_json).ok()?;
+    let mut metadata = helpers::get_metadata(&path).ok()?;
     metadata.favorite = !metadata.favorite;
-
-    let metadata_json = serde_json::to_string(&metadata).ok()?;
-    write(&path, metadata_json).ok()?;
+    helpers::save_metadata(&path, &metadata).ok()?;
 
     Some(metadata.favorite)
 }

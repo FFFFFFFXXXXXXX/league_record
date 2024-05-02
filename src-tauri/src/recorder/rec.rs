@@ -255,7 +255,7 @@ async fn state_transition(state: State, sub_resp: SubscriptionResponse, ctx: Ctx
                     let mut metadata_filepath = output_filepath;
                     metadata_filepath.set_extension("json");
 
-                    match game_data::process_data(
+                    match game_data::process_data_with_retry(
                         ingame_time_rec_start_offset,
                         game_id,
                         &ctx.credentials,
@@ -266,7 +266,6 @@ async fn state_transition(state: State, sub_resp: SubscriptionResponse, ctx: Ctx
                         Ok(game_metadata) => {
                             log::info!("writing game metadata to file: {metadata_filepath:?}");
 
-                            // serde_json requires a std::fs::File
                             if let Ok(file) = std::fs::File::create(&metadata_filepath) {
                                 let result = serde_json::to_writer(&file, &game_metadata);
                                 log::info!("metadata saved: {result:?}");
@@ -360,6 +359,16 @@ impl RecordingTask {
             .await
             .map(|stats| stats.game_time)
             .unwrap_or_default();
+
+        // save (GameId, rec_start_offset) tuple from which we can later fetch the data if we don't succeed on the first try
+        if let Err(e) = std::fs::File::create(&output_filepath)
+            .map_err(anyhow::Error::msg)
+            .and_then(|file| {
+                serde_json::to_writer(&file, &(game_id, ingame_time_rec_start_offset)).map_err(anyhow::Error::msg)
+            })
+        {
+            log::info!("failed to save game_id: {e}")
+        }
 
         Ok(Rec {
             recorder,

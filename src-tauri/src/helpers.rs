@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::fs::{self, File};
-use std::io::{self, BufReader};
+use std::io::{self, BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime};
@@ -14,7 +14,7 @@ use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::LogTarget;
 
 use crate::filewatcher;
-use crate::game_data::GameMetadata;
+use crate::game_data::{process_data, GameId, GameMetadata};
 use crate::state::{CurrentlyRecording, SettingsFile, SettingsWrapper, WindowState};
 
 pub fn create_tray_menu() -> SystemTrayMenu {
@@ -363,12 +363,41 @@ pub fn delete_recording(recording: PathBuf) -> Result<()> {
     Ok(())
 }
 
+// allow large difference in enum Variant size because the big variant is the more common one
+#[allow(clippy::large_enum_variant)]
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+enum MetadataFile {
+    Metadata(GameMetadata),
+    GameId((GameId, f64)),
+}
+
 pub fn get_metadata(video_path: &Path) -> Result<GameMetadata> {
     let mut video_path = video_path.to_owned();
     video_path.set_extension("json");
 
-    let reader = BufReader::new(File::open(video_path)?);
-    Ok(serde_json::from_reader::<_, GameMetadata>(reader)?)
+    let reader = BufReader::new(File::open(&video_path)?);
+    let filedata = serde_json::from_reader::<_, MetadataFile>(reader)?;
+
+    match filedata {
+        MetadataFile::Metadata(metadata) => Ok(metadata),
+        MetadataFile::GameId((game_id, ingame_time_rec_start_offset)) => {
+            let metadata = async_runtime::block_on(process_data(ingame_time_rec_start_offset, game_id))?;
+            if let Err(e) = save_metadata(&video_path, &metadata) {
+                log::error!("failed to save re-processed game metadata: {e}");
+            }
+            Ok(metadata)
+        }
+    }
+}
+
+pub fn save_metadata(path: &Path, metadata: &GameMetadata) -> Result<()> {
+    let mut path = path.to_owned();
+    path.set_extension("json");
+
+    let writer = BufWriter::new(File::options().write(true).open(path)?);
+    Ok(serde_json::to_writer(writer, &metadata)?)
 }
 
 #[macro_export]

@@ -1,17 +1,17 @@
 use serde::{Deserialize, Serialize};
 use shaco::model::ingame::GameMode;
 
-use super::{ChampionId, GameId, ParticipantId, SpellId};
+use super::{ChampionId, GameId, MapId, ParticipantId, QueueId, SpellId, SummonerId, Timestamp};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Game {
     pub game_version: String,
     pub game_id: GameId,
-    pub map_id: i64,
+    pub map_id: MapId,
     pub game_mode: GameMode,
-    pub queue_id: i64,
-    pub game_duration: i64,
+    pub queue_id: QueueId,
+    pub game_duration: Timestamp,
     pub participant_identities: Vec<ParticipantIdentity>,
     pub participants: Vec<Participant>,
 }
@@ -30,7 +30,7 @@ pub struct Player {
     pub game_name: String,
     pub tag_line: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub summoner_id: Option<i64>,
+    pub summoner_id: Option<SummonerId>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
