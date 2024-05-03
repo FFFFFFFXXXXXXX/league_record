@@ -361,13 +361,15 @@ impl RecordingTask {
             .unwrap_or_default();
 
         // save (GameId, rec_start_offset) tuple from which we can later fetch the data if we don't succeed on the first try
-        if let Err(e) = std::fs::File::create(&output_filepath)
+        let mut metadata_filepath = output_filepath.clone();
+        metadata_filepath.set_extension("json");
+        if let Err(e) = std::fs::File::create(&metadata_filepath)
             .map_err(anyhow::Error::msg)
             .and_then(|file| {
                 serde_json::to_writer(&file, &(game_id, ingame_time_rec_start_offset)).map_err(anyhow::Error::msg)
             })
         {
-            log::info!("failed to save game_id: {e}")
+            log::info!("failed to save (game_id, rec_offset) tuple: {e}")
         }
 
         Ok(Rec {
