@@ -1,6 +1,14 @@
+[workspace]
+members = ["riot_datatypes"]
+
+[workspace.dependencies]
+serde = "1.0.196"
+serde_repr = "0.1.18"
+specta = { version = "1.0.5" }
+
 [package]
 name = "app"
-version = "1.19.4"
+version = "1.19.5"
 description = "Record and review LoL games"
 authors = ["FX"]
 license = "GPL-3.0-or-later"
@@ -25,12 +33,16 @@ tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-wo
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 anyhow = "1.0.79"
 log = "0.4.20"
-serde = "1.0.196"
+serde = { workspace = true }
+serde_repr = { workspace = true }
 serde_json = "1.0.113"
-serde_repr = "0.1.18"
 reqwest = { version = "0.11.24", features = ["blocking"] }
 notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
+specta = { workspace = true, features = ["export"] }
+tauri-specta = { version = "1.0.2", features = ["typescript"] }
+
 # dependencies for the recorder module
+riot_datatypes = { path = "riot_datatypes" }
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git", features = ["specta"] }
 riot_local_auth = { git = "https://github.com/FFFFFFFXXXXXXX/riot_local_auth" }
 shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
@@ -45,10 +57,6 @@ windows = { version = "0.54.0", features = ["Win32_Foundation", "Win32_UI_Window
 # todo
 [target.'cfg(target_os = "macos")'.dependencies]
 # todo
-
-[dev-dependencies]
-specta = { version = "1.0.5", features = ["export"] }
-tauri-specta = { version = "1.0.2", features = ["typescript"] }
 
 [build-dependencies]
 tauri-build = { version = "1.5.1" }

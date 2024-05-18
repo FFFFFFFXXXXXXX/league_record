@@ -1,18 +1,12 @@
-/*
-    Notice: Some commands return a Result even though it is not necessary,
-    because async tauri::commands have some kind of bug where they don't compile if they
-    return just a value
-*/
-
 use std::cmp::Ordering;
 use std::fs::{metadata, rename};
 use std::path::PathBuf;
 
 use tauri::{api::shell, AppHandle, Manager, State};
 
-use crate::game_data::GameMetadata;
 use crate::helpers::{self, compare_time, delete_recording, get_recordings};
 use crate::state::{MarkerFlags, SettingsFile, SettingsWrapper};
+use riot_datatypes::GameMetadata;
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
@@ -49,8 +43,7 @@ pub fn get_recordings_size(app_handle: AppHandle) -> f32 {
     size as f32 / 1_000_000_000.0 // in Gigabyte
 }
 
-#[cfg_attr(test, derive(specta::Type))]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, specta::Type)]
 pub struct Recording {
     video_id: String,
     metadata: Option<GameMetadata>,

@@ -60,8 +60,7 @@ impl SettingsFile {
     }
 }
 
-#[cfg_attr(test, derive(specta::Type))]
-#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, specta::Type)]
 pub struct MarkerFlags {
     kill: bool,
     death: bool,
@@ -242,8 +241,7 @@ impl Default for SettingsWrapper {
     }
 }
 
-#[cfg_attr(test, derive(specta::Type))]
-#[derive(Serialize, Debug, Clone)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     // only used in the tauri application

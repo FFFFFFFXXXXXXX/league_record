@@ -8,13 +8,14 @@ use std::time::{Duration, SystemTime};
 use anyhow::Result;
 use log::LevelFilter;
 use reqwest::{blocking::Client, redirect::Policy, StatusCode};
+use riot_datatypes::{GameId, GameMetadata};
 use tauri::async_runtime;
 use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem, Window};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::LogTarget;
 
 use crate::filewatcher;
-use crate::game_data::{process_data, GameId, GameMetadata};
+use crate::recorder::process_data;
 use crate::state::{CurrentlyRecording, SettingsFile, SettingsWrapper, WindowState};
 
 pub fn create_tray_menu() -> SystemTrayMenu {
@@ -365,8 +366,7 @@ pub fn delete_recording(recording: PathBuf) -> Result<()> {
 
 // allow large difference in enum Variant size because the big variant is the more common one
 #[allow(clippy::large_enum_variant)]
-#[cfg_attr(test, derive(specta::Type))]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, specta::Type)]
 #[serde(untagged)]
 enum MetadataFile {
     Metadata(GameMetadata),

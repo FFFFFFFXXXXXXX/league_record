@@ -1,0 +1,12 @@
+[package]
+name = "riot_datatypes"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+serde_repr = { workspace = true }
+specta = { workspace = true }
+
+[dev-dependencies]
+specta = { workspace = true, features = ["export"] }

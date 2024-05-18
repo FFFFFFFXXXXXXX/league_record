@@ -1,17 +1,13 @@
 use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
+use riot_datatypes::lcu::{Game, Player};
+use riot_datatypes::{Champion, GameId, GameMetadata, Queue, Timeline};
 use riot_local_auth::Credentials;
-use serde::{Deserialize, Serialize};
 use shaco::rest::LcuRestClient;
 use tokio::{select, time::sleep, try_join};
 use tokio_util::sync::CancellationToken;
 
-use super::game::{Game, Player, Stats};
-use super::objects::Champion;
-use super::objects::Queue;
-use super::timeline::{GameEvent, Timeline};
-use super::{GameId, ParticipantId};
 use crate::cancellable;
 
 pub async fn process_data(ingame_time_rec_start_offset: f64, game_id: GameId) -> Result<GameMetadata> {
@@ -30,12 +26,12 @@ pub async fn process_data(ingame_time_rec_start_offset: f64, game_id: GameId) ->
         -1 => Queue {
             id: -1,
             name: "Practicetool".into(),
-            description: "Practicetool".into(),
+            is_ranked: false,
         },
         0 => Queue {
             id: 0,
             name: "Custom Game".into(),
-            description: "Custom Game".into(),
+            is_ranked: false,
         },
         id => {
             lcu_rest_client
@@ -66,12 +62,7 @@ pub async fn process_data(ingame_time_rec_start_offset: f64, game_id: GameId) ->
         .await?
         .name;
 
-    let events: Vec<_> = timeline
-        .frames
-        .into_iter()
-        .flat_map(|frame| frame.events.into_iter())
-        .map(GameEvent::from)
-        .collect();
+    let events: Vec<_> = timeline.frames.into_iter().flat_map(|frame| frame.events).collect();
 
     Ok(GameMetadata {
         game_id,
@@ -125,12 +116,12 @@ pub async fn process_data_with_retry(
         -1 => Queue {
             id: -1,
             name: "Practicetool".into(),
-            description: "Practicetool".into(),
+            is_ranked: false,
         },
         0 => Queue {
             id: 0,
             name: "Custom Game".into(),
-            description: "Custom Game".into(),
+            is_ranked: false,
         },
         id => {
             lcu_rest_client
@@ -165,7 +156,6 @@ pub async fn process_data_with_retry(
         .frames
         .into_iter()
         .flat_map(|frame| frame.events.into_iter())
-        .map(GameEvent::from)
         .collect();
 
     Ok(GameMetadata {
@@ -179,21 +169,4 @@ pub async fn process_data_with_retry(
         events,
         favorite: false,
     })
-}
-
-#[cfg_attr(test, derive(specta::Type))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GameMetadata {
-    #[serde(default)]
-    pub game_id: GameId,
-    pub ingame_time_rec_start_offset: f64,
-    pub queue: Queue,
-    pub player: Player,
-    pub champion_name: String,
-    pub stats: Stats,
-    pub participant_id: ParticipantId,
-    pub events: Vec<GameEvent>,
-    #[serde(default)]
-    pub favorite: bool,
 }

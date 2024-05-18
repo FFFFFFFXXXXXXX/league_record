@@ -88,7 +88,7 @@ pub fn setup_handler(app: &mut App<Wry>) -> Result<(), Box<dyn Error>> {
     filewatcher::replace(&app_handle, &recordings_path);
 
     // start checking for LoL games to record
-    app_handle.manage(LeagueRecorder::start(app_handle.clone()));
+    app_handle.manage(LeagueRecorder::new(app_handle.clone()));
 
     // cleanup recordings if they are too old or the total size of the recordings gets too big
     // this only happens if 'maxRecordingAge' or 'maxRecordingsSize' is configured in the settings

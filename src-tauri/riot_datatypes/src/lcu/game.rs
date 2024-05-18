@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
-use shaco::model::ingame::GameMode;
 
-use super::{ChampionId, GameId, MapId, ParticipantId, QueueId, SpellId, SummonerId, Timestamp};
+use crate::{ChampionId, GameId, MapId, ParticipantId, QueueId, SpellId, SummonerId, Timestamp};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -9,7 +8,6 @@ pub struct Game {
     pub game_version: String,
     pub game_id: GameId,
     pub map_id: MapId,
-    pub game_mode: GameMode,
     pub queue_id: QueueId,
     pub game_duration: Timestamp,
     pub participant_identities: Vec<ParticipantIdentity>,
@@ -23,14 +21,19 @@ pub struct ParticipantIdentity {
     pub player: Player,
 }
 
-#[cfg_attr(test, derive(specta::Type))]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Player {
     pub game_name: String,
     pub tag_line: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub summoner_id: Option<SummonerId>,
+}
+
+impl PartialEq for Player {
+    fn eq(&self, other: &Self) -> bool {
+        self.game_name == other.game_name && self.tag_line == other.tag_line
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,8 +46,7 @@ pub struct Participant {
     pub stats: Stats,
 }
 
-#[cfg_attr(test, derive(specta::Type))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Stats {
     pub kills: i64,

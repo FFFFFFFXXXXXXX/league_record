@@ -9,7 +9,6 @@ use state::*;
 
 mod commands;
 mod filewatcher;
-mod game_data;
 mod handlers;
 mod helpers;
 mod recorder;
