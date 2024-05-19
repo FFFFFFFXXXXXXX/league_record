@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -13,6 +13,8 @@ pub type SummonerId = i64;
 pub type ChampionId = i64;
 pub type Timestamp = i64;
 pub type SpellId = i64;
+
+pub type Test = (MatchId, f64);
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -49,6 +51,18 @@ pub struct Queue {
     pub id: QueueId,
     pub name: String,
     pub is_ranked: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+pub struct MatchId {
+    pub game_id: GameId,
+    pub platform_id: String,
+}
+
+impl Display for MatchId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}_{}", self.platform_id, self.game_id))
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

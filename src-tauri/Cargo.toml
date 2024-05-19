@@ -1,24 +1,46 @@
 [workspace]
 members = ["riot_datatypes"]
 
+[workspace.package]
+version = "1.19.5"
+edition = "2021"
+authors = ["FX"]
+license = "GPL-3.0-or-later"
+
 [workspace.dependencies]
+riot_datatypes = { path = "riot_datatypes" }
+recorder = { path = "recorder" }
+
+libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git" }
+riot_local_auth = { git = "https://github.com/FFFFFFFXXXXXXX/riot_local_auth" }
+shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
+
+tokio = "1.36.0"
+tokio-util = "0.7.10"
+futures-util = "0.3.30"
+
 serde = "1.0.196"
 serde_repr = "0.1.18"
-specta = { version = "1.0.5" }
+serde_json = "1.0.113"
+
+anyhow = "1.0.79"
+log = "0.4.20"
+chrono = "0.4.33"
+
+specta = "1.0.5"
 
 [package]
 name = "app"
-version = "1.19.5"
 description = "Record and review LoL games"
-authors = ["FX"]
-license = "GPL-3.0-or-later"
-repository = "github.com/FFFFFFFXXXXXXX/league_record"
-edition = "2021"
+repository = "https://github.com/FFFFFFFXXXXXXX/league_record"
 default-run = "app"
 build = "build.rs"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
 
 [dependencies]
-# dependencies for main app and UI
 tauri = { version = "1.5.4", features = [
     "window-show",
     "path-all",
@@ -31,28 +53,33 @@ tauri = { version = "1.5.4", features = [
 tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
-anyhow = "1.0.79"
-log = "0.4.20"
-serde = { workspace = true }
-serde_repr = { workspace = true }
-serde_json = "1.0.113"
-reqwest = { version = "0.11.24", features = ["blocking"] }
-notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
+
 specta = { workspace = true, features = ["export"] }
 tauri-specta = { version = "1.0.2", features = ["typescript"] }
 
-# dependencies for the recorder module
-riot_datatypes = { path = "riot_datatypes" }
-libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git", features = ["specta"] }
-riot_local_auth = { git = "https://github.com/FFFFFFFXXXXXXX/riot_local_auth" }
-shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
-tokio = { version = "1.36.0", features = ["fs", "io-util", "rt-multi-thread", "macros"] }
-tokio-util = { version = "0.7.10", features = ["io"] }
-futures-util = "0.3.30"
-chrono = "0.4.33"
+tokio = { workspace = true, default-features = false, features = ["macros"] }
+tokio-util = { workspace = true, default-features = false, features = ["io"] }
+futures-util = { workspace = true, default-features = false }
+
+serde = { workspace = true }
+serde_repr = { workspace = true }
+serde_json = { workspace = true }
+
+riot_datatypes = { workspace = true }
+riot_local_auth = { workspace = true }
+shaco = { workspace = true }
+
+libobs-recorder = { workspace = true, features = ["specta"] }
+
+anyhow = { workspace = true }
+log = { workspace = true }
+chrono = { workspace = true }
+
+reqwest = { version = "0.11.24", features = ["blocking"] }
+notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows = { version = "0.54.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }
+windows = { version = "0.56.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }
 [target.'cfg(target_os = "linux")'.dependencies]
 # todo
 [target.'cfg(target_os = "macos")'.dependencies]

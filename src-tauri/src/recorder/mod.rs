@@ -16,3 +16,12 @@ mod api {
     pub const GAMEFLOW_SESSION: &str = "/lol-gameflow/v1/session";
     pub const EOG_STATS_BLOCK: &str = "/lol-end-of-game/v1/eog-stats-block";
 }
+
+// allow large difference in enum Variant size because the big variant is the more common one
+#[allow(clippy::large_enum_variant)]
+#[derive(serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(untagged)]
+pub enum MetadataFile {
+    Metadata(riot_datatypes::GameMetadata),
+    Deferred((riot_datatypes::MatchId, f64)),
+}

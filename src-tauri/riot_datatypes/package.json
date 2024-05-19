@@ -5,7 +5,7 @@
   "main": "",
   "types": "index.d.ts",
   "scripts": {
-    "build": "cd ../src-tauri/; cargo test generate_type_bindings"
+    "build": "cargo test generate_type_bindings"
   },
   "keywords": [
     "LeagueRecord"

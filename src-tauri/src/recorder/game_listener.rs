@@ -3,6 +3,7 @@ use std::fmt::Display;
 use anyhow::Result;
 use futures_util::StreamExt;
 use riot_datatypes::lcu::{GameData, GamePhase, SessionEventData, SubscriptionResponse};
+use riot_datatypes::{GameId, MatchId};
 use riot_local_auth::Credentials;
 use shaco::model::ws::{EventType, LcuSubscriptionType};
 use shaco::{rest::LcuRestClient, ws::LcuWebsocketClient};
@@ -21,15 +22,18 @@ use crate::state::SettingsWrapper;
 pub struct ApiCtx {
     pub app_handle: AppHandle,
     pub credentials: Credentials,
-    pub platform_id: Option<String>,
+    pub platform_id: String,
     pub cancel_token: CancellationToken,
 }
 
 impl ApiCtx {
-    fn game_ctx(&self) -> GameCtx {
+    fn game_ctx(&self, game_id: GameId) -> GameCtx {
         GameCtx {
             app_handle: self.app_handle.clone(),
-            platform_id: self.platform_id.clone(),
+            match_id: MatchId {
+                game_id,
+                platform_id: self.platform_id.clone(),
+            },
             cancel_token: self.cancel_token.child_token(),
         }
     }
@@ -118,7 +122,7 @@ impl GameListener {
                     phase: GamePhase::GameStart | GamePhase::InProgress,
                     game_data: GameData { queue, game_id },
                 }) if queue.is_ranked || !self.ctx.app_handle.state::<SettingsWrapper>().only_record_ranked() => {
-                    State::Recording(RecordingTask::new(game_id, self.ctx.game_ctx()))
+                    State::Recording(RecordingTask::new(self.ctx.game_ctx(game_id)))
                 }
                 _ => State::Idle,
             },

@@ -1,19 +1,19 @@
 use std::time::Duration;
 
 use shaco::rest::LcuRestClient;
-use tauri::async_runtime::{self, JoinHandle};
+use tauri::async_runtime::{self, JoinHandle, Mutex};
 use tauri::AppHandle;
 use tokio::select;
 use tokio::time::{sleep, timeout};
 use tokio_util::sync::CancellationToken;
 
 use super::api;
+use super::game_listener::{ApiCtx, GameListener};
 use crate::cancellable;
-use crate::recorder::game_listener::{ApiCtx, GameListener};
 
 pub struct LeagueRecorder {
     cancel_token: CancellationToken,
-    task: async_runtime::Mutex<JoinHandle<()>>,
+    task: Mutex<JoinHandle<()>>,
 }
 
 impl LeagueRecorder {
@@ -29,17 +29,18 @@ impl LeagueRecorder {
                 loop {
                     if let Ok(credentials) = riot_local_auth::lcu::try_get_credentials() {
                         let lcu_rest_client = LcuRestClient::from(&credentials);
-                        let platform_id = lcu_rest_client.get::<String>(api::PLATFORM_ID).await.ok();
 
-                        let ctx = ApiCtx {
-                            app_handle: app_handle.clone(),
-                            credentials,
-                            platform_id,
-                            cancel_token: cancel_token.clone(),
-                        };
+                        if let Ok(platform_id) = lcu_rest_client.get::<String>(api::PLATFORM_ID).await {
+                            let ctx = ApiCtx {
+                                app_handle: app_handle.clone(),
+                                credentials,
+                                platform_id,
+                                cancel_token: cancel_token.clone(),
+                            };
 
-                        if let Err(e) = GameListener::new(ctx).run().await {
-                            log::error!("stopped listening for games: {e}");
+                            if let Err(e) = GameListener::new(ctx).run().await {
+                                log::error!("stopped listening for games: {e}");
+                            }
                         }
                     }
 
@@ -54,7 +55,7 @@ impl LeagueRecorder {
 
         Self {
             cancel_token,
-            task: async_runtime::Mutex::new(task),
+            task: Mutex::new(task),
         }
     }
 
@@ -62,7 +63,7 @@ impl LeagueRecorder {
         async_runtime::block_on(async {
             self.cancel_token.cancel();
 
-            let mut task = self.task.lock().await;
+            let Ok(mut task) = self.task.try_lock() else { return };
             if timeout(Duration::from_secs(1), &mut *task).await.is_err() {
                 log::warn!("RecordingTask stop() ran into timeout - aborting task");
                 task.abort();

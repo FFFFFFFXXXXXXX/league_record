@@ -1,9 +1,9 @@
 use std::{fmt::Display, path::PathBuf, time::Duration};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Context, Result};
 use libobs_recorder::settings::{RateControl, Resolution, StdResolution, Window};
 use libobs_recorder::{Recorder, RecorderSettings};
-use riot_datatypes::GameId;
+use riot_datatypes::{GameId, MatchId};
 use shaco::ingame::IngameClient;
 use tauri::async_runtime::{self, JoinHandle};
 use tauri::{AppHandle, Manager};
@@ -15,12 +15,13 @@ use super::window::{self, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
 use crate::cancellable;
 use crate::helpers::cleanup_recordings;
 use crate::helpers::set_recording_tray_item;
+use crate::recorder::MetadataFile;
 use crate::state::{CurrentlyRecording, SettingsWrapper};
 
 #[derive(Clone)]
 pub struct GameCtx {
     pub app_handle: AppHandle,
-    pub platform_id: Option<String>,
+    pub match_id: MatchId,
     pub cancel_token: CancellationToken,
 }
 
@@ -48,8 +49,8 @@ pub struct RecordingTask {
 }
 
 impl RecordingTask {
-    pub fn new(game_id: GameId, ctx: GameCtx) -> Self {
-        let join_handle = async_runtime::spawn(Self::record(game_id, ctx.clone()));
+    pub fn new(ctx: GameCtx) -> Self {
+        let join_handle = async_runtime::spawn(Self::record(ctx.clone()));
         Self { join_handle, ctx }
     }
 
@@ -68,8 +69,10 @@ impl RecordingTask {
         Ok(metadata)
     }
 
-    async fn record(game_id: GameId, ctx: GameCtx) -> Result<(Recorder, Metadata)> {
+    async fn record(ctx: GameCtx) -> Result<(Recorder, Metadata)> {
         let (mut recorder, output_filepath) = cancellable!(Self::setup_recorder(&ctx), ctx.cancel_token, Result)?;
+
+        let game_id = ctx.match_id.game_id;
 
         // ingame_client timeout is 200ms, so no need to make cancellable with token
         let ingame_client = IngameClient::new();
@@ -114,7 +117,11 @@ impl RecordingTask {
         if let Err(e) = std::fs::File::create(&metadata_filepath)
             .map_err(anyhow::Error::msg)
             .and_then(|file| {
-                serde_json::to_writer(&file, &(game_id, ingame_time_rec_start_offset)).map_err(anyhow::Error::msg)
+                serde_json::to_writer(
+                    &file,
+                    &MetadataFile::Deferred((ctx.match_id, ingame_time_rec_start_offset)),
+                )
+                .map_err(anyhow::Error::msg)
             })
         {
             log::info!("failed to save (game_id, rec_offset) tuple: {e}")

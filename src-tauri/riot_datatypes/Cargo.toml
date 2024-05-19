@@ -1,11 +1,15 @@
 [package]
 name = "riot_datatypes"
-version = "0.1.0"
-edition = "2021"
+repository = "https://github.com/FFFFFFFXXXXXXX/league_record/riot_datatypes"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
 
 [dependencies]
 serde = { workspace = true }
 serde_repr = { workspace = true }
+
 specta = { workspace = true }
 
 [dev-dependencies]

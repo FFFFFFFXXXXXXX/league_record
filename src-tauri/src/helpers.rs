@@ -8,14 +8,14 @@ use std::time::{Duration, SystemTime};
 use anyhow::Result;
 use log::LevelFilter;
 use reqwest::{blocking::Client, redirect::Policy, StatusCode};
-use riot_datatypes::{GameId, GameMetadata};
+use riot_datatypes::GameMetadata;
 use tauri::async_runtime;
 use tauri::{api::version::compare, AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem, Window};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::LogTarget;
 
 use crate::filewatcher;
-use crate::recorder::process_data;
+use crate::recorder::{process_data, MetadataFile};
 use crate::state::{CurrentlyRecording, SettingsFile, SettingsWrapper, WindowState};
 
 pub fn create_tray_menu() -> SystemTrayMenu {
@@ -364,15 +364,6 @@ pub fn delete_recording(recording: PathBuf) -> Result<()> {
     Ok(())
 }
 
-// allow large difference in enum Variant size because the big variant is the more common one
-#[allow(clippy::large_enum_variant)]
-#[derive(serde::Serialize, serde::Deserialize, specta::Type)]
-#[serde(untagged)]
-enum MetadataFile {
-    Metadata(GameMetadata),
-    GameId((GameId, f64)),
-}
-
 pub fn get_metadata(video_path: &Path) -> Result<GameMetadata> {
     let mut video_path = video_path.to_owned();
     video_path.set_extension("json");
@@ -382,8 +373,8 @@ pub fn get_metadata(video_path: &Path) -> Result<GameMetadata> {
 
     match filedata {
         MetadataFile::Metadata(metadata) => Ok(metadata),
-        MetadataFile::GameId((game_id, ingame_time_rec_start_offset)) => {
-            let metadata = async_runtime::block_on(process_data(ingame_time_rec_start_offset, game_id))?;
+        MetadataFile::Deferred((match_id, ingame_time_rec_start_offset)) => {
+            let metadata = async_runtime::block_on(process_data(ingame_time_rec_start_offset, match_id.game_id))?;
             if let Err(e) = save_metadata(&video_path, &metadata) {
                 log::error!("failed to save re-processed game metadata: {e}");
             }
@@ -410,8 +401,8 @@ macro_rules! cancellable {
     };
     ($function:expr, $cancel_token:expr, Result) => {
         select! {
-            result = $function => result.map_err(|e| anyhow!("{e}")),
-            _ = $cancel_token.cancelled() => Err(anyhow!("cancelled"))
+            result = $function => result.map_err(|e| anyhow::anyhow!("{e}")),
+            _ = $cancel_token.cancelled() => Err(anyhow::anyhow!("cancelled"))
         }
     };
     ($function:expr, $cancel_token:expr, ()) => {
