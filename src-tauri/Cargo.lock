@@ -81,7 +81,7 @@ checksum = "18b8795de6d09abb2b178fa5a9e3bb10da935750f33449a132b328b9391b2c6a"
 
 [[package]]
 name = "app"
-version = "1.19.5"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "build-helper",
@@ -3458,7 +3458,7 @@ dependencies = [
 
 [[package]]
 name = "riot_datatypes"
-version = "1.19.5"
+version = "2.0.0"
 dependencies = [
  "serde",
  "serde_repr",

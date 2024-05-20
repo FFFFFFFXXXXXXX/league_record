@@ -3,7 +3,7 @@ use std::{fmt::Display, path::PathBuf, time::Duration};
 use anyhow::{bail, Context, Result};
 use libobs_recorder::settings::{RateControl, Resolution, StdResolution, Window};
 use libobs_recorder::{Recorder, RecorderSettings};
-use riot_datatypes::{GameId, MatchId};
+use riot_datatypes::MatchId;
 use shaco::ingame::IngameClient;
 use tauri::async_runtime::{self, JoinHandle};
 use tauri::{AppHandle, Manager};
@@ -12,10 +12,9 @@ use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 
 use super::window::{self, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
+use super::MetadataFile;
 use crate::cancellable;
-use crate::helpers::cleanup_recordings;
-use crate::helpers::set_recording_tray_item;
-use crate::recorder::MetadataFile;
+use crate::helpers::{cleanup_recordings, set_recording_tray_item};
 use crate::state::{CurrentlyRecording, SettingsWrapper};
 
 #[derive(Clone)]
@@ -27,7 +26,7 @@ pub struct GameCtx {
 
 #[derive(Debug)]
 pub struct Metadata {
-    pub game_id: GameId,
+    pub match_id: MatchId,
     pub output_filepath: PathBuf,
     pub ingame_time_rec_start_offset: f64,
 }
@@ -35,8 +34,8 @@ pub struct Metadata {
 impl Display for Metadata {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
-            "game_id={}, filepath={}, rec_offset={}",
-            self.game_id,
+            "match_id={}, filepath={}, rec_offset={}",
+            self.match_id,
             self.output_filepath.display(),
             self.ingame_time_rec_start_offset
         ))
@@ -71,8 +70,6 @@ impl RecordingTask {
 
     async fn record(ctx: GameCtx) -> Result<(Recorder, Metadata)> {
         let (mut recorder, output_filepath) = cancellable!(Self::setup_recorder(&ctx), ctx.cancel_token, Result)?;
-
-        let game_id = ctx.match_id.game_id;
 
         // ingame_client timeout is 200ms, so no need to make cancellable with token
         let ingame_client = IngameClient::new();
@@ -119,7 +116,7 @@ impl RecordingTask {
             .and_then(|file| {
                 serde_json::to_writer(
                     &file,
-                    &MetadataFile::Deferred((ctx.match_id, ingame_time_rec_start_offset)),
+                    &MetadataFile::Deferred((ctx.match_id.clone(), ingame_time_rec_start_offset)),
                 )
                 .map_err(anyhow::Error::msg)
             })
@@ -128,7 +125,7 @@ impl RecordingTask {
         }
 
         let metadata = Metadata {
-            game_id,
+            match_id: ctx.match_id,
             output_filepath,
             ingame_time_rec_start_offset,
         };

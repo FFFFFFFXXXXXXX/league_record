@@ -401,7 +401,7 @@ pub fn get_metadata(video_path: &Path) -> Result<GameMetadata> {
     match filedata {
         MetadataFile::Metadata(metadata) => Ok(metadata),
         MetadataFile::Deferred((match_id, ingame_time_rec_start_offset)) => {
-            let metadata = async_runtime::block_on(process_data(ingame_time_rec_start_offset, match_id.game_id))?;
+            let metadata = async_runtime::block_on(process_data(ingame_time_rec_start_offset, match_id))?;
             if let Err(e) = save_metadata(&video_path, &metadata) {
                 log::error!("failed to save re-processed game metadata: {e}");
             }

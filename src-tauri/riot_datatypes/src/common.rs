@@ -14,13 +14,10 @@ pub type ChampionId = i64;
 pub type Timestamp = i64;
 pub type SpellId = i64;
 
-pub type Test = (MatchId, f64);
-
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GameMetadata {
-    #[serde(default)]
-    pub game_id: GameId,
+    pub match_id: MatchId,
     pub ingame_time_rec_start_offset: f64,
     pub queue: Queue,
     pub player: Player,
@@ -28,7 +25,6 @@ pub struct GameMetadata {
     pub stats: Stats,
     pub participant_id: ParticipantId,
     pub events: Vec<GameEvent>,
-    #[serde(default)]
     pub favorite: bool,
 }
 
@@ -54,6 +50,7 @@ pub struct Queue {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct MatchId {
     pub game_id: GameId,
     pub platform_id: String,

@@ -166,7 +166,7 @@ impl GameListener {
                     let ctx = self.ctx.clone();
                     async_runtime::spawn(async move {
                         let Metadata {
-                            game_id,
+                            match_id,
                             output_filepath,
                             ingame_time_rec_start_offset,
                         } = metadata;
@@ -176,7 +176,7 @@ impl GameListener {
 
                         match metadata::process_data_with_retry(
                             ingame_time_rec_start_offset,
-                            game_id,
+                            match_id,
                             &ctx.credentials,
                             &ctx.cancel_token,
                         )

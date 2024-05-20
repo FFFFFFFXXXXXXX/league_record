@@ -1,11 +1,11 @@
 {
   "name": "@fffffffxxxxxxx/league_record_types",
-  "version": "1.19.0",
+  "version": "2.0.0",
   "description": "Typescript type definitions for the LeagueRecord settings.json file as well as the video metadata .json files",
   "main": "",
   "types": "index.d.ts",
   "scripts": {
-    "build": "cargo test generate_type_bindings"
+    "build": "cd ../src-tauri/ && cargo test generate_type_bindings"
   },
   "keywords": [
     "LeagueRecord"

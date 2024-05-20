@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use riot_datatypes::lcu::{Game, Player};
-use riot_datatypes::{Champion, GameId, GameMetadata, Queue, Timeline};
+use riot_datatypes::{Champion, GameMetadata, MatchId, Queue, Timeline};
 use riot_local_auth::Credentials;
 use shaco::rest::LcuRestClient;
 use tokio::{select, time::sleep, try_join};
@@ -10,15 +10,15 @@ use tokio_util::sync::CancellationToken;
 
 use crate::cancellable;
 
-pub async fn process_data(ingame_time_rec_start_offset: f64, game_id: GameId) -> Result<GameMetadata> {
+pub async fn process_data(ingame_time_rec_start_offset: f64, match_id: MatchId) -> Result<GameMetadata> {
     let lcu_rest_client = LcuRestClient::new()?;
 
     let (player, game) = try_join!(
         lcu_rest_client.get::<Player>("/lol-summoner/v1/current-summoner"),
-        lcu_rest_client.get::<Game>(format!("/lol-match-history/v1/games/{}", game_id)),
+        lcu_rest_client.get::<Game>(format!("/lol-match-history/v1/games/{}", match_id.game_id)),
     )?;
     let timeline = lcu_rest_client
-        .get::<Timeline>(format!("/lol-match-history/v1/game-timelines/{}", game_id))
+        .get::<Timeline>(format!("/lol-match-history/v1/game-timelines/{}", match_id.game_id))
         .await
         .unwrap_or_default();
 
@@ -65,7 +65,7 @@ pub async fn process_data(ingame_time_rec_start_offset: f64, game_id: GameId) ->
     let events: Vec<_> = timeline.frames.into_iter().flat_map(|frame| frame.events).collect();
 
     Ok(GameMetadata {
-        game_id,
+        match_id,
         ingame_time_rec_start_offset,
         queue,
         player,
@@ -79,7 +79,7 @@ pub async fn process_data(ingame_time_rec_start_offset: f64, game_id: GameId) ->
 
 pub async fn process_data_with_retry(
     ingame_time_rec_start_offset: f64,
-    game_id: GameId,
+    match_id: MatchId,
     credentials: &Credentials,
     cancel_token: &CancellationToken,
 ) -> Result<GameMetadata> {
@@ -90,12 +90,12 @@ pub async fn process_data_with_retry(
     for _ in 0..60 {
         player_info = try_join!(
             lcu_rest_client.get::<Player>("/lol-summoner/v1/current-summoner"),
-            lcu_rest_client.get::<Game>(format!("/lol-match-history/v1/games/{}", game_id)),
+            lcu_rest_client.get::<Game>(format!("/lol-match-history/v1/games/{}", match_id.game_id)),
         )
         .ok();
 
         timeline_data = lcu_rest_client
-            .get::<Timeline>(format!("/lol-match-history/v1/game-timelines/{}", game_id))
+            .get::<Timeline>(format!("/lol-match-history/v1/game-timelines/{}", match_id.game_id))
             .await
             .ok();
 
@@ -159,7 +159,7 @@ pub async fn process_data_with_retry(
         .collect();
 
     Ok(GameMetadata {
-        game_id,
+        match_id,
         ingame_time_rec_start_offset,
         queue,
         player,
