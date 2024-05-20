@@ -111,7 +111,7 @@ async function main() {
     const videoIds = await updateSidebar();
     const firstVideo = videoIds[0];
     if (firstVideo) {
-        setVideo(firstVideo.video_id);
+        setVideo(firstVideo.videoId);
         player.one('canplay', ui.showWindow);
     } else {
         setVideo(null);
@@ -181,57 +181,54 @@ function changeMarkers() {
     const { participantId, recordingOffset } = currentEvents;
 
     const markers = new Array<MarkerOptions>();
-    for (const e of currentEvents.events) {
-        if ('ChampionKill' in e) {
-            const event = e.ChampionKill;
+    for (const gameEvent of currentEvents.events) {
+        const { timestamp, event } = gameEvent;
 
-            if (checkbox.kill && event.killer_id === participantId) {
-                markers.push(createMarker(event.timestamp, recordingOffset, 'Kill'));
-            } else if (checkbox.assist && event.assisting_participant_ids.includes(participantId)) {
-                markers.push(createMarker(event.timestamp, recordingOffset, 'Assist'));
-            } else if (checkbox.death && event.victim_id === participantId) {
-                markers.push(createMarker(event.timestamp, recordingOffset, 'Death'));
+        if ('ChampionKill' in event) {
+            if (checkbox.kill && event.ChampionKill.killer_id === participantId) {
+                markers.push(createMarker(timestamp, recordingOffset, 'Kill'));
+            } else if (checkbox.assist && event.ChampionKill.assisting_participant_ids.includes(participantId)) {
+                markers.push(createMarker(timestamp, recordingOffset, 'Assist'));
+            } else if (checkbox.death && event.ChampionKill.victim_id === participantId) {
+                markers.push(createMarker(timestamp, recordingOffset, 'Death'));
             }
-        } else if ('BuildingKill' in e) {
-            const event = e.BuildingKill;
-
-            if (checkbox.turret && 'TOWER_BUILDING' in event.building_type) {
-                markers.push(createMarker(event.timestamp, recordingOffset, 'Turret'));
-            } else if (checkbox.inhibitor && 'INHIBITOR_BUILDING' in event.building_type) {
-                markers.push(createMarker(event.timestamp, recordingOffset, 'Inhibitor'));
+        } else if ('BuildingKill' in event) {
+            if (checkbox.turret && 'TOWER_BUILDING' in event.BuildingKill.building_type) {
+                markers.push(createMarker(timestamp, recordingOffset, 'Turret'));
+            } else if (checkbox.inhibitor && 'INHIBITOR_BUILDING' in event.BuildingKill.building_type) {
+                markers.push(createMarker(timestamp, recordingOffset, 'Inhibitor'));
             }
-        } else if ('EliteMonsterKill' in e) {
-            const event = e.EliteMonsterKill;
-            const monsterType = event.monster_type;
+        } else if ('EliteMonsterKill' in event) {
+            const monsterType = event.EliteMonsterKill.monster_type;
 
             if (checkbox.herald && monsterType.monsterType === 'HORDE') {
-                markers.push(createMarker(event.timestamp, recordingOffset, 'Voidgrub'));
+                markers.push(createMarker(timestamp, recordingOffset, 'Voidgrub'));
             } else if (checkbox.herald && monsterType.monsterType === 'RIFTHERALD') {
-                markers.push(createMarker(event.timestamp, recordingOffset, 'Herald'));
+                markers.push(createMarker(timestamp, recordingOffset, 'Herald'));
             } else if (checkbox.baron && monsterType.monsterType === 'BARON_NASHOR') {
-                markers.push(createMarker(event.timestamp, recordingOffset, 'Baron'));
+                markers.push(createMarker(timestamp, recordingOffset, 'Baron'));
             } else if (checkbox.dragon && monsterType.monsterType === 'DRAGON') {
                 switch (monsterType.monsterSubType) {
                     case "FIRE_DRAGON":
-                        markers.push(createMarker(event.timestamp, recordingOffset, 'Infernal-Dragon'));
+                        markers.push(createMarker(timestamp, recordingOffset, 'Infernal-Dragon'));
                         break;
                     case "EARTH_DRAGON":
-                        markers.push(createMarker(event.timestamp, recordingOffset, 'Mountain-Dragon'));
+                        markers.push(createMarker(timestamp, recordingOffset, 'Mountain-Dragon'));
                         break;
                     case "WATER_DRAGON":
-                        markers.push(createMarker(event.timestamp, recordingOffset, 'Ocean-Dragon'));
+                        markers.push(createMarker(timestamp, recordingOffset, 'Ocean-Dragon'));
                         break;
                     case "AIR_DRAGON":
-                        markers.push(createMarker(event.timestamp, recordingOffset, 'Cloud-Dragon'));
+                        markers.push(createMarker(timestamp, recordingOffset, 'Cloud-Dragon'));
                         break;
                     case "HEXTECH_DRAGON":
-                        markers.push(createMarker(event.timestamp, recordingOffset, 'Hextech-Dragon'));
+                        markers.push(createMarker(timestamp, recordingOffset, 'Hextech-Dragon'));
                         break;
                     case "CHEMTECH_DRAGON":
-                        markers.push(createMarker(event.timestamp, recordingOffset, 'Chemtech-Dragon'));
+                        markers.push(createMarker(timestamp, recordingOffset, 'Chemtech-Dragon'));
                         break;
                     case "ELDER_DRAGON":
-                        markers.push(createMarker(event.timestamp, recordingOffset, 'Elder-Dragon'));
+                        markers.push(createMarker(timestamp, recordingOffset, 'Elder-Dragon'));
                         break;
                 }
             }
@@ -256,7 +253,7 @@ function createMarker(timestamp: number, recordingOffset: number, eventType: Eve
 // --- MODAL ---
 
 async function showRenameModal(videoId: string) {
-    ui.showRenameModal(videoId, (await tauri.getRecordingsList()).map(r => r.video_id), renameVideo);
+    ui.showRenameModal(videoId, (await tauri.getRecordingsList()).map(r => r.videoId), renameVideo);
 }
 
 async function renameVideo(videoId: string, newVideoId: string) {

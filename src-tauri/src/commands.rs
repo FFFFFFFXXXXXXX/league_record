@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use tauri::{api::shell, AppHandle, Manager, State};
 
 use crate::helpers::{self, compare_time, delete_recording, get_recordings};
+use crate::recorder::GameMetadata;
 use crate::state::{MarkerFlags, SettingsFile, SettingsWrapper};
-use riot_datatypes::GameMetadata;
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
@@ -44,6 +44,7 @@ pub fn get_recordings_size(app_handle: AppHandle) -> f32 {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct Recording {
     video_id: String,
     metadata: Option<GameMetadata>,

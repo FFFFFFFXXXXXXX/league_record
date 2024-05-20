@@ -62,7 +62,6 @@ tokio-util = { workspace = true, features = ["io"] }
 futures-util = { workspace = true }
 
 serde = { workspace = true }
-serde_repr = { workspace = true }
 serde_json = { workspace = true }
 
 riot_datatypes = { workspace = true }
@@ -75,7 +74,6 @@ anyhow = { workspace = true }
 log = { workspace = true }
 chrono = { workspace = true }
 
-reqwest = { version = "0.11.24", features = ["blocking"] }
 notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]

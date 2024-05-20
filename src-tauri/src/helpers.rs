@@ -7,14 +7,13 @@ use std::time::{Duration, SystemTime};
 
 use anyhow::Result;
 use log::LevelFilter;
-use riot_datatypes::GameMetadata;
 use tauri::api::dialog;
 use tauri::async_runtime;
 use tauri::{AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuItem, Window};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::LogTarget;
 
-use crate::recorder::{process_data, MetadataFile};
+use crate::recorder::{process_data, GameMetadata, MetadataFile};
 use crate::state::{CurrentlyRecording, SettingsFile, SettingsWrapper, WindowState};
 use crate::{filewatcher, MAIN_WINDOW};
 

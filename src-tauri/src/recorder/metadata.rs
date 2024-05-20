@@ -2,12 +2,13 @@ use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use riot_datatypes::lcu::{Game, Player};
-use riot_datatypes::{Champion, GameMetadata, MatchId, Queue, Timeline};
+use riot_datatypes::{Champion, MatchId, Queue, Timeline};
 use riot_local_auth::Credentials;
 use shaco::rest::LcuRestClient;
 use tokio::{select, time::sleep, try_join};
 use tokio_util::sync::CancellationToken;
 
+use super::{GameEvent, GameMetadata};
 use crate::cancellable;
 
 pub async fn process_data(ingame_time_rec_start_offset: f64, match_id: MatchId) -> Result<GameMetadata> {
@@ -62,7 +63,11 @@ pub async fn process_data(ingame_time_rec_start_offset: f64, match_id: MatchId) 
         .await?
         .name;
 
-    let events: Vec<_> = timeline.frames.into_iter().flat_map(|frame| frame.events).collect();
+    let events: Vec<GameEvent> = timeline
+        .frames
+        .into_iter()
+        .flat_map(|frame| frame.events.into_iter().filter_map(|event| event.try_into().ok()))
+        .collect();
 
     Ok(GameMetadata {
         match_id,
@@ -152,10 +157,10 @@ pub async fn process_data_with_retry(
         .await?
         .name;
 
-    let events: Vec<_> = timeline
+    let events: Vec<GameEvent> = timeline
         .frames
         .into_iter()
-        .flat_map(|frame| frame.events.into_iter())
+        .flat_map(|frame| frame.events.into_iter().filter_map(|event| event.try_into().ok()))
         .collect();
 
     Ok(GameMetadata {

@@ -3,8 +3,6 @@ use std::{collections::HashMap, fmt::Display};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
-use crate::lcu::{Player, Stats};
-
 pub type QueueId = i64;
 pub type GameId = i64;
 pub type MapId = i64;
@@ -14,21 +12,7 @@ pub type ChampionId = i64;
 pub type Timestamp = i64;
 pub type SpellId = i64;
 
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct GameMetadata {
-    pub match_id: MatchId,
-    pub ingame_time_rec_start_offset: f64,
-    pub queue: Queue,
-    pub player: Player,
-    pub champion_name: String,
-    pub stats: Stats,
-    pub participant_id: ParticipantId,
-    pub events: Vec<GameEvent>,
-    pub favorite: bool,
-}
-
-#[derive(Debug, Clone, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Champion {
     pub id: ChampionId,
@@ -41,7 +25,7 @@ impl PartialEq for Champion {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Queue {
     pub id: QueueId,
@@ -76,20 +60,17 @@ pub struct Frame {
     pub timestamp: Timestamp,
 }
 
-// seperate struct for frontend compatability since Specta is a bit limited for now and doesn't support some of the
-// tags on the 'deserialization struct'
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
-#[serde(from = "DeserializeGameEvent")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameEvent {
+    #[serde(flatten)]
     pub event: Event,
     pub timestamp: Timestamp,
 }
 
-// seperate struct for frontend compatability since Specta is a bit limited for now and doesn't support some of the
-// tags on the 'deserialization struct'
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE", rename_all_fields = "camelCase")]
 pub enum Event {
     ChampionKill {
         victim_id: ParticipantId,
@@ -100,78 +81,6 @@ pub enum Event {
     BuildingKill {
         team_id: Team,
         killer_id: ParticipantId,
-        building_type: BuildingType,
-        assisting_participant_ids: Vec<ParticipantId>,
-    },
-    EliteMonsterKill {
-        killer_id: ParticipantId,
-        monster_type: MonsterType,
-        assisting_participant_ids: Vec<ParticipantId>,
-    },
-    #[serde(untagged)]
-    Unknown {},
-}
-
-#[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct DeserializeGameEvent {
-    #[serde(flatten)]
-    event: DeserializeEvent,
-    timestamp: Timestamp,
-}
-
-impl From<DeserializeEvent> for Event {
-    fn from(value: DeserializeEvent) -> Self {
-        match value {
-            DeserializeEvent::ChampionKill {
-                victim_id,
-                killer_id,
-                assisting_participant_ids,
-                position,
-            } => Event::ChampionKill {
-                victim_id,
-                killer_id,
-                assisting_participant_ids,
-                position,
-            },
-            DeserializeEvent::BuildingKill {
-                team_id,
-                killer_id,
-                building_type,
-                assisting_participant_ids,
-            } => Event::BuildingKill {
-                team_id,
-                killer_id,
-                building_type,
-                assisting_participant_ids,
-            },
-            DeserializeEvent::EliteMonsterKill {
-                killer_id,
-                monster_type,
-                assisting_participant_ids,
-            } => Event::EliteMonsterKill {
-                killer_id,
-                monster_type,
-                assisting_participant_ids,
-            },
-            DeserializeEvent::Unknown {} => Event::Unknown {},
-        }
-    }
-}
-
-#[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE", rename_all_fields = "camelCase")]
-enum DeserializeEvent {
-    ChampionKill {
-        victim_id: ParticipantId,
-        killer_id: ParticipantId,
-        assisting_participant_ids: Vec<ParticipantId>,
-        position: Position,
-    },
-    BuildingKill {
-        team_id: Team,
-        killer_id: ParticipantId,
         #[serde(flatten)]
         building_type: BuildingType,
         assisting_participant_ids: Vec<ParticipantId>,
@@ -184,15 +93,6 @@ enum DeserializeEvent {
     },
     #[serde(untagged)]
     Unknown {},
-}
-
-impl From<DeserializeGameEvent> for GameEvent {
-    fn from(value: DeserializeGameEvent) -> Self {
-        GameEvent {
-            event: value.event.into(),
-            timestamp: value.timestamp,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]

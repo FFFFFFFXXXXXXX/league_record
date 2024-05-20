@@ -121,7 +121,7 @@ impl RecordingTask {
                 .map_err(anyhow::Error::msg)
             })
         {
-            log::info!("failed to save (game_id, rec_offset) tuple: {e}")
+            log::info!("failed to save MetadataFile: {e}")
         }
 
         let metadata = Metadata {
