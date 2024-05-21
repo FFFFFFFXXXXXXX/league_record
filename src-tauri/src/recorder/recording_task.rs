@@ -15,6 +15,7 @@ use super::window::{self, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
 use super::MetadataFile;
 use crate::cancellable;
 use crate::helpers::{cleanup_recordings, set_recording_tray_item};
+use crate::recorder::Deferred;
 use crate::state::{CurrentlyRecording, SettingsWrapper};
 
 #[derive(Clone)]
@@ -116,7 +117,11 @@ impl RecordingTask {
             .and_then(|file| {
                 serde_json::to_writer(
                     &file,
-                    &MetadataFile::Deferred((ctx.match_id.clone(), ingame_time_rec_start_offset)),
+                    &MetadataFile::Deferred(Deferred {
+                        match_id: ctx.match_id.clone(),
+                        ingame_time_rec_start_offset,
+                        favorite: false,
+                    }),
                 )
                 .map_err(anyhow::Error::msg)
             })

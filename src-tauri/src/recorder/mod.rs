@@ -25,10 +25,28 @@ mod data {
     // allow large difference in enum Variant size because the big variant is the more common one
     #[allow(clippy::large_enum_variant)]
     #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
-    #[serde(untagged)]
     pub enum MetadataFile {
         Metadata(GameMetadata),
-        Deferred((MatchId, f64)),
+        Deferred(Deferred),
+        NoData(NoData),
+    }
+
+    impl MetadataFile {
+        pub fn is_favorite(&self) -> bool {
+            match self {
+                MetadataFile::Metadata(metadata) => metadata.favorite,
+                MetadataFile::Deferred(deferred) => deferred.favorite,
+                MetadataFile::NoData(no_data) => no_data.favorite,
+            }
+        }
+
+        pub fn set_favorite(&mut self, favorite: bool) {
+            match self {
+                MetadataFile::Metadata(metadata) => metadata.favorite = favorite,
+                MetadataFile::Deferred(deferred) => deferred.favorite = favorite,
+                MetadataFile::NoData(no_data) => no_data.favorite = favorite,
+            };
+        }
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
@@ -42,6 +60,20 @@ mod data {
         pub stats: lcu::Stats,
         pub participant_id: ParticipantId,
         pub events: Vec<GameEvent>,
+        pub favorite: bool,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+    #[serde(rename_all = "camelCase")]
+    pub struct Deferred {
+        pub match_id: MatchId,
+        pub ingame_time_rec_start_offset: f64,
+        pub favorite: bool,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+    #[serde(rename_all = "camelCase")]
+    pub struct NoData {
         pub favorite: bool,
     }
 

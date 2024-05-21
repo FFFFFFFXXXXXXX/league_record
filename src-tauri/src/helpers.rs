@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime};
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use log::LevelFilter;
 use tauri::api::dialog;
 use tauri::async_runtime;
@@ -13,7 +13,7 @@ use tauri::{AppHandle, CustomMenuItem, Manager, SystemTrayMenu, SystemTrayMenuIt
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::LogTarget;
 
-use crate::recorder::{process_data, GameMetadata, MetadataFile};
+use crate::recorder::{process_data, Deferred, MetadataFile, NoData};
 use crate::state::{CurrentlyRecording, SettingsFile, SettingsWrapper, WindowState};
 use crate::{filewatcher, MAIN_WINDOW};
 
@@ -330,9 +330,11 @@ fn cleanup_recordings_by_size(app_handle: &AppHandle) {
 
     // split recordings into 'favorites' and 'others' by json metadata 'favorite' value
     // in case reading the metadata fails put the recording into favorites so it doesn't get deleted
-    let (favorites, others): (Vec<_>, Vec<_>) = recordings
-        .into_iter()
-        .partition(|r| get_metadata(r).map(|md| md.favorite).unwrap_or(true));
+    let (favorites, others): (Vec<_>, Vec<_>) = recordings.into_iter().partition(|recording| {
+        get_metadata(recording, false)
+            .map(|metadata_file| metadata_file.is_favorite())
+            .unwrap_or(true)
+    });
 
     // get sum of sizes of recordings marked as favorites
     for recording in favorites {
@@ -360,19 +362,22 @@ fn cleanup_recordings_by_size(app_handle: &AppHandle) {
 }
 
 fn cleanup_recordings_by_age(app_handle: &AppHandle) {
-    fn file_too_old(file: &Path, max_age: Duration, now: SystemTime) -> Result<bool> {
+    fn too_old(file: &Path, max_age: Duration, now: SystemTime) -> Result<bool> {
         let creation_time = file.metadata()?.created()?;
         let time_passed = now.duration_since(creation_time)?;
         Ok(time_passed > max_age)
+    }
+
+    fn is_favorite(file: &Path) -> Result<bool> {
+        get_metadata(file, false).map(|metadata_file| metadata_file.is_favorite())
     }
 
     let Some(max_days) = app_handle.state::<SettingsWrapper>().max_recording_age() else { return };
     let max_age = Duration::from_secs(max_days * 24 * 60 * 60);
     let now = SystemTime::now();
     for recording in get_recordings(app_handle) {
-        if file_too_old(&recording, max_age, now).unwrap_or(false)
-            && !get_metadata(&recording).map(|md| md.favorite).unwrap_or(true)
-        {
+        // in case checking 'too_old(...)' or 'is_favorite(...)' fails default to not deleting the file
+        if too_old(&recording, max_age, now).unwrap_or(false) && !is_favorite(&recording).unwrap_or(true) {
             if let Err(e) = delete_recording(recording) {
                 log::error!("deleting file due to age limit failed: {e}");
             }
@@ -390,31 +395,47 @@ pub fn delete_recording(recording: PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub fn get_metadata(video_path: &Path) -> Result<GameMetadata> {
+pub fn get_metadata(video_path: &Path, fetch: bool) -> Result<MetadataFile> {
     let mut video_path = video_path.to_owned();
     video_path.set_extension("json");
 
-    let reader = BufReader::new(File::open(&video_path)?);
-    let filedata = serde_json::from_reader::<_, MetadataFile>(reader)?;
+    let filedata = if video_path.exists() && fs::metadata(&video_path)?.is_file() {
+        let reader = BufReader::new(File::open(&video_path)?);
+        serde_json::from_reader::<_, MetadataFile>(reader)?
+    } else {
+        let metadata_file = MetadataFile::NoData(NoData { favorite: false });
+        save_metadata(&video_path, &metadata_file)?;
+        metadata_file
+    };
 
     match filedata {
-        MetadataFile::Metadata(metadata) => Ok(metadata),
-        MetadataFile::Deferred((match_id, ingame_time_rec_start_offset)) => {
-            let metadata = async_runtime::block_on(process_data(ingame_time_rec_start_offset, match_id))?;
-            if let Err(e) = save_metadata(&video_path, &metadata) {
+        MetadataFile::Deferred(Deferred {
+            match_id,
+            ingame_time_rec_start_offset,
+            favorite,
+        }) => {
+            if !fetch {
+                bail!("deferred, no metadata");
+            }
+
+            let mut metadata = async_runtime::block_on(process_data(ingame_time_rec_start_offset, match_id))?;
+            metadata.favorite = favorite;
+            let metadata_file = MetadataFile::Metadata(metadata);
+            if let Err(e) = save_metadata(&video_path, &metadata_file) {
                 log::error!("failed to save re-processed game metadata: {e}");
             }
-            Ok(metadata)
+            Ok(metadata_file)
         }
+        metadata_file => Ok(metadata_file),
     }
 }
 
-pub fn save_metadata(path: &Path, metadata: &GameMetadata) -> Result<()> {
+pub fn save_metadata(path: &Path, metadata_file: &MetadataFile) -> Result<()> {
     let mut path = path.to_owned();
     path.set_extension("json");
 
-    let writer = BufWriter::new(File::options().write(true).open(path)?);
-    Ok(serde_json::to_writer(writer, &metadata)?)
+    let writer = BufWriter::new(File::create(path)?);
+    Ok(serde_json::to_writer(writer, &metadata_file)?)
 }
 
 #[macro_export]

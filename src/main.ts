@@ -152,12 +152,12 @@ async function setVideo(videoId: string | null) {
 
 async function setMetadata(videoId: string) {
     const data = await tauri.getMetadata(videoId);
-    if (data) {
-        ui.setVideoDescriptionStats(data);
+    if (data && 'Metadata' in data) {
+        ui.setVideoDescriptionMetadata(data.Metadata);
         currentEvents = {
-            participantId: data.participantId,
-            recordingOffset: data.ingameTimeRecStartOffset,
-            events: data.events
+            participantId: data.Metadata.participantId,
+            recordingOffset: data.Metadata.ingameTimeRecStartOffset,
+            events: data.Metadata.events
         }
     } else {
         ui.setVideoDescription('', 'No Data');

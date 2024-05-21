@@ -1,6 +1,6 @@
 import type videojs from 'video.js';
 import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
-import type { MarkerFlags, GameMetadata, Recording } from '@fffffffxxxxxxx/league_record_types';
+import type { MarkerFlags, GameMetadata, Recording, MetadataFile } from '@fffffffxxxxxxx/league_record_types';
 import { toVideoId, toVideoName } from './util';
 import { appWindow } from '@tauri-apps/api/window';
 
@@ -83,17 +83,24 @@ export default class UI {
         onRename: (videoId: string) => void,
         onDelete: (videoId: string) => void
     ) {
+        function isFavorite(metadataFile: MetadataFile | null): boolean {
+            if (!metadataFile) return false;
+            if ('Metadata' in metadataFile) return metadataFile.Metadata.favorite;
+            if ('Deferred' in metadataFile) return metadataFile.Deferred.favorite;
+            return false;
+        }
+
         const videoLiElements = recordings.map(recording => {
-            const videoName = toVideoName(recording.video_id);
+            const videoName = toVideoName(recording.videoId);
 
             // call event.stopPropagation(); to stop the onclick event from also effecting the element under the clicked X button
-            const favorite = recording.metadata?.favorite ?? false;
+            const favorite = isFavorite(recording.metadata);
             const favoriteBtn = this.vjs.dom.createEl(
                 'span',
                 {
                     onclick: (e: MouseEvent) => {
                         e.stopPropagation();
-                        onFavorite(recording.video_id).then(fav => {
+                        onFavorite(recording.videoId).then(fav => {
                             if (fav !== null) {
                                 favoriteBtn.innerHTML = fav ? '★' : '☆'
                                 favoriteBtn.style.color = fav ? 'gold' : ''
@@ -113,7 +120,7 @@ export default class UI {
                 {
                     onclick: (e: MouseEvent) => {
                         e.stopPropagation();
-                        onRename(recording.video_id);
+                        onRename(recording.videoId);
                     }
                 },
                 { class: 'rename' },
@@ -124,7 +131,7 @@ export default class UI {
                 {
                     onclick: (e: MouseEvent) => {
                         e.stopPropagation();
-                        onDelete(recording.video_id);
+                        onDelete(recording.videoId);
                     }
                 },
                 { class: 'delete' },
@@ -132,8 +139,8 @@ export default class UI {
             );
             return this.vjs.dom.createEl(
                 'li',
-                { onclick: () => onVideo(recording.video_id) },
-                { id: recording.video_id },
+                { onclick: () => onVideo(recording.videoId) },
+                { id: recording.videoId },
                 [
                     this.vjs.dom.createEl('span', {}, { class: 'video-name' }, videoName),
                     favoriteBtn,
@@ -281,22 +288,15 @@ export default class UI {
         this.vjs.dom.insertContent(this.descriptionCenter, center);
     }
 
-    public setVideoDescriptionStats(data: GameMetadata) {
-        if (!data) {
-            this.setVideoDescription('', 'No Data');
-            return;
-        }
-
-        const stats = data.stats;
-
+    public setVideoDescriptionMetadata(data: GameMetadata) {
         const summoner = this.vjs.dom.createEl(
             'span',
             {},
             { class: 'summoner-name' },
             data.player.gameName
         );
-        const score1 = `${data.championName} - ${stats.kills}/${stats.deaths}/${stats.assists} `;
-        const score2 = `${stats.totalMinionsKilled} CS | ${stats.visionScore} WS`;
+        const score1 = `${data.championName} - ${data.stats.kills}/${data.stats.deaths}/${data.stats.assists} `;
+        const score2 = `${data.stats.totalMinionsKilled} CS | ${data.stats.visionScore} WS`;
 
         const gameMode = `Game Mode: ${data.queue.name} `;
         const result = data.stats.win ?

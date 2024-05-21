@@ -87,6 +87,7 @@ dependencies = [
  "build-helper",
  "chrono",
  "futures-util",
+ "indoc 2.0.5",
  "libobs-recorder",
  "log",
  "notify",

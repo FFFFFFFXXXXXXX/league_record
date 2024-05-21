@@ -88,6 +88,9 @@ tauri-build = { version = "1.5.1" }
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git", artifact = "bin:extprocess_recorder" }
 build-helper = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git" }
 
+[dev-dependencies]
+indoc = "2.0.5"
+
 [features]
 # by default Tauri runs in production mode
 # when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL

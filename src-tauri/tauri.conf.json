@@ -24,7 +24,7 @@
         "icons/icon.ico"
       ],
       "resources": {
-        "./libobs/": "./libobs/",
+        "./target/libobs/": "./libobs/",
         "../licenses/": "./licenses/",
         "../LICENSE.txt": "./"
       },

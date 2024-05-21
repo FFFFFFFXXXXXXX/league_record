@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use tauri::{api::shell, AppHandle, Manager, State};
 
 use crate::helpers::{self, compare_time, delete_recording, get_recordings};
-use crate::recorder::GameMetadata;
+use crate::recorder::MetadataFile;
 use crate::state::{MarkerFlags, SettingsFile, SettingsWrapper};
 
 #[cfg_attr(test, specta::specta)]
@@ -47,7 +47,7 @@ pub fn get_recordings_size(app_handle: AppHandle) -> f32 {
 #[serde(rename_all = "camelCase")]
 pub struct Recording {
     video_id: String,
-    metadata: Option<GameMetadata>,
+    metadata: Option<MetadataFile>,
 }
 
 #[cfg_attr(test, specta::specta)]
@@ -62,7 +62,7 @@ pub fn get_recordings_list(app_handle: AppHandle) -> Vec<Recording> {
             .file_name()
             .and_then(|fname| fname.to_os_string().into_string().ok())
         {
-            let metadata = helpers::get_metadata(&path).ok();
+            let metadata = helpers::get_metadata(&path, true).ok();
             ret.push(Recording { video_id, metadata });
         }
     }
@@ -116,9 +116,9 @@ pub fn delete_video(video_id: String, state: State<'_, SettingsWrapper>) -> bool
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn get_metadata(video_id: String, state: State<'_, SettingsWrapper>) -> Option<GameMetadata> {
+pub fn get_metadata(video_id: String, state: State<'_, SettingsWrapper>) -> Option<MetadataFile> {
     let path = state.get_recordings_path().join(video_id);
-    helpers::get_metadata(&path).ok()
+    helpers::get_metadata(&path, true).ok()
 }
 
 #[cfg_attr(test, specta::specta)]
@@ -126,9 +126,10 @@ pub fn get_metadata(video_id: String, state: State<'_, SettingsWrapper>) -> Opti
 pub fn toggle_favorite(video_id: String, state: State<'_, SettingsWrapper>) -> Option<bool> {
     let path = state.get_recordings_path().join(video_id);
 
-    let mut metadata = helpers::get_metadata(&path).ok()?;
-    metadata.favorite = !metadata.favorite;
+    let mut metadata = helpers::get_metadata(&path, true).ok()?;
+    let favorite = !metadata.is_favorite();
+    metadata.set_favorite(favorite);
     helpers::save_metadata(&path, &metadata).ok()?;
 
-    Some(metadata.favorite)
+    Some(favorite)
 }
