@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fmt::Display;
 
 use anyhow::Result;
@@ -175,6 +176,7 @@ impl GameListener {
                         } = metadata;
 
                         let mut metadata_filepath = output_filepath;
+                        let video_id = metadata_filepath.file_name().and_then(OsStr::to_str).map(str::to_owned);
                         metadata_filepath.set_extension("json");
 
                         match metadata::process_data_with_retry(
@@ -195,8 +197,13 @@ impl GameListener {
                             Err(e) => log::error!("unable to process data: {e}"),
                         }
 
-                        if let Err(e) = ctx.app_handle.send_event(AppEvent::RecordingsChanged { payload: () }) {
-                            log::error!("failed to send 'RECORDINGS_CHANGED_EVENT' to UI: {e}");
+                        if let Some(video_id) = video_id {
+                            if let Err(e) = ctx
+                                .app_handle
+                                .send_event(AppEvent::MetadataChanged { payload: vec![video_id] })
+                            {
+                                log::error!("GameListener failed to send event: {e}");
+                            }
                         }
                     });
 

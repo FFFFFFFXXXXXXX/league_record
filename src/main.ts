@@ -7,7 +7,7 @@ import type { GameEvent } from '@fffffffxxxxxxx/league_record_types';
 import * as tauri from './bindings';
 
 import UI from './ui';
-import { splitRight, toVideoName } from './util';
+import { splitRight } from './util';
 import { convertFileSrc } from '@tauri-apps/api/tauri';
 import { join, sep } from '@tauri-apps/api/path';
 import ListenerManager from './listeners';
@@ -103,7 +103,7 @@ async function main() {
     listenerManager.listen_app('MarkerflagsChanged', () => tauri.getMarkerFlags().then(flags => ui.setCheckboxes(flags)));
     listenerManager.listen_app('MetadataChanged', ({ payload }) => {
         const activeVideoId = ui.getActiveVideoId();
-        if (activeVideoId !== null && payload.includes(toVideoName(activeVideoId))) {
+        if (activeVideoId !== null && payload.includes(activeVideoId)) {
             // update metadata for currently selected recording
             setMetadata(activeVideoId);
         }

@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::RwLock;
@@ -28,6 +29,12 @@ impl SettingsFile {
 
 #[derive(Debug)]
 pub struct SettingsWrapper(RwLock<Settings>);
+
+impl Display for SettingsWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{:?}", self.0.read().unwrap()))
+    }
+}
 
 impl SettingsWrapper {
     pub fn new_from_file(settings_file: &Path) -> Result<Self> {

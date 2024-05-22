@@ -13,7 +13,7 @@ use tokio_util::sync::CancellationToken;
 
 use super::window::{self, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
 use super::MetadataFile;
-use crate::app::{RecordingManager, SystemTrayManager};
+use crate::app::{AppEvent, EventManager, RecordingManager, SystemTrayManager};
 use crate::cancellable;
 use crate::recorder::Deferred;
 use crate::state::{CurrentlyRecording, SettingsWrapper};
@@ -65,6 +65,13 @@ impl RecordingTask {
         self.ctx.app_handle.cleanup_recordings();
         self.ctx.app_handle.state::<CurrentlyRecording>().set(None);
         self.ctx.app_handle.set_tray_menu_recording_status(false);
+        if let Err(e) = self
+            .ctx
+            .app_handle
+            .send_event(AppEvent::RecordingsChanged { payload: () })
+        {
+            log::error!("RecordingTask failed to send event: {e}");
+        }
 
         Ok(metadata)
     }

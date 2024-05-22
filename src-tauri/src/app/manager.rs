@@ -46,7 +46,7 @@ impl AppManager for AppHandle {
         log::info!("{APP_NAME} v{CURRENT_VERSION}");
         log::info!("{}", chrono::Local::now().format("%d-%m-%Y %H:%M"));
         log::info!("debug_log: {}", if debug_log { "enabled" } else { "disabled" });
-        log::info!("Settings: {:?}", settings.inner());
+        log::info!("Settings: {}", settings.inner());
 
         // set default tray menu
         self.set_system_tray(false);

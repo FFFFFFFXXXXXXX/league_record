@@ -14,7 +14,6 @@ pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
         let app_handle = app_handle.clone();
         move |res: notify::Result<notify::Event>| {
             let Ok(event) = res else { return };
-            println!("{event:?}");
 
             let currently_recording: Option<PathBuf> = app_handle.state::<CurrentlyRecording>().get();
 
@@ -31,8 +30,8 @@ pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
                 contains_mp4_path |= ext == Some("mp4");
 
                 if ext == Some("json") {
-                    if let Some(video_name) = path.file_stem().and_then(OsStr::to_str).map(str::to_owned) {
-                        json_paths.push(video_name);
+                    if let Some(video_id) = path.file_name().and_then(OsStr::to_str).map(str::to_owned) {
+                        json_paths.push(video_id);
                     }
                 }
             }
