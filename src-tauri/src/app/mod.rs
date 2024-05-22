@@ -1,8 +1,10 @@
+mod events;
 mod manager;
 mod recordings;
 mod system_tray;
 mod window;
 
+pub use events::{AppEvent, EventManager};
 pub use manager::AppManager;
 pub use recordings::RecordingManager;
 pub use system_tray::SystemTrayManager;
@@ -14,7 +16,7 @@ pub fn process_app_event(app_handle: &tauri::AppHandle, event: tauri::RunEvent) 
 
     match event {
         RunEvent::WindowEvent {
-            event: WindowEvent::CloseRequested { .. },
+            event: WindowEvent::CloseRequested { api, .. },
             ..
         } => {
             use crate::constants::window;
@@ -23,6 +25,7 @@ pub fn process_app_event(app_handle: &tauri::AppHandle, event: tauri::RunEvent) 
             if let Some(window) = app_handle.get_window(window::MAIN) {
                 app_handle.save_window_state(&window);
             }
+            api.prevent_close();
         }
         RunEvent::ExitRequested { api, .. } => {
             // triggered when no windows remain

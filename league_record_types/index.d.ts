@@ -16,13 +16,13 @@ export type Queue = { id: number; name: string; isRanked: boolean }
 
 export type Framerate = [number, number]
 
+export type Settings = { markerFlags: MarkerFlags; checkForUpdates: boolean; debugLog: boolean; recordingsFolder: string; filenameFormat: string; encodingQuality: number; outputResolution: StdResolution | null; framerate: Framerate; recordAudio: AudioSource; onlyRecordRanked: boolean; autostart: boolean; maxRecordingAgeDays: number | null; maxRecordingsSizeGb: number | null }
+
 export type AudioSource = "NONE" | "APPLICATION" | "SYSTEM" | "ALL"
 
-export type AppEvent = "RecordingsChanged" | "MetadataChanged" | "MarkerflagsChanged"
-
-export type MarkerFlags = { kill: boolean; death: boolean; assist: boolean; turret: boolean; inhibitor: boolean; dragon: boolean; herald: boolean; baron: boolean }
-
 export type MatchId = { gameId: number; platformId: string }
+
+export type AppEvent = { type: "RecordingsChanged"; payload: null } | { type: "MetadataChanged"; payload: string[] } | { type: "MarkerflagsChanged"; payload: null }
 
 export type Encoder = "JIM_NVENC" | "FFMPEG_NVENC" | "JIM_AV1" | "AMD_AMF_H264" | "AMD_AMF_AV1" | "OBS_QSV11_H264" | "OBS_QSV11_AV1" | "OBS_X264"
 
@@ -51,7 +51,7 @@ export type DragonType = "FIRE_DRAGON" | "EARTH_DRAGON" | "WATER_DRAGON" | "AIR_
 
 export type MetadataFile = { Metadata: GameMetadata } | { Deferred: Deferred } | { NoData: NoData }
 
-export type Settings = { markerFlags: MarkerFlags; checkForUpdates: boolean; debugLog: boolean; recordingsFolder: string; filenameFormat: string; encodingQuality: number; outputResolution: StdResolution | null; framerate: Framerate; recordAudio: AudioSource; onlyRecordRanked: boolean; autostart: boolean; maxRecordingAgeDays: number | null; maxRecordingsSizeGb: number | null }
+export type MarkerFlags = { kill: boolean; death: boolean; assist: boolean; turret: boolean; inhibitor: boolean; dragon: boolean; herald: boolean; baron: boolean }
 
 export type Resolution = { width: number; height: number }
 

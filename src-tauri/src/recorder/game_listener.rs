@@ -14,9 +14,8 @@ use tokio_util::sync::CancellationToken;
 
 use super::metadata;
 use super::recording_task::{GameCtx, Metadata, RecordingTask};
-use crate::app::RecordingManager;
+use crate::app::{AppEvent, EventManager, RecordingManager};
 use crate::cancellable;
-use crate::constants::AppEvent;
 use crate::state::SettingsWrapper;
 
 #[derive(Clone)]
@@ -196,7 +195,7 @@ impl GameListener {
                             Err(e) => log::error!("unable to process data: {e}"),
                         }
 
-                        if let Err(e) = ctx.app_handle.emit_all(AppEvent::RecordingsChanged.into(), ()) {
+                        if let Err(e) = ctx.app_handle.send_event(AppEvent::RecordingsChanged { payload: () }) {
                             log::error!("failed to send 'RECORDINGS_CHANGED_EVENT' to UI: {e}");
                         }
                     });

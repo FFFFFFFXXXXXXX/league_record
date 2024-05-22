@@ -17,11 +17,3 @@ pub mod menu_item {
     pub const QUIT: &str = "quit";
     pub const UPDATE: &str = "update";
 }
-
-#[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, Copy, strum_macros::IntoStaticStr, specta::Type)]
-pub enum AppEvent {
-    RecordingsChanged,
-    MetadataChanged,
-    MarkerflagsChanged,
-}

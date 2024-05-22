@@ -3,7 +3,7 @@ use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use tauri::{async_runtime, AppHandle, Manager};
 
 use crate::recorder::{self, Deferred, NoData};
@@ -17,6 +17,7 @@ pub trait RecordingManager {
     fn cleanup_recordings_by_size(&self);
     fn cleanup_recordings_by_age(&self);
 
+    fn rename_recording(recording: PathBuf, new_name: String) -> Result<bool>;
     fn delete_recording(recording: PathBuf) -> Result<()>;
 
     fn get_recording_metadata(video_path: &Path, fetch: bool) -> Result<MetadataFile>;
@@ -132,6 +133,26 @@ impl RecordingManager for AppHandle {
         }
     }
 
+    fn rename_recording(recording_path: PathBuf, new_name: String) -> Result<bool> {
+        let mut new_recording_path = recording_path.clone();
+        new_recording_path.set_file_name(PathBuf::from(new_name).file_name().context("invalid new filename")?);
+
+        let mut metadata_path = recording_path.clone();
+        metadata_path.set_extension("json");
+
+        let mut new_metadata_path = new_recording_path.clone();
+        new_metadata_path.set_extension("json");
+
+        if new_recording_path.is_file() || new_metadata_path.is_file() {
+            return Ok(false);
+        }
+
+        fs::rename(&recording_path, &new_recording_path)?;
+        fs::rename(&metadata_path, &new_metadata_path)?;
+
+        Ok(true)
+    }
+
     fn delete_recording(recording: PathBuf) -> Result<()> {
         fs::remove_file(&recording)?;
 
@@ -144,6 +165,10 @@ impl RecordingManager for AppHandle {
 
     fn get_recording_metadata(video_path: &Path, fetch: bool) -> Result<MetadataFile> {
         let mut video_path = video_path.to_owned();
+        if !video_path.is_file() {
+            bail!("no such video");
+        }
+
         video_path.set_extension("json");
 
         let filedata = if video_path.exists() && fs::metadata(&video_path)?.is_file() {

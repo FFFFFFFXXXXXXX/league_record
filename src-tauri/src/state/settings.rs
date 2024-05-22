@@ -10,8 +10,7 @@ use serde::{Deserialize, Serialize};
 use tauri::api::path::video_dir;
 use tauri::{async_runtime, AppHandle, Manager};
 
-use crate::app::{AppManager, RecordingManager};
-use crate::constants::AppEvent;
+use crate::app::{AppEvent, AppManager, EventManager, RecordingManager};
 use crate::filewatcher;
 
 #[derive(Debug)]
@@ -110,14 +109,14 @@ impl SettingsWrapper {
                 let recordings_path = settings.get_recordings_path();
                 if recordings_path != old_recordings_path {
                     filewatcher::replace(&app_handle, &recordings_path);
-                    if let Err(e) = app_handle.emit_all(AppEvent::RecordingsChanged.into(), ()) {
+                    if let Err(e) = app_handle.send_event(AppEvent::RecordingsChanged { payload: () }) {
                         log::error!("failed to emit 'recordings_changed' event: {e}");
                     }
                 }
 
                 let marker_flags = settings.get_marker_flags();
                 if marker_flags != old_marker_flags {
-                    if let Err(e) = app_handle.emit_all(AppEvent::MarkerflagsChanged.into(), ()) {
+                    if let Err(e) = app_handle.send_event(AppEvent::MarkerflagsChanged { payload: () }) {
                         log::error!("failed to emit 'markerflags_changed' event: {e}");
                     }
                 }

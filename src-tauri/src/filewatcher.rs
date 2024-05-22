@@ -1,51 +1,91 @@
+use std::path::PathBuf;
 use std::{ffi::OsStr, path::Path};
 
-use notify::Watcher;
+use notify::event::{ModifyKind, RenameMode};
+use notify::{EventKind, Watcher};
 use tauri::{AppHandle, Manager};
 
+use crate::app::{AppEvent, EventManager};
 use crate::state::CurrentlyRecording;
-use crate::{constants::AppEvent, state::FileWatcher};
+use crate::state::FileWatcher;
 
 pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
     let watcher = notify::recommended_watcher({
         let app_handle = app_handle.clone();
         move |res: notify::Result<notify::Event>| {
-            if let Ok(event) = res {
-                let currently_recording = app_handle.state::<CurrentlyRecording>().get();
+            let Ok(event) = res else { return };
+            println!("{event:?}");
 
-                // only trigger UI sidebar reload if one of the changed paths is a video (.mp4) file
-                let contains_mp4_path = event.paths.iter().any(|p| {
-                    p.extension().and_then(OsStr::to_str) == Some("mp4")
-                        && !currently_recording.as_ref().is_some_and(|curr_rec| curr_rec == p)
-                });
+            let currently_recording: Option<PathBuf> = app_handle.state::<CurrentlyRecording>().get();
 
-                // only trigger UI metadata reload if one of the changed paths is a metadata file (.json) file
-                let json_paths: Vec<_> = event
-                    .paths
-                    .iter()
-                    .filter_map(|p| {
-                        if p.extension().and_then(OsStr::to_str) == Some("json") {
-                            return p.file_stem().and_then(OsStr::to_str);
-                        } else {
-                            None
+            let mut contains_mp4_path: bool = false;
+            let mut json_paths: Vec<String> = Vec::new();
+
+            for path in event.paths {
+                if Some(&path) == currently_recording.as_ref() {
+                    continue;
+                }
+
+                let ext = path.extension().and_then(OsStr::to_str);
+
+                contains_mp4_path |= ext == Some("mp4");
+
+                if ext == Some("json") {
+                    if let Some(video_name) = path.file_stem().and_then(OsStr::to_str).map(str::to_owned) {
+                        json_paths.push(video_name);
+                    }
+                }
+            }
+
+            match event.kind {
+                EventKind::Create(_) => {
+                    if contains_mp4_path {
+                        log::info!("filewatcher event contains .mp4 path: {contains_mp4_path}");
+                        if let Err(e) = app_handle.send_event(AppEvent::RecordingsChanged { payload: () }) {
+                            log::warn!("filewatcher failed to send event: {e:?}");
                         }
-                    })
-                    .collect();
+                    }
 
-                if contains_mp4_path || !json_paths.is_empty() {
-                    log::info!("filewatcher event: {:?}", event.paths);
-                    log::info!("currently recording: {:?}", currently_recording);
+                    if !json_paths.is_empty() {
+                        log::info!("filewatcher event json paths: {:?}", json_paths);
+                        if let Err(e) = app_handle.send_event(AppEvent::MetadataChanged { payload: json_paths }) {
+                            log::warn!("filewatcher failed to send event: {e:?}");
+                        }
+                    }
                 }
+                EventKind::Remove(_) => {
+                    if contains_mp4_path {
+                        log::info!("filewatcher event contains .mp4 path: {contains_mp4_path}");
+                        if let Err(e) = app_handle.send_event(AppEvent::RecordingsChanged { payload: () }) {
+                            log::warn!("filewatcher failed to send event: {e:?}");
+                        }
+                    }
 
-                if contains_mp4_path {
-                    log::info!("filewatcher event contains .mp4 path: {contains_mp4_path}");
-                    _ = app_handle.emit_all(AppEvent::RecordingsChanged.into(), ());
+                    if !json_paths.is_empty() {
+                        log::info!("filewatcher event json paths: {:?}", json_paths);
+                        if let Err(e) = app_handle.send_event(AppEvent::MetadataChanged { payload: json_paths }) {
+                            log::warn!("filewatcher failed to send event: {e:?}");
+                        }
+                    }
                 }
+                EventKind::Modify(ModifyKind::Name(
+                    RenameMode::To | RenameMode::Both | RenameMode::Any | RenameMode::Other,
+                )) => {
+                    if contains_mp4_path {
+                        log::info!("filewatcher event contains .mp4 path: {contains_mp4_path}");
+                        if let Err(e) = app_handle.send_event(AppEvent::RecordingsChanged { payload: () }) {
+                            log::warn!("filewatcher failed to send event: {e:?}");
+                        }
+                    }
 
-                if !json_paths.is_empty() {
-                    log::info!("filewatcher event json paths: {:?}", json_paths);
-                    _ = app_handle.emit_all(AppEvent::MetadataChanged.into(), json_paths);
+                    if !json_paths.is_empty() {
+                        log::info!("filewatcher event json paths: {:?}", json_paths);
+                        if let Err(e) = app_handle.send_event(AppEvent::MetadataChanged { payload: json_paths }) {
+                            log::warn!("filewatcher failed to send event: {e:?}");
+                        }
+                    }
                 }
+                _ => {}
             }
         }
     });

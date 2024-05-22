@@ -55,7 +55,8 @@
       "window": {
         "setTitle": true,
         "setFullscreen": true,
-        "show": true
+        "show": true,
+        "close": true
       },
       "path": {
         "all": true

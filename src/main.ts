@@ -1,16 +1,16 @@
 import 'video.js/dist/video-js.min.css';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
-import { MarkersPlugin, type Settings, type MarkerOptions } from '@fffffffxxxxxxx/videojs-markers';
-import type { AppEvent, GameEvent } from '@fffffffxxxxxxx/league_record_types';
+import { type MarkerOptions, MarkersPlugin, type Settings } from '@fffffffxxxxxxx/videojs-markers';
+import type { GameEvent } from '@fffffffxxxxxxx/league_record_types';
 
-import { listen, type EventCallback, type UnlistenFn } from '@tauri-apps/api/event';
 import * as tauri from './bindings';
 
 import UI from './ui';
 import { splitRight, toVideoName } from './util';
 import { convertFileSrc } from '@tauri-apps/api/tauri';
-import { sep, join } from '@tauri-apps/api/path';
+import { join, sep } from '@tauri-apps/api/path';
+import ListenerManager from './listeners';
 
 // sets the time a marker jumps to before the actual event happens
 // jumps to (eventTime - EVENT_DELAY) when a marker is clicked
@@ -35,7 +35,7 @@ const player = videojs('video_player', {
     enableSourceset: true
 }) as Player & { markers: (settings?: Settings) => MarkersPlugin };
 
-main();
+void main();
 async function main() {
     // disable right click menu
     addEventListener('contextmenu', event => event.preventDefault());
@@ -96,14 +96,12 @@ async function main() {
     // handle keybord shortcuts
     addEventListener('keydown', handleKeyboardEvents);
 
-    // wrapper function to typecheck subscribed events against TS bindings (type AppEvent)
-    function listen_event<T>(event: AppEvent, callback: EventCallback<T>): Promise<UnlistenFn> {
-        return listen<T>(event, callback);
-    }
 
-    listen_event<void>('RecordingsChanged', updateSidebar);
-    listen_event<void>('MarkerflagsChanged', () => tauri.getMarkerFlags().then(flags => ui.setCheckboxes(flags)));
-    listen_event<Array<string>>('MetadataChanged', ({ payload }) => {
+
+    const listenerManager = new ListenerManager();
+    listenerManager.listen_app('RecordingsChanged', updateSidebar);
+    listenerManager.listen_app('MarkerflagsChanged', () => tauri.getMarkerFlags().then(flags => ui.setCheckboxes(flags)));
+    listenerManager.listen_app('MetadataChanged', ({ payload }) => {
         const activeVideoId = ui.getActiveVideoId();
         if (activeVideoId !== null && payload.includes(toVideoName(activeVideoId))) {
             // update metadata for currently selected recording
@@ -112,14 +110,15 @@ async function main() {
     });
 
     // load data
-    ui.setCheckboxes(await tauri.getMarkerFlags());
+    tauri.getMarkerFlags().then(ui.setCheckboxes);
+
     const videoIds = await updateSidebar();
     const firstVideo = videoIds[0];
     if (firstVideo) {
-        setVideo(firstVideo.videoId);
+        void setVideo(firstVideo.videoId);
         player.one('canplay', ui.showWindow);
     } else {
-        setVideo(null);
+        void setVideo(null);
         player.ready(ui.showWindow);
     }
 }
@@ -131,10 +130,10 @@ async function updateSidebar() {
     const activeVideoId = ui.getActiveVideoId();
 
     const [recordings, recordingsSize] = await Promise.all([tauri.getRecordingsList(), tauri.getRecordingsSize()])
-    ui.updateSideBar(recordingsSize, recordings, setVideo, toggleFavorite, showRenameModal, showDeleteModal);
+    ui.updateSideBar(recordingsSize, recordings, setVideo, tauri.toggleFavorite, showRenameModal, showDeleteModal);
 
     if (!ui.setActiveVideoId(activeVideoId)) {
-        setVideo(null);
+        void setVideo(null);
     }
 
     return recordings;
@@ -143,7 +142,6 @@ async function updateSidebar() {
 // use this function to set the video (null => no video)
 async function setVideo(videoId: string | null) {
     if (videoId === null) {
-        player.reset();
         return;
     }
 
@@ -170,10 +168,6 @@ async function setMetadata(videoId: string) {
     }
 
     changeMarkers();
-}
-
-async function toggleFavorite(video_id: string): Promise<boolean | null> {
-    return await tauri.toggleFavorite(video_id)
 }
 
 function changeMarkers() {
@@ -263,17 +257,13 @@ async function showRenameModal(videoId: string) {
 
 async function renameVideo(videoId: string, newVideoId: string) {
     const activeVideoId = ui.getActiveVideoId();
-    let time = null;
-    if (videoId === activeVideoId) {
-        time = player.currentTime()!;
-    }
 
     const ok = await tauri.renameVideo(videoId, newVideoId);
     if (ok) {
-        if (time !== null) {
-            await updateSidebar();
-            await setVideo(newVideoId);
-            player.currentTime(time);
+        if (videoId === activeVideoId) {
+            const time = player.currentTime()!;
+            void updateSidebar();
+            setVideo(newVideoId).then(() => player.currentTime(time));
         }
     } else {
         ui.showErrorModal('Error renaming video!');
@@ -285,6 +275,7 @@ function showDeleteModal(videoId: string) {
 }
 
 async function deleteVideo(videoId: string) {
+    player.reset();
     const ok = await tauri.deleteVideo(videoId);
     if (!ok) {
         ui.showErrorModal('Error deleting video!');

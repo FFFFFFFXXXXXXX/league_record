@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::fs::{metadata, rename};
+use std::fs::metadata;
 use std::path::PathBuf;
 
 use tauri::{api::shell, AppHandle, Manager, State};
@@ -83,36 +83,25 @@ pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, SettingsWr
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
 pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, SettingsWrapper>) -> bool {
-    let new = PathBuf::from(&new_video_id);
-    let Some(new_filename) = new.file_name() else { return false };
-
-    let mut path = state.get_recordings_path().join(video_id);
-    let mut new_path = path.clone();
-    new_path.set_file_name(new_filename);
-
-    if new_path.exists() {
-        return false;
-    }
-
-    if rename(&path, &new_path).is_err() {
-        return false;
-    }
-
-    path.set_extension("json");
-    new_path.set_extension("json");
-    _ = rename(&path, &new_path);
-    true
+    let recording = state.get_recordings_path().join(video_id);
+    AppHandle::rename_recording(recording, new_video_id).unwrap_or_else(|e| {
+        log::error!("failed to rename video: {e}");
+        false
+    })
 }
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
 pub fn delete_video(video_id: String, state: State<'_, SettingsWrapper>) -> bool {
     let recording = state.get_recordings_path().join(video_id);
-    if let Err(e) = AppHandle::delete_recording(recording) {
-        log::error!("deleting video failed: {e}");
-    }
 
-    true
+    match AppHandle::delete_recording(recording) {
+        Ok(_) => true,
+        Err(e) => {
+            log::error!("failed to delete video: {e}");
+            false
+        }
+    }
 }
 
 #[cfg_attr(test, specta::specta)]

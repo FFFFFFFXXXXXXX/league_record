@@ -40,7 +40,7 @@ authors = { workspace = true }
 license = { workspace = true }
 
 [dependencies]
-tauri = { version = "1.5.4", features = [
+tauri = { version = "1.5.4", features = [ "window-close",
     "path-all",
     "protocol-asset",
     "system-tray",

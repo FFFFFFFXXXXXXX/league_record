@@ -5,6 +5,7 @@ import { toVideoId, toVideoName } from './util';
 import { appWindow } from '@tauri-apps/api/window';
 
 export default class UI {
+
     private readonly modal;
     private readonly modalContent;
     private readonly sidebar;
@@ -24,11 +25,8 @@ export default class UI {
 
     private readonly vjs: typeof videojs;
 
-    private readonly boundHideModal;
-
     constructor(vjs: typeof videojs) {
         this.vjs = vjs;
-        this.boundHideModal = this.hideModal.bind(this);
 
         this.modal = document.querySelector<HTMLDivElement>('[id="modal"]')!;
         this.modalContent = document.querySelector<HTMLDivElement>('[id="modal-content"]')!;
@@ -48,23 +46,23 @@ export default class UI {
         this.checkboxBaron = document.querySelector<HTMLInputElement>('[id="baron"]')!;
     }
 
-    public setWindowTitle(title: string) {
-        appWindow.setTitle('League Record - ' + title);
+    public showWindow = () => {
+        void appWindow.show();
     }
 
-    public showWindow() {
-        appWindow.show();
+    public closeWindow = () => {
+        void appWindow.close();
     }
 
-    public setFullscreen(fullscreen: boolean) {
-        appWindow.setFullscreen(fullscreen);
+    public setFullscreen = (fullscreen: boolean) => {
+        void appWindow.setFullscreen(fullscreen);
     }
 
-    public setRecordingsFolderBtnOnClickHandler(handler: (e: MouseEvent) => void) {
+    public setRecordingsFolderBtnOnClickHandler = (handler: (e: MouseEvent) => void) => {
         this.videoFolderBtn.onclick = handler;
     }
 
-    public setCheckboxOnClickHandler(handler: (e: MouseEvent) => void) {
+    public setCheckboxOnClickHandler = (handler: (e: MouseEvent) => void) => {
         this.checkboxKill.onclick = handler;
         this.checkboxDeath.onclick = handler;
         this.checkboxAssist.onclick = handler;
@@ -75,14 +73,14 @@ export default class UI {
         this.checkboxBaron.onclick = handler;
     }
 
-    public updateSideBar(
+    public updateSideBar = (
         recordingsSizeGb: number,
         recordings: ReadonlyArray<Recording>,
         onVideo: (videoId: string) => void,
         onFavorite: (videoId: string) => Promise<boolean | null>,
         onRename: (videoId: string) => void,
         onDelete: (videoId: string) => void
-    ) {
+    ) => {
         function isFavorite(metadataFile: MetadataFile | null): boolean {
             if (!metadataFile) return false;
             if ('Metadata' in metadataFile) return metadataFile.Metadata.favorite;
@@ -154,32 +152,32 @@ export default class UI {
         this.vjs.dom.insertContent(this.recordingsSize, recordingsSizeGb.toFixed(2).toString());
     }
 
-    public showModal(content: ContentDescriptor) {
+    public showModal = (content: ContentDescriptor) => {
         this.vjs.dom.insertContent(this.modalContent, content);
         this.modal.style.display = 'block';
     }
 
-    public hideModal() {
+    public hideModal = () => {
         this.vjs.dom.emptyEl(this.modalContent);
         this.modal.style.display = 'none';
     }
 
-    public modalIsOpen() {
+    public modalIsOpen = () => {
         return this.modal.style.display === 'block';
     }
 
-    public async showErrorModal(text: string) {
+    public showErrorModal = (text: string) => {
         this.showModal([
             this.vjs.dom.createEl('p', {}, {}, text),
-            this.vjs.dom.createEl('p', {}, {}, this.vjs.dom.createEl('button', { onclick: this.boundHideModal }, { class: 'btn' }, 'Close')),
+            this.vjs.dom.createEl('p', {}, {}, this.vjs.dom.createEl('button', { onclick: this.hideModal }, { class: 'btn' }, 'Close')),
         ]);
     }
 
-    public async showRenameModal(
+    public showRenameModal = (
         videoId: string,
         videoIds: ReadonlyArray<string>,
         rename: (videoId: string, newVideoId: string) => void
-    ) {
+    ) => {
         const videoName = toVideoName(videoId);
 
         const input = this.vjs.dom.createEl(
@@ -216,7 +214,7 @@ export default class UI {
             const keyboardEvent = 'key' in e;
             if (input.checkValidity() && (!keyboardEvent || e.key === 'Enter')) {
                 e.preventDefault();
-                this.boundHideModal();
+                this.hideModal();
                 rename(videoId, toVideoId(input.value));
 
                 // clean up eventlisteners for this renameHandler and the validityChecker
@@ -236,7 +234,7 @@ export default class UI {
         ) as HTMLButtonElement;
         const cancelButton = this.vjs.dom.createEl(
             'button',
-            { onclick: this.boundHideModal },
+            { onclick: this.hideModal },
             { class: 'btn' },
             'Cancel'
         ) as HTMLButtonElement;
@@ -251,28 +249,28 @@ export default class UI {
         input.focus();
     }
 
-    public async showDeleteModal(videoId: string, deleteVideo: (videoId: string) => void) {
+    public showDeleteModal = (videoId: string, deleteVideo: (videoId: string) => void) => {
         const videoName = toVideoName(videoId);
 
         const prompt = this.vjs.dom.createEl('p', {}, {}, ['Delete recording: ', this.vjs.dom.createEl('u', {}, {}, videoName), '?']);
         const buttons = this.vjs.dom.createEl('p', {}, {}, [
             this.vjs.dom.createEl('button', {
                 onclick: (_: MouseEvent) => {
-                    this.boundHideModal();
+                    this.hideModal();
                     deleteVideo(videoId);
                 }
             }, { class: 'btn' }, 'Delete'),
-            this.vjs.dom.createEl('button', { onclick: this.boundHideModal }, { class: 'btn' }, 'Cancel'),
+            this.vjs.dom.createEl('button', { onclick: this.hideModal }, { class: 'btn' }, 'Cancel'),
         ]);
 
         this.showModal([prompt, buttons]);
     }
 
-    public getActiveVideoId(): string | null {
+    public getActiveVideoId = (): string | null => {
         return this.sidebar.querySelector<HTMLLIElement>('li.active')?.id ?? null;
     }
 
-    public setActiveVideoId(videoId: string | null) {
+    public setActiveVideoId = (videoId: string | null) => {
         this.sidebar.querySelector<HTMLLIElement>('li.active')?.classList.remove('active');
         if (videoId !== null) {
             const videoLi = this.sidebar.querySelector<HTMLLIElement>(`[id='${videoId}']`);
@@ -283,12 +281,12 @@ export default class UI {
         }
     }
 
-    public setVideoDescription(left: ContentDescriptor, center: ContentDescriptor) {
+    public setVideoDescription = (left: ContentDescriptor, center: ContentDescriptor) => {
         this.vjs.dom.insertContent(this.descriptionLeft, left);
         this.vjs.dom.insertContent(this.descriptionCenter, center);
     }
 
-    public setVideoDescriptionMetadata(data: GameMetadata) {
+    public setVideoDescriptionMetadata = (data: GameMetadata) => {
         const summoner = this.vjs.dom.createEl(
             'span',
             {},
@@ -319,14 +317,14 @@ export default class UI {
         );
     }
 
-    public showBigPlayButton(show: boolean) {
+    public showBigPlayButton = (show: boolean) => {
         const bpb = document.querySelector<HTMLButtonElement>('.vjs-big-play-button');
         if (bpb !== null) {
             bpb.style.display = show ? 'block !important' : 'none !important';
         }
     }
 
-    public setCheckboxes(settings: MarkerFlags) {
+    public setCheckboxes = (settings: MarkerFlags) => {
         this.checkboxKill.checked = settings.kill;
         this.checkboxDeath.checked = settings.death;
         this.checkboxAssist.checked = settings.assist;
@@ -337,7 +335,7 @@ export default class UI {
         this.checkboxBaron.checked = settings.baron;
     }
 
-    public getMarkerFlags(): MarkerFlags {
+    public getMarkerFlags = (): MarkerFlags => {
         return {
             kill: this.checkboxKill.checked,
             death: this.checkboxDeath.checked,
