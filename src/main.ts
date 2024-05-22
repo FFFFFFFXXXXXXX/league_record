@@ -2,9 +2,9 @@ import 'video.js/dist/video-js.min.css';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import { MarkersPlugin, type Settings, type MarkerOptions } from '@fffffffxxxxxxx/videojs-markers';
-import type { GameEvent } from '@fffffffxxxxxxx/league_record_types';
+import type { AppEvent, GameEvent } from '@fffffffxxxxxxx/league_record_types';
 
-import { listen } from '@tauri-apps/api/event';
+import { listen, type EventCallback, type UnlistenFn } from '@tauri-apps/api/event';
 import * as tauri from './bindings';
 
 import UI from './ui';
@@ -96,9 +96,14 @@ async function main() {
     // handle keybord shortcuts
     addEventListener('keydown', handleKeyboardEvents);
 
-    listen<void>('recordings_changed', updateSidebar);
-    listen<void>('markerflags_changed', () => tauri.getMarkerFlags().then(flags => ui.setCheckboxes(flags)));
-    listen<Array<string>>('metadata_changed', ({ payload }) => {
+    // wrapper function to typecheck subscribed events against TS bindings (type AppEvent)
+    function listen_event<T>(event: AppEvent, callback: EventCallback<T>): Promise<UnlistenFn> {
+        return listen<T>(event, callback);
+    }
+
+    listen_event<void>('RecordingsChanged', updateSidebar);
+    listen_event<void>('MarkerflagsChanged', () => tauri.getMarkerFlags().then(flags => ui.setCheckboxes(flags)));
+    listen_event<Array<string>>('MetadataChanged', ({ payload }) => {
         const activeVideoId = ui.getActiveVideoId();
         if (activeVideoId !== null && payload.includes(toVideoName(activeVideoId))) {
             // update metadata for currently selected recording

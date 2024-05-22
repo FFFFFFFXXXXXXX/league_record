@@ -3,7 +3,8 @@ use std::{ffi::OsStr, path::Path};
 use notify::Watcher;
 use tauri::{AppHandle, Manager};
 
-use crate::{state::FileWatcher, CurrentlyRecording};
+use crate::state::CurrentlyRecording;
+use crate::{constants::AppEvent, state::FileWatcher};
 
 pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
     let watcher = notify::recommended_watcher({
@@ -38,12 +39,12 @@ pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
 
                 if contains_mp4_path {
                     log::info!("filewatcher event contains .mp4 path: {contains_mp4_path}");
-                    _ = app_handle.emit_all("recordings_changed", ());
+                    _ = app_handle.emit_all(AppEvent::RecordingsChanged.into(), ());
                 }
 
                 if !json_paths.is_empty() {
                     log::info!("filewatcher event json paths: {:?}", json_paths);
-                    _ = app_handle.emit_all("metadata_changed", json_paths);
+                    _ = app_handle.emit_all(AppEvent::MetadataChanged.into(), json_paths);
                 }
             }
         }

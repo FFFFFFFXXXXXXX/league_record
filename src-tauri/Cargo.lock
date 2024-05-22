@@ -97,6 +97,7 @@ dependencies = [
  "serde_json",
  "shaco",
  "specta",
+ "strum_macros",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",
@@ -4077,6 +4078,19 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
+
+[[package]]
+name = "strum_macros"
+version = "0.26.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6cf59daf282c0a494ba14fd21610a0325f9f90ec9d1231dea26bcb1d696c946"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 2.0.65",
+]
 
 [[package]]
 name = "subtle"

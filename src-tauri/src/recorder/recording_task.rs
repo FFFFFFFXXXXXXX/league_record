@@ -13,8 +13,8 @@ use tokio_util::sync::CancellationToken;
 
 use super::window::{self, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
 use super::MetadataFile;
+use crate::app::{RecordingManager, SystemTrayManager};
 use crate::cancellable;
-use crate::helpers::{cleanup_recordings, set_recording_tray_item};
 use crate::recorder::Deferred;
 use crate::state::{CurrentlyRecording, SettingsWrapper};
 
@@ -62,9 +62,9 @@ impl RecordingTask {
         let shutdown = recorder.shutdown();
         log::info!("stopping recording: stopped={stopped:?}, shutdown={shutdown:?}");
 
-        cleanup_recordings(&self.ctx.app_handle);
+        self.ctx.app_handle.cleanup_recordings();
         self.ctx.app_handle.state::<CurrentlyRecording>().set(None);
-        set_recording_tray_item(&self.ctx.app_handle, false);
+        self.ctx.app_handle.set_tray_menu_recording_status(false);
 
         Ok(metadata)
     }
@@ -88,12 +88,12 @@ impl RecordingTask {
         ctx.app_handle
             .state::<CurrentlyRecording>()
             .set(Some(output_filepath.clone()));
-        set_recording_tray_item(&ctx.app_handle, true);
+        ctx.app_handle.set_tray_menu_recording_status(true);
 
         // if initial game_data is successful => start recording
         if let Err(e) = recorder.start_recording() {
             ctx.app_handle.state::<CurrentlyRecording>().set(None);
-            set_recording_tray_item(&ctx.app_handle, false);
+            ctx.app_handle.set_tray_menu_recording_status(false);
 
             // if recording start failed stop recording just in case and retry next 'recorder loop
             let stop_recording = recorder.stop_recording();
@@ -109,23 +109,12 @@ impl RecordingTask {
             .map(|stats| stats.game_time)
             .unwrap_or_default();
 
-        // save (GameId, rec_start_offset) tuple from which we can later fetch the data if we don't succeed on the first try
-        let mut metadata_filepath = output_filepath.clone();
-        metadata_filepath.set_extension("json");
-        if let Err(e) = std::fs::File::create(&metadata_filepath)
-            .map_err(anyhow::Error::msg)
-            .and_then(|file| {
-                serde_json::to_writer(
-                    &file,
-                    &MetadataFile::Deferred(Deferred {
-                        match_id: ctx.match_id.clone(),
-                        ingame_time_rec_start_offset,
-                        favorite: false,
-                    }),
-                )
-                .map_err(anyhow::Error::msg)
-            })
-        {
+        let metadata_file = MetadataFile::Deferred(Deferred {
+            match_id: ctx.match_id.clone(),
+            ingame_time_rec_start_offset,
+            favorite: false,
+        });
+        if let Err(e) = AppHandle::save_recording_metadata(&output_filepath, &metadata_file) {
             log::info!("failed to save MetadataFile: {e}")
         }
 

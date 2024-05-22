@@ -12,10 +12,11 @@ use tauri::{AppHandle, Manager};
 use tokio::select;
 use tokio_util::sync::CancellationToken;
 
+use super::metadata;
 use super::recording_task::{GameCtx, Metadata, RecordingTask};
-use super::{api, metadata};
+use crate::app::RecordingManager;
 use crate::cancellable;
-use crate::recorder::RECORDINGS_CHANGED_EVENT;
+use crate::constants::AppEvent;
 use crate::state::SettingsWrapper;
 
 #[derive(Clone)]
@@ -63,6 +64,9 @@ pub struct GameListener {
 }
 
 impl GameListener {
+    const GAMEFLOW_SESSION: &'static str = "/lol-gameflow/v1/session";
+    const EOG_STATS_BLOCK: &'static str = "/lol-end-of-game/v1/eog-stats-block";
+
     pub fn new(ctx: ApiCtx) -> Self {
         Self { ctx, state: State::Idle }
     }
@@ -70,14 +74,14 @@ impl GameListener {
     pub async fn run(&mut self) -> Result<()> {
         let mut lcu_ws_client = LcuWebsocketClient::connect_with(&self.ctx.credentials).await?;
         lcu_ws_client
-            .subscribe(LcuSubscriptionType::JsonApiEvent(api::GAMEFLOW_SESSION.into()))
+            .subscribe(LcuSubscriptionType::JsonApiEvent(Self::GAMEFLOW_SESSION.into()))
             .await?;
         lcu_ws_client
-            .subscribe(LcuSubscriptionType::JsonApiEvent(api::EOG_STATS_BLOCK.into()))
+            .subscribe(LcuSubscriptionType::JsonApiEvent(Self::EOG_STATS_BLOCK.into()))
             .await?;
 
         let lcu_rest_client = LcuRestClient::from(&self.ctx.credentials);
-        match lcu_rest_client.get::<SessionEventData>(api::GAMEFLOW_SESSION).await {
+        match lcu_rest_client.get::<SessionEventData>(Self::GAMEFLOW_SESSION).await {
             Ok(init_event_data) => {
                 self.state_transition(SubscriptionResponse::Session(init_event_data))
                     .await
@@ -85,7 +89,7 @@ impl GameListener {
             Err(e) => log::info!("no initial event-data: {e}"),
         }
 
-        match lcu_rest_client.get::<SessionEventData>(api::GAMEFLOW_SESSION).await {
+        match lcu_rest_client.get::<SessionEventData>(Self::GAMEFLOW_SESSION).await {
             Ok(init_event_data) => {
                 self.state_transition(SubscriptionResponse::Session(init_event_data))
                     .await
@@ -183,17 +187,16 @@ impl GameListener {
                         .await
                         {
                             Ok(game_metadata) => {
-                                log::info!("writing game metadata to file: {metadata_filepath:?}");
-
-                                if let Ok(file) = std::fs::File::create(&metadata_filepath) {
-                                    let result = serde_json::to_writer(&file, &game_metadata);
-                                    log::info!("metadata saved: {result:?}");
-                                }
+                                let result = AppHandle::save_recording_metadata(
+                                    &metadata_filepath,
+                                    &crate::recorder::MetadataFile::Metadata(game_metadata),
+                                );
+                                log::info!("writing game metadata to ({metadata_filepath:?}): {result:?}");
                             }
                             Err(e) => log::error!("unable to process data: {e}"),
                         }
 
-                        if let Err(e) = ctx.app_handle.emit_all(RECORDINGS_CHANGED_EVENT, ()) {
+                        if let Err(e) = ctx.app_handle.emit_all(AppEvent::RecordingsChanged.into(), ()) {
                             log::error!("failed to send 'RECORDINGS_CHANGED_EVENT' to UI: {e}");
                         }
                     });

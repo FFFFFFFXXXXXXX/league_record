@@ -7,7 +7,6 @@ use tokio::select;
 use tokio::time::{sleep, timeout};
 use tokio_util::sync::CancellationToken;
 
-use super::api;
 use super::game_listener::{ApiCtx, GameListener};
 use crate::cancellable;
 
@@ -17,6 +16,8 @@ pub struct LeagueRecorder {
 }
 
 impl LeagueRecorder {
+    const PLATFORM_ID: &'static str = "/lol-platform-config/v1/namespaces/LoginDataPacket/platformId";
+
     pub fn new(app_handle: AppHandle) -> Self {
         let cancel_token = CancellationToken::new();
 
@@ -30,7 +31,7 @@ impl LeagueRecorder {
                     if let Ok(credentials) = riot_local_auth::lcu::try_get_credentials() {
                         let lcu_rest_client = LcuRestClient::from(&credentials);
 
-                        if let Ok(platform_id) = lcu_rest_client.get::<String>(api::PLATFORM_ID).await {
+                        if let Ok(platform_id) = lcu_rest_client.get::<String>(Self::PLATFORM_ID).await {
                             let ctx = ApiCtx {
                                 app_handle: app_handle.clone(),
                                 credentials,
