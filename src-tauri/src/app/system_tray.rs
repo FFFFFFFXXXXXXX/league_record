@@ -1,10 +1,9 @@
 use tauri::{AppHandle, CustomMenuItem, Manager, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem};
 
-use super::AppManager;
-use super::WindowManager;
 use crate::constants::{exit, menu_item};
 use crate::recorder::LeagueRecorder;
 use crate::state::SettingsWrapper;
+use super::{AppManager, AppWindow, WindowManager};
 
 pub trait SystemTrayManager {
     fn handle_system_tray_event(&self, event: SystemTrayEvent);
@@ -17,10 +16,10 @@ pub trait SystemTrayManager {
 impl SystemTrayManager for AppHandle {
     fn handle_system_tray_event(&self, event: SystemTrayEvent) {
         match event {
-            SystemTrayEvent::DoubleClick { .. } => self.create_main_window(),
+            SystemTrayEvent::DoubleClick { .. } => self.open_window(AppWindow::Main),
             SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
                 menu_item::SETTINGS => SettingsWrapper::let_user_edit_settings(self),
-                menu_item::OPEN => self.create_main_window(),
+                menu_item::OPEN => self.open_window(AppWindow::Main),
                 menu_item::QUIT => {
                     self.windows().into_values().for_each(|window| _ = window.close());
                     self.state::<LeagueRecorder>().stop();

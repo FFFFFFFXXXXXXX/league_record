@@ -13,7 +13,7 @@ mod state;
 mod util;
 
 fn main() {
-    use app::{AppManager, SystemTrayManager, WindowManager};
+    use app::{AppManager, SystemTrayManager, WindowManager, AppWindow};
     use state::{CurrentlyRecording, WindowState};
     use tauri::Manager;
 
@@ -22,7 +22,7 @@ fn main() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .plugin(tauri_plugin_single_instance::init(|app, _, _| app.create_main_window()))
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| app.open_window(AppWindow::Main)))
         .manage(WindowState::default())
         .manage(CurrentlyRecording::default())
         .invoke_handler(tauri::generate_handler![

@@ -11,7 +11,7 @@
     "scripts": {
         "predev": "cd src-tauri && cargo test",
         "dev": "vite",
-        "prebuild": "cd src-tauri && cargo test",
+        "prebuild": "cd src-tauri && cargo test --release",
         "build": "tsc && vite build",
         "preview": "vite preview"
     },

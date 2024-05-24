@@ -9,8 +9,8 @@ use tauri::api::{dialog, version};
 use tauri::{async_runtime, AppHandle, Manager};
 use tauri_plugin_log::LogTarget;
 
-use super::{RecordingManager, SystemTrayManager, WindowManager};
-use crate::constants::{window, APP_NAME, CURRENT_VERSION};
+use super::{AppWindow, RecordingManager, SystemTrayManager};
+use crate::constants::{APP_NAME, CURRENT_VERSION};
 use crate::state::{SettingsFile, SettingsWrapper};
 use crate::{filewatcher, recorder::LeagueRecorder};
 
@@ -61,7 +61,7 @@ impl AppManager for AppHandle {
             Ok(version) => {
                 if version::is_greater(&version, CURRENT_VERSION).is_ok_and(|yes| yes) {
                     dialog::message(
-                        self.get_window(window::MAIN).as_ref(),
+                        self.get_window(AppWindow::Main.into()).as_ref(),
                         format!("{APP_NAME} update successful!"),
                         format!("Successfully installed {APP_NAME} v{CURRENT_VERSION}"),
                     );
@@ -77,12 +77,6 @@ impl AppManager for AppHandle {
 
         // make sure the system autostart setting for the app matches what is set in the settings
         self.sync_autostart();
-
-        // don't show window on startup and set initial window state
-        if let Some(window) = self.get_window(window::MAIN) {
-            self.save_window_state(&window);
-            _ = window.close();
-        }
 
         // start watching recordings folder for changes
         let recordings_path = settings.get_recordings_path();
@@ -142,7 +136,7 @@ impl AppManager for AppHandle {
             }
         };
 
-        let parent_window = self.get_window(window::MAIN);
+        let parent_window = self.get_window(AppWindow::Main.into());
 
         if !dialog::blocking::ask(
             parent_window.as_ref(),

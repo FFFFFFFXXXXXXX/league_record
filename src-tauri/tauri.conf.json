@@ -69,18 +69,6 @@
         ]
       }
     },
-    "windows": [
-      {
-        "title": "LeagueRecord",
-        "minWidth": 800,
-        "minHeight": 400,
-        "width": 1200,
-        "height": 650,
-        "center": true,
-        "resizable": true,
-        "visible": false
-      }
-    ],
     "systemTray": {
       "iconPath": "icons/icon.png",
       "iconAsTemplate": true

@@ -89,14 +89,6 @@ impl GameListener {
             Err(e) => log::info!("no initial event-data: {e}"),
         }
 
-        match lcu_rest_client.get::<SessionEventData>(Self::GAMEFLOW_SESSION).await {
-            Ok(init_event_data) => {
-                self.state_transition(SubscriptionResponse::Session(init_event_data))
-                    .await
-            }
-            Err(e) => log::info!("no initial event-data: {e}"),
-        }
-
         while let Some(event) = cancellable!(lcu_ws_client.next(), self.ctx.cancel_token, Option) {
             if event.payload.event_type != EventType::Update {
                 continue;

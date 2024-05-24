@@ -6,10 +6,6 @@ pub mod exit {
     pub const ERROR: i32 = 1;
 }
 
-pub mod window {
-    pub const MAIN: &str = "main";
-}
-
 pub mod menu_item {
     pub const RECORDING: &str = "recording";
     pub const SETTINGS: &str = "settings";

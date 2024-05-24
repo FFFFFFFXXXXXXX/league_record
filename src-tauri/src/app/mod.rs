@@ -8,7 +8,7 @@ pub use events::{AppEvent, EventManager};
 pub use manager::AppManager;
 pub use recordings::RecordingManager;
 pub use system_tray::SystemTrayManager;
-pub use window::WindowManager;
+pub use window::{WindowManager, AppWindow};
 
 pub fn process_app_event(app_handle: &tauri::AppHandle, event: tauri::RunEvent) {
     use tauri::{Manager, RunEvent, WindowEvent};
@@ -19,10 +19,8 @@ pub fn process_app_event(app_handle: &tauri::AppHandle, event: tauri::RunEvent) 
             event: WindowEvent::CloseRequested { api, .. },
             ..
         } => {
-            use crate::constants::window;
-
             // triggered on window close (X Button)
-            if let Some(window) = app_handle.get_window(window::MAIN) {
+            if let Some(window) = app_handle.get_window(AppWindow::Main.into()) {
                 app_handle.save_window_state(&window);
             }
             api.prevent_close();

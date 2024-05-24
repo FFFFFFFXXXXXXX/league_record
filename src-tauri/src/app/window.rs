@@ -1,37 +1,54 @@
 use tauri::{AppHandle, Manager, Window};
 
-use crate::constants::{window, APP_NAME};
+use crate::constants::APP_NAME;
 use crate::state::WindowState;
 
+#[derive(Copy, Clone, strum_macros::IntoStaticStr)]
+pub enum AppWindow {
+    Main,
+}
+
 pub trait WindowManager {
-    fn create_main_window(&self);
+    fn open_window(&self, window: AppWindow);
 
     fn save_window_state(&self, window: &Window);
 }
 
 impl WindowManager for AppHandle {
-    fn create_main_window(&self) {
-        if let Some(main) = self.windows().get(window::MAIN) {
+    fn open_window(&self, window: AppWindow) {
+        let window: &'static str = window.into();
+
+        log::info!("getting window: {window}");
+        if let Some(main) = self.windows().get(window) {
+            log::info!("focusing window: {window}");
             _ = main.unminimize();
             _ = main.set_focus();
         } else {
+            log::info!("getting window_state: {window}");
             let window_state = self.state::<WindowState>();
-
-            let builder = Window::builder(self, window::MAIN, tauri::WindowUrl::default());
+            log::info!("got window_state: {window}");
 
             let size = window_state.get_size();
-            let position = window_state.get_position();
-            let window = builder
+            log::info!("got window_state size: {window}");
+            let window_builder = Window::builder(self, window, tauri::WindowUrl::default())
                 .title(APP_NAME)
-                .inner_size(size.0, size.1)
-                .position(position.0, position.1)
+                .visible(false)
                 .min_inner_size(800.0, 450.0)
-                .visible(false);
+                .inner_size(size.0, size.1);
 
-            if let Err(e) = window.build() {
+            let window_builder = if let Some(position) = window_state.get_position() {
+                window_builder.position(position.0, position.1)
+            } else {
+                window_builder.center()
+            };
+            log::info!("got window_state position: {window}");
+
+            if let Err(e) = window_builder.build() {
                 log::error!("error creating window: {e}");
             }
         }
+
+        log::info!("created window: {window}");
     }
 
     fn save_window_state(&self, window: &Window) {

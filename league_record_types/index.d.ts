@@ -16,8 +16,6 @@ export type Queue = { id: number; name: string; isRanked: boolean }
 
 export type Framerate = [number, number]
 
-export type Settings = { markerFlags: MarkerFlags; checkForUpdates: boolean; debugLog: boolean; recordingsFolder: string; filenameFormat: string; encodingQuality: number; outputResolution: StdResolution | null; framerate: Framerate; recordAudio: AudioSource; onlyRecordRanked: boolean; autostart: boolean; maxRecordingAgeDays: number | null; maxRecordingsSizeGb: number | null }
-
 export type AudioSource = "NONE" | "APPLICATION" | "SYSTEM" | "ALL"
 
 export type MatchId = { gameId: number; platformId: string }
@@ -45,13 +43,15 @@ export type Team = "BLUE" | "RED"
 
 export type NoData = { favorite: boolean }
 
+export type Settings = { markerFlags: MarkerFlags; checkForUpdates: boolean; debugLog: boolean; recordingsFolder: string; filenameFormat: string; encodingQuality: number; outputResolution: StdResolution | null; framerate: Framerate; recordAudio: AudioSource; onlyRecordRanked: boolean; autostart: boolean; maxRecordingAgeDays: number | null; maxRecordingsSizeGb: number | null }
+
+export type MarkerFlags = { kill: boolean; death: boolean; assist: boolean; turret: boolean; inhibitor: boolean; dragon: boolean; herald: boolean; baron: boolean }
+
 export type GameEvent = { event: Event; timestamp: number }
 
 export type DragonType = "FIRE_DRAGON" | "EARTH_DRAGON" | "WATER_DRAGON" | "AIR_DRAGON" | "HEXTECH_DRAGON" | "CHEMTECH_DRAGON" | "ELDER_DRAGON"
 
 export type MetadataFile = { Metadata: GameMetadata } | { Deferred: Deferred } | { NoData: NoData }
-
-export type MarkerFlags = { kill: boolean; death: boolean; assist: boolean; turret: boolean; inhibitor: boolean; dragon: boolean; herald: boolean; baron: boolean }
 
 export type Resolution = { width: number; height: number }
 

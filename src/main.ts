@@ -96,8 +96,6 @@ async function main() {
     // handle keybord shortcuts
     addEventListener('keydown', handleKeyboardEvents);
 
-
-
     const listenerManager = new ListenerManager();
     listenerManager.listen_app('RecordingsChanged', updateSidebar);
     listenerManager.listen_app('MarkerflagsChanged', () => tauri.getMarkerFlags().then(flags => ui.setCheckboxes(flags)));
@@ -275,7 +273,10 @@ function showDeleteModal(videoId: string) {
 }
 
 async function deleteVideo(videoId: string) {
-    player.reset();
+    if (videoId === ui.getActiveVideoId()) {
+        player.reset();
+    }
+
     const ok = await tauri.deleteVideo(videoId);
     if (!ok) {
         ui.showErrorModal('Error deleting video!');
