@@ -20,8 +20,6 @@ export type AudioSource = "NONE" | "APPLICATION" | "SYSTEM" | "ALL"
 
 export type MatchId = { gameId: number; platformId: string }
 
-export type AppEvent = { type: "RecordingsChanged"; payload: null } | { type: "MetadataChanged"; payload: string[] } | { type: "MarkerflagsChanged"; payload: null }
-
 export type Encoder = "JIM_NVENC" | "FFMPEG_NVENC" | "JIM_AV1" | "AMD_AMF_H264" | "AMD_AMF_AV1" | "OBS_QSV11_H264" | "OBS_QSV11_AV1" | "OBS_X264"
 
 export type RateControl = { CBR: number } | { VBR: number } | { CQP: number } | { CRF: number } | { ICQ: number }
@@ -54,6 +52,8 @@ export type DragonType = "FIRE_DRAGON" | "EARTH_DRAGON" | "WATER_DRAGON" | "AIR_
 export type MetadataFile = { Metadata: GameMetadata } | { Deferred: Deferred } | { NoData: NoData }
 
 export type Resolution = { width: number; height: number }
+
+export type AppEvent = { type: "RecordingsChanged"; payload: null } | { type: "MetadataChanged"; payload: string[] } | { type: "MarkerflagsChanged"; payload: null }
 
 export type Position = { x: number; y: number }
 
