@@ -17,6 +17,9 @@ fn main() {
     use state::{CurrentlyRecording, WindowState};
     use tauri::Manager;
 
+    #[cfg(feature = "tokio-console")]
+    console_subscriber::init();
+
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
