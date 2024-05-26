@@ -4,7 +4,7 @@ export type Recording = { videoId: string; metadata: MetadataFile | null }
 
 export type Deferred = { matchId: MatchId; ingameTimeRecStartOffset: number; favorite: boolean }
 
-export type Stats = { kills: number; deaths: number; assists: number; largestMultiKill: number; neutralMinionsKilled: number; neutralMinionsKilledEnemyJungle: number; neutralMinionsKilledTeamJungle: number; totalMinionsKilled: number; visionScore: number; visionWardsBoughtInGame: number; wardsPlaced: number; wardsKilled: number; win: boolean }
+export type Stats = { kills: number; deaths: number; assists: number; largestMultiKill: number; neutralMinionsKilled: number; neutralMinionsKilledEnemyJungle: number; neutralMinionsKilledTeamJungle: number; totalMinionsKilled: number; visionScore: number; visionWardsBoughtInGame: number; wardsPlaced: number; wardsKilled: number; gameEndedInEarlySurrender: boolean; gameEndedInSurrender: boolean; win: boolean }
 
 export type GameMetadata = { matchId: MatchId; ingameTimeRecStartOffset: number; queue: Queue; player: Player; championName: string; stats: Stats; participantId: number; events: GameEvent[]; favorite: boolean }
 

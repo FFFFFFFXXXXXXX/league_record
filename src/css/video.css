@@ -44,6 +44,11 @@ video {
     color: #ff2345;
 }
 
+.remake {
+    font-size: 30px;
+    color: #a09b8c;
+}
+
 .marker-list {
     flex: 0.1 0 auto;
 }

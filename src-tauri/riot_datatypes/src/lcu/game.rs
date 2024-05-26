@@ -61,5 +61,10 @@ pub struct Stats {
     pub vision_wards_bought_in_game: i64,
     pub wards_placed: i64,
     pub wards_killed: i64,
+    /// remake
+    /// if this field is true `win` has to be ignored because the team that had to remake counts as the loser of the game
+    /// surrenders pre minute 20 count as a normal surrender (field `game_ended_in_surrender`)
+    pub game_ended_in_early_surrender: bool,
+    pub game_ended_in_surrender: bool,
     pub win: bool,
 }

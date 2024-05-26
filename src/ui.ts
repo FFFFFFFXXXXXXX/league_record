@@ -1,8 +1,8 @@
 import type videojs from 'video.js';
-import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
-import type { MarkerFlags, GameMetadata, Recording, MetadataFile } from '@fffffffxxxxxxx/league_record_types';
-import { toVideoId, toVideoName } from './util';
-import { appWindow } from '@tauri-apps/api/window';
+import type {ContentDescriptor} from 'video.js/dist/types/utils/dom';
+import type {GameMetadata, MarkerFlags, MetadataFile, Recording} from '@fffffffxxxxxxx/league_record_types';
+import {toVideoId, toVideoName} from './util';
+import {appWindow} from '@tauri-apps/api/window';
 
 export default class UI {
 
@@ -108,7 +108,7 @@ export default class UI {
                 },
                 {
                     class: 'favorite',
-                    ...(favorite ? { style: 'color: gold' } : {})
+                    ...(favorite ? {style: 'color: gold'} : {})
                 },
                 favorite ? '★' : '☆'
             ) as HTMLSpanElement;
@@ -121,7 +121,7 @@ export default class UI {
                         onRename(recording.videoId);
                     }
                 },
-                { class: 'rename' },
+                {class: 'rename'},
                 '✎'
             );
             const deleteBtn = this.vjs.dom.createEl(
@@ -132,15 +132,15 @@ export default class UI {
                         onDelete(recording.videoId);
                     }
                 },
-                { class: 'delete' },
+                {class: 'delete'},
                 '×'
             );
             return this.vjs.dom.createEl(
                 'li',
-                { onclick: () => onVideo(recording.videoId) },
-                { id: recording.videoId },
+                {onclick: () => onVideo(recording.videoId)},
+                {id: recording.videoId},
                 [
-                    this.vjs.dom.createEl('span', {}, { class: 'video-name' }, videoName),
+                    this.vjs.dom.createEl('span', {}, {class: 'video-name'}, videoName),
                     favoriteBtn,
                     renameBtn,
                     deleteBtn
@@ -169,7 +169,7 @@ export default class UI {
     public showErrorModal = (text: string) => {
         this.showModal([
             this.vjs.dom.createEl('p', {}, {}, text),
-            this.vjs.dom.createEl('p', {}, {}, this.vjs.dom.createEl('button', { onclick: this.hideModal }, { class: 'btn' }, 'Close')),
+            this.vjs.dom.createEl('p', {}, {}, this.vjs.dom.createEl('button', {onclick: this.hideModal}, {class: 'btn'}, 'Close')),
         ]);
     }
 
@@ -229,13 +229,13 @@ export default class UI {
             {
                 onclick: renameHandler
             },
-            { class: 'btn', disabled: true },
+            {class: 'btn', disabled: true},
             'Save'
         ) as HTMLButtonElement;
         const cancelButton = this.vjs.dom.createEl(
             'button',
-            { onclick: this.hideModal },
-            { class: 'btn' },
+            {onclick: this.hideModal},
+            {class: 'btn'},
             'Cancel'
         ) as HTMLButtonElement;
 
@@ -259,8 +259,8 @@ export default class UI {
                     this.hideModal();
                     deleteVideo(videoId);
                 }
-            }, { class: 'btn' }, 'Delete'),
-            this.vjs.dom.createEl('button', { onclick: this.hideModal }, { class: 'btn' }, 'Cancel'),
+            }, {class: 'btn'}, 'Delete'),
+            this.vjs.dom.createEl('button', {onclick: this.hideModal}, {class: 'btn'}, 'Cancel'),
         ]);
 
         this.showModal([prompt, buttons]);
@@ -290,16 +290,18 @@ export default class UI {
         const summoner = this.vjs.dom.createEl(
             'span',
             {},
-            { class: 'summoner-name' },
+            {class: 'summoner-name'},
             data.player.gameName
         );
         const score1 = `${data.championName} - ${data.stats.kills}/${data.stats.deaths}/${data.stats.assists} `;
         const score2 = `${data.stats.totalMinionsKilled} CS | ${data.stats.visionScore} WS`;
 
         const gameMode = `Game Mode: ${data.queue.name} `;
-        const result = data.stats.win ?
-            this.vjs.dom.createEl('span', {}, { class: 'win' }, 'Victory')
-            : this.vjs.dom.createEl('span', {}, { class: 'loss' }, 'Defeat');
+        const result = data.stats.gameEndedInEarlySurrender ?
+            this.vjs.dom.createEl('span', {}, {class: 'remake'}, 'Remake')
+            : data.stats.win ?
+                this.vjs.dom.createEl('span', {}, {class: 'win'}, 'Victory')
+                : this.vjs.dom.createEl('span', {}, {class: 'loss'}, 'Defeat');
 
         this.setVideoDescription(
             [
