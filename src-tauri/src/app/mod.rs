@@ -8,7 +8,7 @@ pub use event::{AppEvent, EventManager};
 pub use manager::AppManager;
 pub use recordings::RecordingManager;
 pub use system_tray::SystemTrayManager;
-pub use window::{WindowManager, AppWindow};
+pub use window::{AppWindow, WindowManager};
 
 pub fn process_app_event(app_handle: &tauri::AppHandle, event: tauri::RunEvent) {
     use tauri::{Manager, RunEvent, WindowEvent};

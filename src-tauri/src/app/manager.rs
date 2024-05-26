@@ -88,7 +88,7 @@ impl AppManager for AppHandle {
 
         // cleanup recordings if they are too old or the total size of the recordings gets too big
         // this only happens if 'maxRecordingAge' or 'maxRecordingsSize' is configured in the settings
-        tauri::async_runtime::spawn_blocking({
+        async_runtime::spawn_blocking({
             let app_handle = self.clone();
             move || app_handle.cleanup_recordings()
         });

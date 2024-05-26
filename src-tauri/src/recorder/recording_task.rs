@@ -58,22 +58,25 @@ impl RecordingTask {
         self.ctx.cancel_token.cancel();
         let (mut recorder, metadata) = self.join_handle.await??;
 
-        let stopped = recorder.stop_recording();
-        let shutdown = recorder.shutdown();
-        log::info!("stopping recording: stopped={stopped:?}, shutdown={shutdown:?}");
+        async_runtime::spawn_blocking({
+            let stopped = recorder.stop_recording();
+            let shutdown = recorder.shutdown();
+            log::info!("stopping recording: stopped={stopped:?}, shutdown={shutdown:?}");
 
-        self.ctx.app_handle.cleanup_recordings();
-        self.ctx.app_handle.state::<CurrentlyRecording>().set(None);
-        self.ctx.app_handle.set_tray_menu_recording_status(false);
-        if let Err(e) = self
-            .ctx
-            .app_handle
-            .send_event(AppEvent::RecordingsChanged { payload: () })
-        {
-            log::error!("RecordingTask failed to send event: {e}");
-        }
+            self.ctx.app_handle.cleanup_recordings();
+            self.ctx.app_handle.state::<CurrentlyRecording>().set(None);
+            self.ctx.app_handle.set_tray_menu_recording_status(false);
+            if let Err(e) = self
+                .ctx
+                .app_handle
+                .send_event(AppEvent::RecordingsChanged { payload: () })
+            {
+                log::error!("RecordingTask failed to send event: {e}");
+            }
 
-        Ok(metadata)
+            Ok(metadata)
+        })
+        .await?
     }
 
     async fn record(ctx: GameCtx) -> Result<(Recorder, Metadata)> {

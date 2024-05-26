@@ -18,18 +18,13 @@ impl WindowManager for AppHandle {
     fn open_window(&self, window: AppWindow) {
         let window: &'static str = window.into();
 
-        log::info!("getting window: {window}");
         if let Some(main) = self.windows().get(window) {
-            log::info!("focusing window: {window}");
             _ = main.unminimize();
             _ = main.set_focus();
         } else {
-            log::info!("getting window_state: {window}");
             let window_state = self.state::<WindowState>();
-            log::info!("got window_state: {window}");
 
             let size = window_state.get_size();
-            log::info!("got window_state size: {window}");
             let window_builder = Window::builder(self, window, tauri::WindowUrl::default())
                 .title(APP_NAME)
                 .visible(false)
@@ -41,14 +36,11 @@ impl WindowManager for AppHandle {
             } else {
                 window_builder.center()
             };
-            log::info!("got window_state position: {window}");
 
             if let Err(e) = window_builder.build() {
                 log::error!("error creating window: {e}");
             }
         }
-
-        log::info!("created window: {window}");
     }
 
     fn save_window_state(&self, window: &Window) {

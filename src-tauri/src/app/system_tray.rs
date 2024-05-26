@@ -1,9 +1,9 @@
 use tauri::{AppHandle, CustomMenuItem, Manager, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem};
 
+use super::{AppManager, AppWindow, WindowManager};
 use crate::constants::{exit, menu_item};
 use crate::recorder::LeagueRecorder;
 use crate::state::SettingsWrapper;
-use super::{AppManager, AppWindow, WindowManager};
 
 pub trait SystemTrayManager {
     fn handle_system_tray_event(&self, event: SystemTrayEvent);

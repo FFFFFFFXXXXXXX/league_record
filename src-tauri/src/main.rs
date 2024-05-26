@@ -13,7 +13,7 @@ mod state;
 mod util;
 
 fn main() {
-    use app::{AppManager, SystemTrayManager, WindowManager, AppWindow};
+    use app::{AppManager, AppWindow, SystemTrayManager, WindowManager};
     use state::{CurrentlyRecording, WindowState};
     use tauri::Manager;
 
