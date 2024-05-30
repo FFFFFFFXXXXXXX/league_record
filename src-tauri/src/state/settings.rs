@@ -76,7 +76,7 @@ impl SettingsWrapper {
         let app_handle = app_handle.clone();
 
         // spawn a separate thread to avoid blocking the main thread with Command::status()
-        async_runtime::spawn_blocking({
+        async_runtime::spawn_blocking(move || {
             let settings_file = app_handle.state::<SettingsFile>();
             let settings_file = settings_file.get();
 

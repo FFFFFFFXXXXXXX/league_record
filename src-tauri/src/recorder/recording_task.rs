@@ -1,22 +1,24 @@
 use std::{fmt::Display, path::PathBuf, time::Duration};
 
 use anyhow::{bail, Context, Result};
-use libobs_recorder::settings::{RateControl, Resolution, StdResolution, Window};
 use libobs_recorder::{Recorder, RecorderSettings};
-use riot_datatypes::MatchId;
+use libobs_recorder::settings::{RateControl, Resolution, StdResolution, Window};
 use shaco::ingame::IngameClient;
-use tauri::async_runtime::{self, JoinHandle};
 use tauri::{AppHandle, Manager};
+use tauri::async_runtime::{self, JoinHandle};
 use tokio::select;
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 
-use super::window::{self, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
-use super::MetadataFile;
+use riot_datatypes::MatchId;
+
 use crate::app::{AppEvent, EventManager, RecordingManager, SystemTrayManager};
 use crate::cancellable;
 use crate::recorder::Deferred;
 use crate::state::{CurrentlyRecording, SettingsWrapper};
+
+use super::MetadataFile;
+use super::window::{self, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
 
 #[derive(Clone)]
 pub struct GameCtx {
@@ -58,7 +60,7 @@ impl RecordingTask {
         self.ctx.cancel_token.cancel();
         let (mut recorder, metadata) = self.join_handle.await??;
 
-        async_runtime::spawn_blocking({
+        async_runtime::spawn_blocking(move || {
             let stopped = recorder.stop_recording();
             let shutdown = recorder.shutdown();
             log::info!("stopping recording: stopped={stopped:?}, shutdown={shutdown:?}");
