@@ -117,7 +117,7 @@ async function main() {
         player.one('canplay', ui.showWindow);
     } else {
         void setVideo(null);
-        player.ready(ui.showWindow);
+        player.one("ready", ui.showWindow);
     }
 }
 

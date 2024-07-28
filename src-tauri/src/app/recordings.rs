@@ -89,7 +89,7 @@ impl RecordingManager for AppHandle {
             match recording.metadata() {
                 Ok(metadata) => total_size += metadata.len(),
                 Err(e) => log::warn!(
-                    "Failed to get size of recording (favorite) {}: {e}",
+                    "failed to get size of recording (favorite) {}: {e}",
                     recording.display(),
                 ),
             }
@@ -98,12 +98,12 @@ impl RecordingManager for AppHandle {
         for recording in others {
             match recording.metadata() {
                 Ok(metadata) => total_size += metadata.len(),
-                Err(e) => log::warn!("Failed to get size of recording {}: {e}", recording.display(),),
+                Err(e) => log::warn!("failed to get size of recording {}: {e}", recording.display(),),
             }
 
             if total_size > max_size {
                 if let Err(e) = Self::delete_recording(recording) {
-                    log::error!("deleting file due to size limit failed: {e}");
+                    log::error!("failed to delete file due to size limit: {e}");
                 }
             }
         }
@@ -127,7 +127,7 @@ impl RecordingManager for AppHandle {
             // in case checking 'too_old(...)' or 'is_favorite(...)' fails default to not deleting the file
             if too_old(&recording, max_age, now).unwrap_or(false) && !is_favorite(&recording).unwrap_or(true) {
                 if let Err(e) = Self::delete_recording(recording) {
-                    log::error!("deleting file due to age limit failed: {e}");
+                    log::error!("failed to delete file due to age limit: {e}");
                 }
             }
         }

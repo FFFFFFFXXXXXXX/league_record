@@ -1,11 +1,11 @@
 use std::{fmt::Display, path::PathBuf, time::Duration};
 
 use anyhow::{bail, Context, Result};
-use libobs_recorder::{Recorder, RecorderSettings};
 use libobs_recorder::settings::{RateControl, Resolution, StdResolution, Window};
+use libobs_recorder::{Recorder, RecorderSettings};
 use shaco::ingame::IngameClient;
-use tauri::{AppHandle, Manager};
 use tauri::async_runtime::{self, JoinHandle};
+use tauri::{AppHandle, Manager};
 use tokio::select;
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
@@ -17,8 +17,8 @@ use crate::cancellable;
 use crate::recorder::Deferred;
 use crate::state::{CurrentlyRecording, SettingsWrapper};
 
-use super::MetadataFile;
 use super::window::{self, WINDOW_CLASS, WINDOW_PROCESS, WINDOW_TITLE};
+use super::MetadataFile;
 
 #[derive(Clone)]
 pub struct GameCtx {
@@ -192,19 +192,8 @@ impl RecordingTask {
     }
 
     async fn get_window_size() -> Result<Resolution> {
-        let mut window_handle = None;
-        for _ in 0..30 {
-            window_handle = window::get_lol_window();
-            if window_handle.is_some() {
-                break;
-            }
-
-            sleep(Duration::from_millis(500)).await;
-        }
-
-        let Some(window_handle) = window_handle else { bail!("unable to get window_handle") };
-        for _ in 0..30 {
-            if let Ok(window_size) = window::get_window_size(window_handle) {
+        for _ in 0..60 {
+            if let Some(window_size) = window::get_lol_window().and_then(window::get_window_size) {
                 return Ok(window_size);
             }
 

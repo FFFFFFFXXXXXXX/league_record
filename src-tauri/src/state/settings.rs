@@ -215,7 +215,7 @@ pub struct Settings {
     marker_flags: MarkerFlags,
     check_for_updates: bool,
     debug_log: bool,
-    // these get passed to lol_rec
+    // these get passed to libobs-recorder
     recordings_folder: PathBuf,
     filename_format: String,
     encoding_quality: u32,
