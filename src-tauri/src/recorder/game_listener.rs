@@ -139,7 +139,7 @@ impl GameListener {
                     match recording_task.stop().await {
                         Ok(metadata) => State::EndOfGame(metadata),
                         Err(e) => {
-                            log::error!("failed to stop recording: {e}");
+                            log::error!("stopped recording task: {e}");
                             State::Idle
                         }
                     }

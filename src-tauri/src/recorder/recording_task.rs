@@ -110,7 +110,7 @@ impl RecordingTask {
             // if recording start failed stop recording just in case and retry next 'recorder loop
             let stop_recording = recorder.stop_recording();
             let shutdown = recorder.shutdown();
-            bail!("failed to start recording: {e:?} (stopped={stop_recording:?}, shutdown={shutdown:?})");
+            bail!("failed to start recording: {e} (stopped={stop_recording:?}, shutdown={shutdown:?})");
         }
 
         // the ingame time when we start recording
