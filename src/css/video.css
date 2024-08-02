@@ -3,6 +3,10 @@ video {
     outline: none !important;
 }
 
+#video_player {
+    font-size: 13px;
+}
+
 #main {
     overflow: auto;
 }
