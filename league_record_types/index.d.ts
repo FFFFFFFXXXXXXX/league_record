@@ -15,8 +15,6 @@ export type StdResolution = "1024x768p" | "1600x1200p" | "1280x1024p" | "1280x72
 
 export type GameMetadata = { matchId: MatchId; ingameTimeRecStartOffset: number; queue: Queue; player: Player; championName: string; stats: Stats; participantId: number; events: GameEvent[]; favorite: boolean }
 
-export type Event = { ChampionKill: { victim_id: number; killer_id: number; assisting_participant_ids: number[]; position: Position } } | { BuildingKill: { team_id: Team; killer_id: number; building_type: BuildingType; assisting_participant_ids: number[] } } | { EliteMonsterKill: { killer_id: number; monster_type: MonsterType; assisting_participant_ids: number[] } }
-
 export type RecorderSettings = { window: Window | null; input_resolution: Resolution | null; output_resolution: Resolution | null; framerate: Framerate | null; rate_control: RateControl | null; record_audio: AudioSource | null; output_path: string | null; encoder: Encoder | null }
 
 export type Framerate = [number, number]
@@ -30,6 +28,8 @@ export type MatchId = { gameId: number; platformId: string }
 export type RateControl = { CBR: number } | { VBR: number } | { CQP: number } | { CRF: number } | { ICQ: number }
 
 export type BuildingType = { buildingType: "INHIBITOR_BUILDING"; lane_type: LaneType } | { buildingType: "TOWER_BUILDING"; lane_type: LaneType; tower_type: TowerType }
+
+export type Event = { ChampionKill: { victim_id: number; killer_id: number; assisting_participant_ids: number[]; position: Position } } | { BuildingKill: { team_id: Team; killer_id: number; building_type: BuildingType; assisting_participant_ids: number[] } } | { EliteMonsterKill: { killer_id: number; monster_type: MonsterType; assisting_participant_ids: number[] } }
 
 export type Resolution = { width: number; height: number }
 
@@ -47,7 +47,7 @@ export type Settings = { markerFlags: MarkerFlags; checkForUpdates: boolean; deb
 
 export type MarkerFlags = { kill: boolean; death: boolean; assist: boolean; turret: boolean; inhibitor: boolean; dragon: boolean; herald: boolean; baron: boolean }
 
-export type GameEvent = { event: Event; timestamp: number }
+export type GameEvent = ({ ChampionKill: { victim_id: number; killer_id: number; assisting_participant_ids: number[]; position: Position } } | { BuildingKill: { team_id: Team; killer_id: number; building_type: BuildingType; assisting_participant_ids: number[] } } | { EliteMonsterKill: { killer_id: number; monster_type: MonsterType; assisting_participant_ids: number[] } }) & { timestamp: number }
 
 export type DragonType = "FIRE_DRAGON" | "EARTH_DRAGON" | "WATER_DRAGON" | "AIR_DRAGON" | "HEXTECH_DRAGON" | "CHEMTECH_DRAGON" | "ELDER_DRAGON"
 

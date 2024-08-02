@@ -61,6 +61,7 @@ pub struct NoData {
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct GameEvent {
+    #[serde(flatten)]
     pub event: Event,
     pub timestamp: Timestamp,
 }

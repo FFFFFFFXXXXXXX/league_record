@@ -178,8 +178,8 @@ function changeMarkers() {
     const { participantId, recordingOffset } = currentEvents;
 
     const markers = new Array<MarkerOptions>();
-    for (const gameEvent of currentEvents.events) {
-        const { timestamp, event } = gameEvent;
+    for (const event of currentEvents.events) {
+        const timestamp = event.timestamp;
 
         if ('ChampionKill' in event) {
             if (checkbox.kill && event.ChampionKill.killer_id === participantId) {
