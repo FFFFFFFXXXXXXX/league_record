@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, strum_macros::IntoStaticStr, specta::Type, Serialize, Deserialize)]
+#[cfg_attr(test, derive(specta::Type, tauri_specta::Event))]
+#[derive(Debug, Clone, strum_macros::IntoStaticStr, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum AppEvent {
     RecordingsChanged { payload: () },
@@ -15,13 +16,13 @@ pub trait EventManager {
 
 impl EventManager for tauri::AppHandle {
     fn send_event(&self, event: AppEvent) -> anyhow::Result<()> {
-        use tauri::Manager;
+        use tauri::Emitter;
         use AppEvent::*;
 
         match &event {
-            RecordingsChanged { payload } => self.emit_all((&event).into(), payload)?,
-            MetadataChanged { payload } => self.emit_all((&event).into(), payload)?,
-            MarkerflagsChanged { payload } => self.emit_all((&event).into(), payload)?,
+            RecordingsChanged { payload } => self.emit((&event).into(), payload)?,
+            MetadataChanged { payload } => self.emit((&event).into(), payload)?,
+            MarkerflagsChanged { payload } => self.emit((&event).into(), payload)?,
         };
 
         Ok(())

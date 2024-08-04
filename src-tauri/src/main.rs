@@ -13,21 +13,26 @@ mod state;
 mod util;
 
 fn main() {
-    use app::{AppManager, AppWindow, SystemTrayManager, WindowManager};
-    use state::{CurrentlyRecording, WindowState};
+    use app::{AppManager, AppWindow, WindowManager};
+    use state::{CurrentlyRecording, TrayState, WindowState};
     use tauri::Manager;
 
     #[cfg(feature = "tokio-console")]
     console_subscriber::init();
 
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .plugin(tauri_plugin_single_instance::init(|app, _, _| app.open_window(AppWindow::Main)))
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            app.open_window(AppWindow::Main)
+        }))
+        .plugin(tauri_plugin_dialog::init())
         .manage(WindowState::default())
         .manage(CurrentlyRecording::default())
+        .manage(TrayState::default())
         .invoke_handler(tauri::generate_handler![
             commands::get_marker_flags,
             commands::set_marker_flags,
@@ -41,8 +46,6 @@ fn main() {
             commands::toggle_favorite
         ])
         .setup(|app| app.app_handle().setup().map_err(anyhow::Error::into))
-        .system_tray(tauri::SystemTray::new().with_tooltip(constants::APP_NAME))
-        .on_system_tray_event(|app_handle, event| app_handle.handle_system_tray_event(event))
         .build(tauri::generate_context!());
 
     match app {

@@ -1,14 +1,11 @@
-use std::fs::{self, File};
-use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use anyhow::{bail, Context, Result};
-use tauri::{async_runtime, AppHandle, Manager};
+use anyhow::Result;
+use tauri::{AppHandle, Manager};
 
-use crate::recorder::{self, Deferred, NoData};
 use crate::state::{CurrentlyRecording, SettingsWrapper};
-use crate::{recorder::MetadataFile, util};
+use crate::util;
 
 pub trait RecordingManager {
     fn get_recordings(&self) -> Vec<PathBuf>;
@@ -16,12 +13,6 @@ pub trait RecordingManager {
     fn cleanup_recordings(&self);
     fn cleanup_recordings_by_size(&self);
     fn cleanup_recordings_by_age(&self);
-
-    fn rename_recording(recording: PathBuf, new_name: String) -> Result<bool>;
-    fn delete_recording(recording: PathBuf) -> Result<()>;
-
-    fn get_recording_metadata(video_path: &Path, fetch: bool) -> Result<MetadataFile>;
-    fn save_recording_metadata(path: &Path, metadata_file: &MetadataFile) -> Result<()>;
 }
 
 impl RecordingManager for AppHandle {
@@ -79,7 +70,7 @@ impl RecordingManager for AppHandle {
         // split recordings into 'favorites' and 'others' by json metadata 'favorite' value
         // in case reading the metadata fails put the recording into favorites so it doesn't get deleted
         let (favorites, others): (Vec<_>, Vec<_>) = recordings.into_iter().partition(|recording| {
-            Self::get_recording_metadata(recording, false)
+            action::get_recording_metadata(recording, false)
                 .map(|metadata_file| metadata_file.is_favorite())
                 .unwrap_or(true)
         });
@@ -102,7 +93,7 @@ impl RecordingManager for AppHandle {
             }
 
             if total_size > max_size {
-                if let Err(e) = Self::delete_recording(recording) {
+                if let Err(e) = action::delete_recording(recording) {
                     log::error!("failed to delete file due to size limit: {e}");
                 }
             }
@@ -117,7 +108,7 @@ impl RecordingManager for AppHandle {
         }
 
         fn is_favorite(file: &Path) -> Result<bool> {
-            AppHandle::get_recording_metadata(file, false).map(|metadata_file| metadata_file.is_favorite())
+            action::get_recording_metadata(file, false).map(|metadata_file| metadata_file.is_favorite())
         }
 
         let Some(max_days) = self.state::<SettingsWrapper>().max_recording_age() else { return };
@@ -126,14 +117,26 @@ impl RecordingManager for AppHandle {
         for recording in self.get_recordings() {
             // in case checking 'too_old(...)' or 'is_favorite(...)' fails default to not deleting the file
             if too_old(&recording, max_age, now).unwrap_or(false) && !is_favorite(&recording).unwrap_or(true) {
-                if let Err(e) = Self::delete_recording(recording) {
+                if let Err(e) = action::delete_recording(recording) {
                     log::error!("failed to delete file due to age limit: {e}");
                 }
             }
         }
     }
+}
 
-    fn rename_recording(recording_path: PathBuf, new_name: String) -> Result<bool> {
+pub mod action {
+    use std::fs::{self, File};
+    use std::io::{BufReader, BufWriter};
+    use std::path::{Path, PathBuf};
+
+    use anyhow::{bail, Context, Result};
+    use tauri::async_runtime;
+
+    use crate::recorder::MetadataFile;
+    use crate::recorder::{self, Deferred, NoData};
+
+    pub fn rename_recording(recording_path: PathBuf, new_name: String) -> Result<bool> {
         let mut new_recording_path = recording_path.clone();
         new_recording_path.set_file_name(PathBuf::from(new_name).file_name().context("invalid new filename")?);
 
@@ -153,7 +156,7 @@ impl RecordingManager for AppHandle {
         Ok(true)
     }
 
-    fn delete_recording(recording: PathBuf) -> Result<()> {
+    pub fn delete_recording(recording: PathBuf) -> Result<()> {
         fs::remove_file(&recording)?;
 
         let mut metadata_file = recording;
@@ -163,7 +166,7 @@ impl RecordingManager for AppHandle {
         Ok(())
     }
 
-    fn get_recording_metadata(video_path: &Path, fetch: bool) -> Result<MetadataFile> {
+    pub fn get_recording_metadata(video_path: &Path, fetch: bool) -> Result<MetadataFile> {
         let mut video_path = video_path.to_owned();
         if !video_path.is_file() {
             bail!("no such video");
@@ -176,7 +179,7 @@ impl RecordingManager for AppHandle {
             serde_json::from_reader::<_, MetadataFile>(reader)?
         } else {
             let metadata_file = MetadataFile::NoData(NoData { favorite: false });
-            Self::save_recording_metadata(&video_path, &metadata_file)?;
+            save_recording_metadata(&video_path, &metadata_file)?;
             metadata_file
         };
 
@@ -194,7 +197,7 @@ impl RecordingManager for AppHandle {
                     async_runtime::block_on(recorder::process_data(ingame_time_rec_start_offset, match_id))?;
                 metadata.favorite = favorite;
                 let metadata_file = MetadataFile::Metadata(metadata);
-                if let Err(e) = Self::save_recording_metadata(&video_path, &metadata_file) {
+                if let Err(e) = save_recording_metadata(&video_path, &metadata_file) {
                     log::error!("failed to save re-processed game metadata: {e}");
                 }
                 Ok(metadata_file)
@@ -203,7 +206,7 @@ impl RecordingManager for AppHandle {
         }
     }
 
-    fn save_recording_metadata(path: &Path, metadata_file: &MetadataFile) -> Result<()> {
+    pub fn save_recording_metadata(path: &Path, metadata_file: &MetadataFile) -> Result<()> {
         let mut path = path.to_owned();
         path.set_extension("json");
 

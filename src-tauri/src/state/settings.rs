@@ -8,7 +8,6 @@ use anyhow::Result;
 use libobs_recorder::settings::{AudioSource, Framerate, StdResolution};
 use serde::de::{MapAccess, Visitor};
 use serde::{Deserialize, Serialize};
-use tauri::api::path::video_dir;
 use tauri::{async_runtime, AppHandle, Manager};
 
 use crate::app::{AppEvent, AppManager, EventManager, RecordingManager};
@@ -43,7 +42,7 @@ impl SettingsWrapper {
         Ok(Self(RwLock::new(settings)))
     }
 
-    pub fn load_from_file(&self, settings_file: &Path) {
+    pub fn load_from_file(&self, settings_file: &Path, app_handle: &AppHandle) {
         let Ok(json) = fs::read_to_string(settings_file) else {
             return;
         };
@@ -51,7 +50,9 @@ impl SettingsWrapper {
 
         // if recordings_folder is relative the path gets appened to the system video directory
         if settings.recordings_folder.is_relative() {
-            settings.recordings_folder = video_dir()
+            settings.recordings_folder = app_handle
+                .path()
+                .video_dir()
                 .expect("video_dir doesn't exist")
                 .join(settings.recordings_folder);
         }
@@ -93,7 +94,7 @@ impl SettingsWrapper {
                 }
 
                 // reload settings from settings.json
-                settings.load_from_file(settings_file);
+                settings.load_from_file(settings_file, &app_handle);
                 log::info!("Settings updated: {:?}", settings.inner());
 
                 // check and update autostart if necessary
@@ -208,7 +209,8 @@ impl SettingsWrapper {
     }
 }
 
-#[derive(Debug, Clone, Serialize, specta::Type)]
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     // only used in the tauri application
@@ -348,7 +350,8 @@ impl<'de> Deserialize<'de> for Settings {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, specta::Type)]
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MarkerFlags {
     kill: bool,
     death: bool,

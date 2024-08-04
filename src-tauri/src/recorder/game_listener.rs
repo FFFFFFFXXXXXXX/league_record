@@ -15,7 +15,7 @@ use tokio_util::sync::CancellationToken;
 
 use super::metadata;
 use super::recording_task::{GameCtx, Metadata, RecordingTask};
-use crate::app::{AppEvent, EventManager, RecordingManager};
+use crate::app::{action, AppEvent, EventManager};
 use crate::cancellable;
 use crate::state::SettingsWrapper;
 
@@ -180,7 +180,7 @@ impl GameListener {
                         .await
                         {
                             Ok(game_metadata) => {
-                                let result = AppHandle::save_recording_metadata(
+                                let result = action::save_recording_metadata(
                                     &metadata_filepath,
                                     &crate::recorder::MetadataFile::Metadata(game_metadata),
                                 );

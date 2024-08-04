@@ -1,13 +1,14 @@
 use std::cmp::Ordering;
 use std::fs::metadata;
 use std::path::PathBuf;
+use std::process::Command;
 
-use tauri::{api::shell, AppHandle, Manager, State};
+use tauri::{AppHandle, State};
 
-use crate::app::RecordingManager;
+use crate::app::{action, RecordingManager};
 use crate::recorder::MetadataFile;
 use crate::state::{MarkerFlags, SettingsFile, SettingsWrapper};
-use crate::util::{self, compare_time};
+use crate::util::compare_time;
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
@@ -44,7 +45,8 @@ pub fn get_recordings_size(app_handle: AppHandle) -> f32 {
     size as f32 / 1_000_000_000.0 // in Gigabyte
 }
 
-#[derive(serde::Serialize, serde::Deserialize, specta::Type)]
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Recording {
     video_id: String,
@@ -63,7 +65,7 @@ pub fn get_recordings_list(app_handle: AppHandle) -> Vec<Recording> {
             .file_name()
             .and_then(|fname| fname.to_os_string().into_string().ok())
         {
-            let metadata = AppHandle::get_recording_metadata(&path, true).ok();
+            let metadata = action::get_recording_metadata(&path, true).ok();
             ret.push(Recording { video_id, metadata });
         }
     }
@@ -72,9 +74,11 @@ pub fn get_recordings_list(app_handle: AppHandle) -> Vec<Recording> {
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, SettingsWrapper>) {
-    if let Err(e) = util::path_to_string(&state.get_recordings_path())
-        .and_then(|path| Ok(shell::open(&app_handle.shell_scope(), path, None)?))
+pub fn open_recordings_folder(state: State<'_, SettingsWrapper>) {
+    if let Err(e) = state
+        .get_recordings_path()
+        .canonicalize()
+        .and_then(|path| Command::new("explorer").arg(path).spawn())
     {
         log::error!("failed to open recordings-folder: {e:?}");
     }
@@ -84,7 +88,7 @@ pub fn open_recordings_folder(app_handle: AppHandle, state: State<'_, SettingsWr
 #[tauri::command]
 pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, SettingsWrapper>) -> bool {
     let recording = state.get_recordings_path().join(video_id);
-    AppHandle::rename_recording(recording, new_video_id).unwrap_or_else(|e| {
+    action::rename_recording(recording, new_video_id).unwrap_or_else(|e| {
         log::error!("failed to rename video: {e}");
         false
     })
@@ -95,7 +99,7 @@ pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, Set
 pub fn delete_video(video_id: String, state: State<'_, SettingsWrapper>) -> bool {
     let recording = state.get_recordings_path().join(video_id);
 
-    match AppHandle::delete_recording(recording) {
+    match action::delete_recording(recording) {
         Ok(_) => true,
         Err(e) => {
             log::error!("failed to delete video: {e}");
@@ -108,7 +112,7 @@ pub fn delete_video(video_id: String, state: State<'_, SettingsWrapper>) -> bool
 #[tauri::command]
 pub fn get_metadata(video_id: String, state: State<'_, SettingsWrapper>) -> Option<MetadataFile> {
     let path = state.get_recordings_path().join(video_id);
-    AppHandle::get_recording_metadata(&path, true).ok()
+    action::get_recording_metadata(&path, true).ok()
 }
 
 #[cfg_attr(test, specta::specta)]
@@ -116,10 +120,10 @@ pub fn get_metadata(video_id: String, state: State<'_, SettingsWrapper>) -> Opti
 pub fn toggle_favorite(video_id: String, state: State<'_, SettingsWrapper>) -> Option<bool> {
     let path = state.get_recordings_path().join(video_id);
 
-    let mut metadata = AppHandle::get_recording_metadata(&path, true).ok()?;
+    let mut metadata = action::get_recording_metadata(&path, true).ok()?;
     let favorite = !metadata.is_favorite();
     metadata.set_favorite(favorite);
-    AppHandle::save_recording_metadata(&path, &metadata).ok()?;
+    action::save_recording_metadata(&path, &metadata).ok()?;
 
     Some(favorite)
 }

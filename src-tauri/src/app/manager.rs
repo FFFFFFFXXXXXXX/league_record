@@ -4,12 +4,13 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use log::LevelFilter;
-use tauri::api::path::app_config_dir;
-use tauri::api::{dialog, version};
+use semver::Version;
 use tauri::{async_runtime, AppHandle, Manager};
-use tauri_plugin_log::LogTarget;
+use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_log::{Target, TargetKind};
+use tauri_plugin_updater::UpdaterExt;
 
-use super::{AppWindow, RecordingManager, SystemTrayManager};
+use super::{RecordingManager, SystemTrayManager};
 use crate::constants::{APP_NAME, CURRENT_VERSION};
 use crate::state::{SettingsFile, SettingsWrapper};
 use crate::{filewatcher, recorder::LeagueRecorder};
@@ -34,7 +35,7 @@ impl AppManager for AppHandle {
     const SETTINGS_FILE: &'static str = "settings.json";
 
     fn setup(&self) -> Result<()> {
-        let config_folder = app_config_dir(&self.config()).context("Error getting app directory")?;
+        let config_folder = self.path().app_config_dir().context("Error getting app directory")?;
 
         let settings = self.initialize_settings(&config_folder)?;
 
@@ -48,9 +49,8 @@ impl AppManager for AppHandle {
         log::info!("debug_log: {}", if debug_log { "enabled" } else { "disabled" });
         log::info!("Settings: {}", settings.inner());
 
-        // set default tray menu
+        // create system tray-icon
         self.set_system_tray(false);
-
         if settings.check_for_updates_enabled() {
             self.check_for_update(|app_handle| app_handle.set_system_tray(true));
         }
@@ -59,12 +59,11 @@ impl AppManager for AppHandle {
         let version_file = config_folder.join(".version");
         match fs::read_to_string(&version_file) {
             Ok(version) => {
-                if version::is_greater(&version, CURRENT_VERSION).is_ok_and(|yes| yes) {
-                    dialog::message(
-                        self.get_window(AppWindow::Main.into()).as_ref(),
-                        format!("{APP_NAME} update successful!"),
-                        format!("Successfully installed {APP_NAME} v{CURRENT_VERSION}"),
-                    );
+                if Version::parse(&version).unwrap() < Version::parse(CURRENT_VERSION).unwrap() {
+                    self.dialog()
+                        .message(format!("Successfully installed {APP_NAME} v{CURRENT_VERSION}"))
+                        .title(format!("{APP_NAME} update successful!"))
+                        .blocking_show();
                     _ = fs::write(&version_file, CURRENT_VERSION);
                 }
             }
@@ -102,7 +101,7 @@ impl AppManager for AppHandle {
         SettingsWrapper::ensure_settings_exist(&settings_file);
 
         let settings = SettingsWrapper::new_from_file(&settings_file)?;
-        settings.load_from_file(&settings_file);
+        settings.load_from_file(&settings_file, self);
 
         self.manage::<SettingsWrapper>(settings);
         self.manage::<SettingsFile>(SettingsFile::new(settings_file));
@@ -113,8 +112,9 @@ impl AppManager for AppHandle {
     fn check_for_update(&self, callback: impl FnOnce(AppHandle) + Send + 'static) {
         let app_handle = self.clone();
         async_runtime::spawn(async move {
-            let update_available = match app_handle.updater().check().await {
-                Ok(update_check) => update_check.is_update_available(),
+            let update_available = match app_handle.updater().unwrap().check().await {
+                Ok(Some(_)) => true,
+                Ok(None) => false,
                 Err(e) => {
                     log::error!("update check failed: {e}");
                     false
@@ -128,34 +128,38 @@ impl AppManager for AppHandle {
     }
 
     fn update(&self) {
-        let update_check = match async_runtime::block_on(self.updater().check()) {
-            Ok(update_check) => update_check,
+        let update_check = match async_runtime::block_on(self.updater().unwrap().check()) {
+            Ok(Some(update_check)) => update_check,
+            Ok(None) => {
+                log::warn!("no update available");
+                return;
+            }
             Err(e) => {
                 log::error!("update check failed: {e}");
                 return;
             }
         };
 
-        let parent_window = self.get_window(AppWindow::Main.into());
-
-        if !dialog::blocking::ask(
-            parent_window.as_ref(),
-            format!("{APP_NAME} update available!"),
-            format!(
+        if self
+            .dialog()
+            .message(format!(
                 "Version {} available!\n\n{}\n\nDo you want to update now?",
-                update_check.latest_version(),
-                update_check.body().map(String::as_str).unwrap_or_default()
-            ),
-        ) {
+                &update_check.version,
+                update_check.body.as_deref().unwrap_or_default()
+            ))
+            .title(format!("{APP_NAME} update available!"))
+            .ok_button_label("Yes")
+            .cancel_button_label("No")
+            .blocking_show()
+        {
             return;
         }
 
-        if let Err(e) = async_runtime::block_on(update_check.download_and_install()) {
-            dialog::blocking::message(
-                parent_window.as_ref(),
-                "Update failed!",
-                "Failed to download and install update!",
-            );
+        if let Err(e) = async_runtime::block_on(update_check.download_and_install(|_, _| {}, || {})) {
+            self.dialog()
+                .message("Failed to download and install update!")
+                .title("Update failed!")
+                .blocking_show();
             log::error!("failed to download and install the update: {e}");
         } else {
             // "On macOS and Linux you will need to restart the app manually"
@@ -165,9 +169,12 @@ impl AppManager for AppHandle {
     }
 
     fn add_log_plugin(&self) -> Result<()> {
+        let file_name = Some(format!("{}", chrono::Local::now().format("%Y-%m-%d_%H-%M")));
         let plugin = tauri_plugin_log::Builder::default()
-            .targets([LogTarget::LogDir, LogTarget::Stdout])
-            .log_name(format!("{}", chrono::Local::now().format("%Y-%m-%d_%H-%M")))
+            .targets([
+                Target::new(TargetKind::LogDir { file_name }),
+                Target::new(TargetKind::Stdout),
+            ])
             .level(LevelFilter::Info)
             .format(|out, msg, record| {
                 out.finish(format_args!(

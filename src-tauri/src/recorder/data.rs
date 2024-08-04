@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 
 // allow large difference in enum Variant size because the big variant is the more common one
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MetadataFile {
     Metadata(GameMetadata),
     Deferred(Deferred),
@@ -28,7 +29,8 @@ impl MetadataFile {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameMetadata {
     pub match_id: MatchId,
@@ -42,7 +44,8 @@ pub struct GameMetadata {
     pub favorite: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Deferred {
     pub match_id: MatchId,
@@ -50,7 +53,8 @@ pub struct Deferred {
     pub favorite: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NoData {
     pub favorite: bool,
@@ -59,7 +63,8 @@ pub struct NoData {
 // seperate struct for frontend compatability since Specta is a bit limited for now and doesn't support some of the
 // tags on the 'deserialization struct'
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameEvent {
     #[serde(flatten)]
     pub event: Event,
@@ -69,7 +74,8 @@ pub struct GameEvent {
 // seperate struct for frontend compatability since Specta is a bit limited for now and doesn't support some of the
 // tags on the 'deserialization struct'
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(test, derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Event {
     ChampionKill {
         victim_id: ParticipantId,

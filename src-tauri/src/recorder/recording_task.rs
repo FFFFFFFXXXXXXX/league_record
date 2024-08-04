@@ -5,6 +5,7 @@ use libobs_recorder::settings::{RateControl, Resolution, StdResolution, Window};
 use libobs_recorder::{Recorder, RecorderSettings};
 use shaco::ingame::IngameClient;
 use tauri::async_runtime::{self, JoinHandle};
+use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
 use tokio::select;
 use tokio::time::{interval, sleep};
@@ -12,7 +13,7 @@ use tokio_util::sync::CancellationToken;
 
 use riot_datatypes::MatchId;
 
-use crate::app::{AppEvent, EventManager, RecordingManager, SystemTrayManager};
+use crate::app::{action, AppEvent, EventManager, RecordingManager, SystemTrayManager};
 use crate::cancellable;
 use crate::recorder::Deferred;
 use crate::state::{CurrentlyRecording, SettingsWrapper};
@@ -126,7 +127,7 @@ impl RecordingTask {
             ingame_time_rec_start_offset,
             favorite: false,
         });
-        if let Err(e) = AppHandle::save_recording_metadata(&output_filepath, &metadata_file) {
+        if let Err(e) = action::save_recording_metadata(&output_filepath, &metadata_file) {
             log::info!("failed to save MetadataFile: {e}")
         }
 
@@ -176,8 +177,9 @@ impl RecordingTask {
 
         let mut recorder = Recorder::new_with_paths(
             ctx.app_handle
-                .path_resolver()
-                .resolve_resource("libobs/extprocess_recorder.exe"),
+                .path()
+                .resolve("libobs/extprocess_recorder.exe", BaseDirectory::Executable)
+                .ok(),
             None,
             None,
             None,

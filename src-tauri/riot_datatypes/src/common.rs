@@ -25,7 +25,8 @@ impl PartialEq for Champion {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Queue {
     pub id: QueueId,
@@ -33,7 +34,8 @@ pub struct Queue {
     pub is_ranked: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MatchId {
     pub game_id: GameId,
@@ -95,7 +97,8 @@ pub enum Event {
     Unknown {},
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
     tag = "buildingType",
     rename_all = "SCREAMING_SNAKE_CASE",
@@ -107,7 +110,8 @@ pub enum BuildingType {
 }
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum LaneType {
     TopLane,
@@ -116,7 +120,8 @@ pub enum LaneType {
 }
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TowerType {
     OuterTurret,
@@ -125,7 +130,8 @@ pub enum TowerType {
     NexusTurret,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "monsterType", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum MonsterType {
     Horde,
@@ -138,7 +144,8 @@ pub enum MonsterType {
 }
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DragonType {
     FireDragon,
@@ -150,7 +157,8 @@ pub enum DragonType {
     ElderDragon,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr, specta::Type)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[repr(u32)]
 pub enum Team {
@@ -158,7 +166,8 @@ pub enum Team {
     Red = 200,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Position {
     pub x: i64,

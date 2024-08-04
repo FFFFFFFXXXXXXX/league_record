@@ -1,10 +1,10 @@
 pub const APP_NAME: &str = "LeagueRecord";
 pub const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub mod exit {
-    pub const SUCCESS: i32 = 0;
-    pub const ERROR: i32 = 1;
-}
+// see tauri.conf.json for tray_id
+pub const TRAY_ID: &str = "mainTray";
+
+pub const EXIT_SUCCESS: i32 = 0;
 
 pub mod menu_item {
     pub const RECORDING: &str = "recording";

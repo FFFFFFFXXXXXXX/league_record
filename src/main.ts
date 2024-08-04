@@ -2,13 +2,12 @@ import 'video.js/dist/video-js.min.css';
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import { type MarkerOptions, MarkersPlugin, type Settings } from '@fffffffxxxxxxx/videojs-markers';
-import type { GameEvent } from '@fffffffxxxxxxx/league_record_types';
 
-import * as tauri from './bindings';
+import { commands, events, type GameEvent } from './bindings';
 
 import UI from './ui';
 import { splitRight } from './util';
-import { convertFileSrc } from '@tauri-apps/api/tauri';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { join, sep } from '@tauri-apps/api/path';
 import ListenerManager from './listeners';
 
@@ -73,7 +72,7 @@ async function main() {
         // to get the videoId split path/to/file.mp4 at the last directory separator which can be '/' or '\' (=> sep)
         // since videoId has to be a valid filename and filenames can't contain '/' this works always
         const videoPath = decodeURIComponent(splitRight(src, '/'));
-        const videoId = splitRight(videoPath, sep);
+        const videoId = splitRight(videoPath, sep());
         ui.setActiveVideoId(videoId);
         setMetadata(videoId);
 
@@ -83,10 +82,10 @@ async function main() {
     });
 
     // add events to html elements
-    ui.setRecordingsFolderBtnOnClickHandler(tauri.openRecordingsFolder);
+    ui.setRecordingsFolderBtnOnClickHandler(commands.openRecordingsFolder);
     ui.setCheckboxOnClickHandler(() => {
         changeMarkers()
-        tauri.setMarkerFlags(ui.getMarkerFlags())
+        commands.setMarkerFlags(ui.getMarkerFlags())
     });
 
     // listen if the videojs player fills the whole window
@@ -98,7 +97,7 @@ async function main() {
 
     const listenerManager = new ListenerManager();
     listenerManager.listen_app('RecordingsChanged', updateSidebar);
-    listenerManager.listen_app('MarkerflagsChanged', () => tauri.getMarkerFlags().then(flags => ui.setCheckboxes(flags)));
+    listenerManager.listen_app('MarkerflagsChanged', () => commands.getMarkerFlags().then(flags => ui.setCheckboxes(flags)));
     listenerManager.listen_app('MetadataChanged', ({ payload }) => {
         const activeVideoId = ui.getActiveVideoId();
         if (activeVideoId !== null && payload.includes(activeVideoId)) {
@@ -108,7 +107,7 @@ async function main() {
     });
 
     // load data
-    tauri.getMarkerFlags().then(ui.setCheckboxes);
+    commands.getMarkerFlags().then(ui.setCheckboxes);
 
     const videoIds = await updateSidebar();
     const firstVideo = videoIds[0];
@@ -127,8 +126,8 @@ async function main() {
 async function updateSidebar() {
     const activeVideoId = ui.getActiveVideoId();
 
-    const [recordings, recordingsSize] = await Promise.all([tauri.getRecordingsList(), tauri.getRecordingsSize()])
-    ui.updateSideBar(recordingsSize, recordings, setVideo, tauri.toggleFavorite, showRenameModal, showDeleteModal);
+    const [recordings, recordingsSize] = await Promise.all([commands.getRecordingsList(), commands.getRecordingsSize()])
+    ui.updateSideBar(recordingsSize, recordings, setVideo, commands.toggleFavorite, showRenameModal, showDeleteModal);
 
     if (!ui.setActiveVideoId(activeVideoId)) {
         void setVideo(null);
@@ -147,12 +146,12 @@ async function setVideo(videoId: string | null) {
         return;
     }
 
-    const recordingsPath = await tauri.getRecordingsPath();
+    const recordingsPath = await commands.getRecordingsPath();
     player.src({ type: 'video/mp4', src: convertFileSrc(await join(recordingsPath, videoId)) });
 }
 
 async function setMetadata(videoId: string) {
-    const data = await tauri.getMetadata(videoId);
+    const data = await commands.getMetadata(videoId);
     if (data && 'Metadata' in data) {
         ui.setVideoDescriptionMetadata(data.Metadata);
         currentEvents = {
@@ -250,13 +249,13 @@ function createMarker(timestamp: number, recordingOffset: number, eventType: Eve
 // --- MODAL ---
 
 async function showRenameModal(videoId: string) {
-    ui.showRenameModal(videoId, (await tauri.getRecordingsList()).map(r => r.videoId), renameVideo);
+    ui.showRenameModal(videoId, (await commands.getRecordingsList()).map(r => r.videoId), renameVideo);
 }
 
 async function renameVideo(videoId: string, newVideoId: string) {
     const activeVideoId = ui.getActiveVideoId();
 
-    const ok = await tauri.renameVideo(videoId, newVideoId);
+    const ok = await commands.renameVideo(videoId, newVideoId);
     if (ok) {
         if (videoId === activeVideoId) {
             const time = player.currentTime()!;
@@ -277,7 +276,7 @@ async function deleteVideo(videoId: string) {
         player.reset();
     }
 
-    const ok = await tauri.deleteVideo(videoId);
+    const ok = await commands.deleteVideo(videoId);
     if (!ok) {
         ui.showErrorModal('Error deleting video!');
     }

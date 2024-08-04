@@ -1,0 +1,1 @@
+{"migrated":{"identifier":"migrated","description":"permissions that were migrated from v1","local":true,"windows":["Main"],"permissions":["core:default","core:window:allow-set-title","core:window:allow-show","core:window:allow-close","core:window:allow-set-fullscreen","updater:default","dialog:default"]}}

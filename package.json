@@ -16,13 +16,15 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "video.js": "^8.10.0",
-        "@fffffffxxxxxxx/videojs-markers": "^1.1.6",
         "@fffffffxxxxxxx/league_record_types": "file:league_record_types/",
-        "@tauri-apps/api": "^1.5.2"
+        "@fffffffxxxxxxx/videojs-markers": "^1.1.6",
+        "@tauri-apps/api": "^2.0.0-rc.0",
+        "@tauri-apps/plugin-dialog": "^2.0.0-rc.0",
+        "@tauri-apps/plugin-updater": "^2.0.0-rc.0",
+        "video.js": "^8.10.0"
     },
     "devDependencies": {
-        "@tauri-apps/cli": "^1.5.8",
+        "@tauri-apps/cli": "^2.0.0-rc.1",
         "typescript": "^5.3.3",
         "vite": "^5.0.0"
     }

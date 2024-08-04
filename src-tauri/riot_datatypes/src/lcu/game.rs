@@ -21,7 +21,8 @@ pub struct ParticipantIdentity {
     pub player: Player,
 }
 
-#[derive(Debug, Clone, Eq, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[derive(Debug, Clone, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Player {
     pub game_name: String,
@@ -46,7 +47,8 @@ pub struct Participant {
     pub stats: Stats,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Stats {
     pub kills: i64,

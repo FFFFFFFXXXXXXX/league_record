@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Manager, Window};
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow};
 
 use crate::constants::APP_NAME;
 use crate::state::WindowState;
@@ -11,21 +11,21 @@ pub enum AppWindow {
 pub trait WindowManager {
     fn open_window(&self, window: AppWindow);
 
-    fn save_window_state(&self, window: &Window);
+    fn save_window_state(&self, window: &WebviewWindow);
 }
 
 impl WindowManager for AppHandle {
     fn open_window(&self, window: AppWindow) {
         let window: &'static str = window.into();
 
-        if let Some(main) = self.windows().get(window) {
+        if let Some(main) = self.webview_windows().get(window) {
             _ = main.unminimize();
             _ = main.set_focus();
         } else {
             let window_state = self.state::<WindowState>();
 
             let size = window_state.get_size();
-            let window_builder = Window::builder(self, window, tauri::WindowUrl::default())
+            let window_builder = WebviewWindow::builder(self, window, WebviewUrl::default())
                 .title(APP_NAME)
                 .visible(false)
                 .min_inner_size(800.0, 450.0)
@@ -43,7 +43,7 @@ impl WindowManager for AppHandle {
         }
     }
 
-    fn save_window_state(&self, window: &Window) {
+    fn save_window_state(&self, window: &WebviewWindow) {
         let scale_factor = match window.scale_factor() {
             Ok(scale_factor) => scale_factor,
             Err(e) => {

@@ -1,70 +1,58 @@
 {
-  "package": {
-    "productName": "LeagueRecord"
+  "productName": "LeagueRecord",
+  "identifier": "fx.LeagueRecord",
+  "app": {
+    "security": {
+      "assetProtocol": {
+        "scope": [
+          "**/*.json",
+          "**/*.mp4"
+        ],
+        "enable": true
+      }
+    },
+    "trayIcon": {
+      "id": "mainTray",
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true
+    }
   },
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist"
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420"
   },
-  "tauri": {
-    "bundle": {
-      "active": true,
-      "identifier": "fx.LeagueRecord",
-      "targets": [
-        "nsis",
-        "updater"
-      ],
-      "resources": {
-        "./target/libobs/": "./libobs/",
-        "../licenses/": "./licenses/",
-        "../LICENSE.txt": "./"
-      },
-      "category": "Utility",
-      "shortDescription": "Record and review LoL games",
-      "longDescription": "Record and review League of Legends games",
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampUrl": ""
-      }
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": [
+      "nsis"
+    ],
+    "resources": {
+      "./target/libobs/": "./libobs/",
+      "../licenses/": "./licenses/",
+      "../LICENSE.txt": "./"
     },
+    "shortDescription": "Record and review LoL games",
+    "longDescription": "Record and review League of Legends games",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
     "updater": {
-      "active": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg0QzM4NjBEMjBFRUZBQUUKUldTdSt1NGdEWWJEaExlUDl2MjYyRThyRjdCMTdCZXZuNk5ncFkvek84Qmc2OGV1MmpUSXFNdEsK",
       "endpoints": [
         "https://gist.githubusercontent.com/FFFFFFFXXXXXXX/465439e4323a685011bf5e382fef1c72/raw/"
       ],
-      "dialog": false,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg0QzM4NjBEMjBFRUZBQUUKUldTdSt1NGdEWWJEaExlUDl2MjYyRThyRjdCMTdCZXZuNk5ncFkvek84Qmc2OGV1MmpUSXFNdEsK",
       "windows": {
-        "installMode": "quiet"
+        "installMode": "passive"
       }
-    },
-    "allowlist": {
-      "shell": {
-        "open": ""
-      },
-      "window": {
-        "setTitle": true,
-        "setFullscreen": true,
-        "show": true,
-        "close": true
-      },
-      "path": {
-        "all": true
-      },
-      "protocol": {
-        "asset": true,
-        "assetScope": [
-          "**/*.json",
-          "**/*.mp4"
-        ]
-      }
-    },
-    "systemTray": {
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": true
     }
   }
 }
