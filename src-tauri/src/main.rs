@@ -14,7 +14,7 @@ mod util;
 
 fn main() {
     use app::{AppManager, AppWindow, WindowManager};
-    use state::{CurrentlyRecording, TrayState, WindowState};
+    use state::{CurrentlyRecording, Shutdown, TrayState, WindowState};
     use tauri::Manager;
 
     #[cfg(feature = "tokio-console")]
@@ -33,6 +33,7 @@ fn main() {
         .manage(WindowState::default())
         .manage(CurrentlyRecording::default())
         .manage(TrayState::default())
+        .manage(Shutdown::default())
         .invoke_handler(tauri::generate_handler![
             commands::get_marker_flags,
             commands::set_marker_flags,

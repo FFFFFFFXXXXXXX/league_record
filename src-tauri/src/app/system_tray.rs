@@ -5,7 +5,7 @@ use tauri::{AppHandle, Manager, Wry};
 use super::{AppManager, AppWindow, WindowManager};
 use crate::constants::{self, menu_item, EXIT_SUCCESS};
 use crate::recorder::LeagueRecorder;
-use crate::state::{SettingsWrapper, TrayState};
+use crate::state::{SettingsWrapper, Shutdown, TrayState};
 
 pub trait SystemTrayManager {
     // fn handle_system_tray_event(&self, event: TrayIconEvent);
@@ -38,7 +38,7 @@ fn handle_system_tray_menu_event(app_handle: &AppHandle, event: MenuEvent) {
                 .for_each(|window| _ = window.close());
             app_handle.state::<LeagueRecorder>().stop();
 
-            app_handle.cleanup_before_exit();
+            app_handle.state::<Shutdown>().set();
             app_handle.exit(EXIT_SUCCESS);
         }
         menu_item::UPDATE => app_handle.update(),

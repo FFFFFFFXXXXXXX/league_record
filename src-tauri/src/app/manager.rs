@@ -57,9 +57,11 @@ impl AppManager for AppHandle {
 
         // check if app was updated
         let version_file = config_folder.join(".version");
-        match fs::read_to_string(&version_file) {
-            Ok(version) => {
-                if Version::parse(&version).unwrap() < Version::parse(CURRENT_VERSION).unwrap() {
+        match fs::read_to_string(&version_file).map(|v| Version::parse(&v)) {
+            // if we successfully read and parsed the version, we compare it to the version of this binary
+            // if the version is smaller the app was just updated => show dialog
+            Ok(Ok(version)) => {
+                if version < Version::parse(CURRENT_VERSION).unwrap() {
                     self.dialog()
                         .message(format!("Successfully installed {APP_NAME} v{CURRENT_VERSION}"))
                         .title(format!("{APP_NAME} update successful!"))
@@ -67,6 +69,9 @@ impl AppManager for AppHandle {
                     _ = fs::write(&version_file, CURRENT_VERSION);
                 }
             }
+            // if the version can't be parsed overwrite it with a valid version
+            Ok(Err(_)) => _ = fs::write(&version_file, CURRENT_VERSION),
+            // if the version file is missing create one
             Err(e) => {
                 if e.kind() == ErrorKind::NotFound {
                     _ = fs::write(&version_file, CURRENT_VERSION);
@@ -140,7 +145,7 @@ impl AppManager for AppHandle {
             }
         };
 
-        if self
+        if !self
             .dialog()
             .message(format!(
                 "Version {} available!\n\n{}\n\nDo you want to update now?",
@@ -157,7 +162,7 @@ impl AppManager for AppHandle {
 
         if let Err(e) = async_runtime::block_on(update_check.download_and_install(|_, _| {}, || {})) {
             self.dialog()
-                .message("Failed to download and install update!")
+                .message("Failed to download and install update, please try again later!")
                 .title("Update failed!")
                 .blocking_show();
             log::error!("failed to download and install the update: {e}");

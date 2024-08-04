@@ -51,7 +51,7 @@
         "https://gist.githubusercontent.com/FFFFFFFXXXXXXX/465439e4323a685011bf5e382fef1c72/raw/"
       ],
       "windows": {
-        "installMode": "passive"
+        "installMode": "quiet"
       }
     }
   }
