@@ -60,15 +60,13 @@ impl LeagueRecorder {
         }
     }
 
-    pub fn stop(&self) {
-        async_runtime::block_on(async {
-            self.cancel_token.cancel();
+    pub async fn stop(&self) {
+        self.cancel_token.cancel();
 
-            let Ok(mut task) = self.task.try_lock() else { return };
-            if timeout(Duration::from_secs(1), &mut *task).await.is_err() {
-                log::warn!("RecordingTask stop() ran into timeout - aborting task");
-                task.abort();
-            }
-        });
+        let Ok(mut task) = self.task.try_lock() else { return };
+        if (timeout(Duration::from_secs(2), &mut *task).await).is_err() {
+            log::warn!("RecordingTask stop() ran into timeout - aborting task");
+            task.abort();
+        }
     }
 }

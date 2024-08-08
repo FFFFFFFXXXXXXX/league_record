@@ -1,6 +1,6 @@
 use tauri::menu::{Menu, MenuBuilder, MenuEvent, MenuItemBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
-use tauri::{AppHandle, Manager, Wry};
+use tauri::{async_runtime, AppHandle, Manager, Wry};
 
 use super::{AppManager, AppWindow, WindowManager};
 use crate::constants::{self, menu_item, EXIT_SUCCESS};
@@ -36,10 +36,16 @@ fn handle_system_tray_menu_event(app_handle: &AppHandle, event: MenuEvent) {
                 .webview_windows()
                 .into_values()
                 .for_each(|window| _ = window.close());
-            app_handle.state::<LeagueRecorder>().stop();
 
-            app_handle.state::<Shutdown>().set();
-            app_handle.exit(EXIT_SUCCESS);
+            async_runtime::spawn({
+                let app_handle = app_handle.clone();
+                async move {
+                    app_handle.state::<LeagueRecorder>().stop().await;
+
+                    app_handle.state::<Shutdown>().set();
+                    app_handle.exit(EXIT_SUCCESS);
+                }
+            });
         }
         menu_item::UPDATE => app_handle.update(),
         _ => {}
