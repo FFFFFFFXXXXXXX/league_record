@@ -25,14 +25,17 @@ type RecordingEvents = {
 
 let currentEvents: RecordingEvents | null = null;
 
-const player = videojs('video_player', {
+const VIDEO_JS_OPTIONS = {
     aspectRatio: '16:9',
     playbackRates: [0.5, 1, 1.5, 2],
     autoplay: false,
     controls: true,
     preload: 'auto',
-    enableSourceset: true
-}) as Player & { markers: (settings?: Settings) => MarkersPlugin };
+    enableSourceset: true,
+    notSupportedMessage: ' '
+}
+
+const player = videojs('video_player', VIDEO_JS_OPTIONS) as Player & { markers: (settings?: Settings) => MarkersPlugin };
 
 void main();
 async function main() {
@@ -52,33 +55,29 @@ async function main() {
         }
     });
 
-    // listen for events from player.reset() and player.src() to update the UI accordingly
-    player.on('playerreset', () => {
-        player.markers().removeAll();
-        ui.setVideoDescription('', 'No recording selected!');
-        ui.setActiveVideoId(null);
-
-        // make sure the bigplaybutton and controlbar are hidden when resetting the video src
-        ui.showBigPlayButton(false);
-        player.controls(false);
-    });
-
     player.on('sourceset', ({ src }: { src: string }) => {
-        // ignore all sources that are falsy (e.g. null, undefined, empty string)
-        // because player.reset() for example triggers a 'sourceset' event with { src: "" }
-        if (!src) return;
+        // if src is a blank string that means no recording is selected
+        if (src === '') {
+            player.markers().removeAll();
+            ui.setVideoDescription('', 'No recording selected!');
+            ui.setActiveVideoId(null);
 
-        // split src ('https://asset.localhost/{path_to_file}') at the last '/' to get the video path from the src
-        // to get the videoId split path/to/file.mp4 at the last directory separator which can be '/' or '\' (=> sep)
-        // since videoId has to be a valid filename and filenames can't contain '/' this works always
-        const videoPath = decodeURIComponent(splitRight(src, '/'));
-        const videoId = splitRight(videoPath, sep());
-        ui.setActiveVideoId(videoId);
-        setMetadata(videoId);
+            // make sure the bigplaybutton and controlbar are hidden
+            ui.showBigPlayButton(false);
+            player.controls(false);
+        } else {
+            // split src ('https://asset.localhost/{path_to_file}') at the last '/' to get the video path from the src
+            // to get the videoId split path/to/file.mp4 at the last directory separator which can be '/' or '\' (=> sep)
+            // since videoId has to be a valid filename and filenames can't contain '/' this works always
+            const videoPath = decodeURIComponent(splitRight(src, '/'));
+            const videoId = splitRight(videoPath, sep());
+            ui.setActiveVideoId(videoId);
+            setMetadata(videoId);
 
-        // re-show the bigplaybutton and controlbar when a new video src is set
-        ui.showBigPlayButton(true);
-        player.controls(true);
+            // re-show the bigplaybutton and controlbar when a new video src is set
+            ui.showBigPlayButton(true);
+            player.controls(true);
+        }
     });
 
     // add events to html elements
@@ -273,7 +272,7 @@ function showDeleteModal(videoId: string) {
 
 async function deleteVideo(videoId: string) {
     if (videoId === ui.getActiveVideoId()) {
-        player.reset();
+        player.src(null);
     }
 
     const ok = await commands.deleteVideo(videoId);

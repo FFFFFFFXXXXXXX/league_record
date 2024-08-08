@@ -3,6 +3,10 @@ video {
     outline: none !important;
 }
 
+.vjs-modal-dialog-content {
+    background-color: black;
+}
+
 #video_player {
     font-size: 13px;
 }
