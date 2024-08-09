@@ -3,13 +3,13 @@ import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import { type MarkerOptions, MarkersPlugin, type Settings } from '@fffffffxxxxxxx/videojs-markers';
 
-import { commands, events, type GameEvent } from './bindings';
-
-import UI from './ui';
-import { splitRight } from './util';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { join, sep } from '@tauri-apps/api/path';
+
+import { commands, type GameEvent, type MarkerFlags } from './bindings';
 import ListenerManager from './listeners';
+import UI from './ui';
+import { splitRight, UnreachableError } from './util';
 
 // sets the time a marker jumps to before the actual event happens
 // jumps to (eventTime - EVENT_DELAY) when a marker is clicked
@@ -86,6 +86,7 @@ async function main() {
         changeMarkers()
         commands.setMarkerFlags(ui.getMarkerFlags())
     });
+    ui.setShowTimestampsOnClickHandler(showTimestamps);
 
     // listen if the videojs player fills the whole window
     // and keep the tauri fullscreen setting in sync
@@ -96,7 +97,7 @@ async function main() {
 
     const listenerManager = new ListenerManager();
     listenerManager.listen_app('RecordingsChanged', updateSidebar);
-    listenerManager.listen_app('MarkerflagsChanged', () => commands.getMarkerFlags().then(flags => ui.setCheckboxes(flags)));
+    listenerManager.listen_app('MarkerflagsChanged', () => commands.getMarkerFlags().then(flags => ui.setMarkerFlags(flags)));
     listenerManager.listen_app('MetadataChanged', ({ payload }) => {
         const activeVideoId = ui.getActiveVideoId();
         if (activeVideoId !== null && payload.includes(activeVideoId)) {
@@ -106,7 +107,7 @@ async function main() {
     });
 
     // load data
-    commands.getMarkerFlags().then(ui.setCheckboxes);
+    commands.getMarkerFlags().then(ui.setMarkerFlags);
 
     const videoIds = await updateSidebar();
     const firstVideo = videoIds[0];
@@ -137,21 +138,22 @@ async function updateSidebar() {
 
 // use this function to set the video (null => no video)
 async function setVideo(videoId: string | null) {
-    if (videoId === null) {
-        return;
-    }
-
     if (videoId === ui.getActiveVideoId()) {
         return;
     }
 
-    const recordingsPath = await commands.getRecordingsPath();
-    player.src({ type: 'video/mp4', src: convertFileSrc(await join(recordingsPath, videoId)) });
+    if (videoId === null) {
+        player.src('');
+    } else {
+        const recordingsPath = await commands.getRecordingsPath();
+        player.src({ type: 'video/mp4', src: convertFileSrc(await join(recordingsPath, videoId)) });
+    }
 }
 
 async function setMetadata(videoId: string) {
     const data = await commands.getMetadata(videoId);
     if (data && 'Metadata' in data) {
+        ui.showMarkerFlags(true);
         ui.setVideoDescriptionMetadata(data.Metadata);
         currentEvents = {
             participantId: data.Metadata.participantId,
@@ -159,6 +161,7 @@ async function setMetadata(videoId: string) {
             events: data.Metadata.events
         }
     } else {
+        ui.showMarkerFlags(false);
         ui.setVideoDescription('', 'No Data');
         currentEvents = null;
     }
@@ -177,57 +180,7 @@ function changeMarkers() {
 
     const markers = new Array<MarkerOptions>();
     for (const event of currentEvents.events) {
-        const timestamp = event.timestamp;
-
-        if ('ChampionKill' in event) {
-            if (checkbox.kill && event.ChampionKill.killer_id === participantId) {
-                markers.push(createMarker(timestamp, recordingOffset, 'Kill'));
-            } else if (checkbox.assist && event.ChampionKill.assisting_participant_ids.includes(participantId)) {
-                markers.push(createMarker(timestamp, recordingOffset, 'Assist'));
-            } else if (checkbox.death && event.ChampionKill.victim_id === participantId) {
-                markers.push(createMarker(timestamp, recordingOffset, 'Death'));
-            }
-        } else if ('BuildingKill' in event) {
-            if (checkbox.turret && 'TOWER_BUILDING' in event.BuildingKill.building_type) {
-                markers.push(createMarker(timestamp, recordingOffset, 'Turret'));
-            } else if (checkbox.inhibitor && 'INHIBITOR_BUILDING' in event.BuildingKill.building_type) {
-                markers.push(createMarker(timestamp, recordingOffset, 'Inhibitor'));
-            }
-        } else if ('EliteMonsterKill' in event) {
-            const monsterType = event.EliteMonsterKill.monster_type;
-
-            if (checkbox.herald && monsterType.monsterType === 'HORDE') {
-                markers.push(createMarker(timestamp, recordingOffset, 'Voidgrub'));
-            } else if (checkbox.herald && monsterType.monsterType === 'RIFTHERALD') {
-                markers.push(createMarker(timestamp, recordingOffset, 'Herald'));
-            } else if (checkbox.baron && monsterType.monsterType === 'BARON_NASHOR') {
-                markers.push(createMarker(timestamp, recordingOffset, 'Baron'));
-            } else if (checkbox.dragon && monsterType.monsterType === 'DRAGON') {
-                switch (monsterType.monsterSubType) {
-                    case "FIRE_DRAGON":
-                        markers.push(createMarker(timestamp, recordingOffset, 'Infernal-Dragon'));
-                        break;
-                    case "EARTH_DRAGON":
-                        markers.push(createMarker(timestamp, recordingOffset, 'Mountain-Dragon'));
-                        break;
-                    case "WATER_DRAGON":
-                        markers.push(createMarker(timestamp, recordingOffset, 'Ocean-Dragon'));
-                        break;
-                    case "AIR_DRAGON":
-                        markers.push(createMarker(timestamp, recordingOffset, 'Cloud-Dragon'));
-                        break;
-                    case "HEXTECH_DRAGON":
-                        markers.push(createMarker(timestamp, recordingOffset, 'Hextech-Dragon'));
-                        break;
-                    case "CHEMTECH_DRAGON":
-                        markers.push(createMarker(timestamp, recordingOffset, 'Chemtech-Dragon'));
-                        break;
-                    case "ELDER_DRAGON":
-                        markers.push(createMarker(timestamp, recordingOffset, 'Elder-Dragon'));
-                        break;
-                }
-            }
-        }
+        markers.push(createMarker(event.timestamp, recordingOffset, eventName(event, participantId, checkbox)!));
     }
 
     player.markers().add(markers);
@@ -235,6 +188,55 @@ function changeMarkers() {
 
 type EventType = 'Kill' | 'Death' | 'Assist' | 'Turret' | 'Inhibitor' | 'Voidgrub' | 'Herald' | 'Baron'
     | 'Infernal-Dragon' | 'Ocean-Dragon' | 'Mountain-Dragon' | 'Cloud-Dragon' | 'Hextech-Dragon' | 'Chemtech-Dragon' | 'Elder-Dragon';
+
+function eventName(gameEvent: GameEvent, participantId: number, checkbox: MarkerFlags | null): EventType | null {
+    if ('ChampionKill' in gameEvent) {
+        if ((checkbox?.kill ?? true) && gameEvent.ChampionKill.killer_id === participantId) {
+            return 'Kill';
+        } else if ((checkbox?.assist ?? true) && gameEvent.ChampionKill.assisting_participant_ids.includes(participantId)) {
+            return 'Assist';
+        } else if ((checkbox?.death ?? true) && gameEvent.ChampionKill.victim_id === participantId) {
+            return 'Death';
+        }
+    } else if ('BuildingKill' in gameEvent) {
+        if ((checkbox?.turret ?? true) && 'TOWER_BUILDING' in gameEvent.BuildingKill.building_type) {
+            return 'Turret';
+        } else if ((checkbox?.inhibitor ?? true) && 'INHIBITOR_BUILDING' in gameEvent.BuildingKill.building_type) {
+            return 'Inhibitor';
+        }
+    } else if ('EliteMonsterKill' in gameEvent) {
+        const monsterType = gameEvent.EliteMonsterKill.monster_type;
+
+        if ((checkbox?.herald ?? true) && monsterType.monsterType === 'HORDE') {
+            return 'Voidgrub';
+        } else if ((checkbox?.herald ?? true) && monsterType.monsterType === 'RIFTHERALD') {
+            return 'Herald';
+        } else if ((checkbox?.baron ?? true) && monsterType.monsterType === 'BARON_NASHOR') {
+            return 'Baron';
+        } else if ((checkbox?.dragon ?? true) && monsterType.monsterType === 'DRAGON') {
+            switch (monsterType.monsterSubType) {
+                case "FIRE_DRAGON":
+                    return 'Infernal-Dragon';
+                case "EARTH_DRAGON":
+                    return 'Mountain-Dragon';
+                case "WATER_DRAGON":
+                    return 'Ocean-Dragon';
+                case "AIR_DRAGON":
+                    return 'Cloud-Dragon';
+                case "HEXTECH_DRAGON":
+                    return 'Hextech-Dragon';
+                case "CHEMTECH_DRAGON":
+                    return 'Chemtech-Dragon';
+                case "ELDER_DRAGON":
+                    return 'Elder-Dragon';
+                default:
+                    throw new UnreachableError(monsterType.monsterSubType);
+            }
+        }
+    }
+
+    return null;
+}
 
 function createMarker(timestamp: number, recordingOffset: number, eventType: EventType): MarkerOptions {
     return {
@@ -274,7 +276,6 @@ function showDeleteModal(videoId: string) {
             deleteVideo(videoId);
         }
     });
-
 }
 
 async function deleteVideo(videoId: string) {
@@ -286,6 +287,49 @@ async function deleteVideo(videoId: string) {
     if (!ok) {
         ui.showErrorModal('Error deleting video!');
     }
+}
+
+function showTimestamps() {
+    if (currentEvents === null) return;
+
+    const timelineEvents = new Array<{ timestamp: number, text: string }>();
+    for (const event of currentEvents.events) {
+        const name = eventName(event, currentEvents.participantId, null);
+        if (name === null) {
+            continue;
+        }
+
+        let secs = event.timestamp / 1000;
+
+        let minutes = Math.floor(secs / 60);
+        secs -= minutes * 60;
+
+        const hours = Math.floor(minutes / 60);
+        minutes -= hours * 60;
+
+        const timestamp = event.timestamp;
+        const text = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${Math.floor(secs).toString().padStart(2, '0')} ${name}`;
+        timelineEvents.push({ timestamp, text });
+    }
+
+    ui.showTimelineModal(timelineEvents, secs => player.currentTime(secs / 1000 - EVENT_DELAY));
+}
+
+function formatTimestamp(gameEvent: GameEvent, participantId: number): string | null {
+    const name = eventName(gameEvent, participantId, null);
+    if (name === null) {
+        return null;
+    }
+
+    let secs = gameEvent.timestamp / 1000;
+
+    let minutes = Math.floor(secs / 60);
+    secs -= minutes * 60;
+
+    const hours = Math.floor(minutes / 60);
+    minutes -= hours * 60;
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${Math.floor(secs).toString().padStart(2, '0')} ${name}`;
 }
 
 // --- KEYBOARD SHORTCUTS ---

@@ -28,7 +28,7 @@ impl WindowManager for AppHandle {
             let window_builder = WebviewWindow::builder(self, window, WebviewUrl::default())
                 .title(APP_NAME)
                 .visible(false)
-                .min_inner_size(800.0, 450.0)
+                .min_inner_size(1080.0, 600.0)
                 .inner_size(size.0, size.1);
 
             let window_builder = if let Some(position) = window_state.get_position() {

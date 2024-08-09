@@ -23,6 +23,8 @@
     border: 1px solid #888;
     border-radius: 7px;
     width: 50%;
+    max-height: 75vh;
+    overflow-y: auto;
     font-size: 25px;
     text-align: center;
 }
@@ -32,4 +34,28 @@
     background: lightgray;
     font-size: 1rem;
     padding: 5px;
+}
+
+.timeline-event-close-button {
+    color: red;
+    float: right;
+    cursor: pointer;
+    margin-right: 8px
+}
+
+.timeline-event-list {
+    list-style: none;
+    text-align: left;
+    max-height: 55vh;
+    overflow-y: auto;
+    margin-top: 40px;
+}
+
+.timeline-event-list-item {
+    width: fit-content;
+    cursor: pointer;
+}
+
+.timeline-event-list-item:hover {
+    text-decoration: underline;
 }

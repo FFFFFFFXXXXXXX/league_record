@@ -19,6 +19,7 @@
         "@fffffffxxxxxxx/league_record_types": "file:league_record_types/",
         "@fffffffxxxxxxx/videojs-markers": "^1.1.6",
         "@tauri-apps/api": "^2.0.0-rc.0",
+        "@tauri-apps/plugin-clipboard-manager": "^2.0.0-rc.0",
         "@tauri-apps/plugin-dialog": "^2.0.0-rc.0",
         "@tauri-apps/plugin-updater": "^2.0.0-rc.0",
         "video.js": "^8.10.0"

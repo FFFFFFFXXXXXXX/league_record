@@ -1,8 +1,11 @@
 import type videojs from 'video.js';
 import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import * as clipboard from '@tauri-apps/plugin-clipboard-manager';
+
 import { commands, type GameMetadata, type MarkerFlags, type MetadataFile, type Recording } from './bindings';
 import { toVideoId, toVideoName } from './util';
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+
 const appWindow = getCurrentWebviewWindow()
 
 export default class UI {
@@ -14,6 +17,7 @@ export default class UI {
     private readonly recordingsSize;
     private readonly descriptionLeft;
     private readonly descriptionCenter;
+    private readonly descriptionRight;
 
     private readonly checkboxKill;
     private readonly checkboxDeath;
@@ -24,35 +28,36 @@ export default class UI {
     private readonly checkboxHerald;
     private readonly checkboxBaron;
 
+    private readonly showTimestampsButton;
+
     private readonly vjs: typeof videojs;
 
     constructor(vjs: typeof videojs) {
         this.vjs = vjs;
 
-        this.modal = document.querySelector<HTMLDivElement>('[id="modal"]')!;
-        this.modalContent = document.querySelector<HTMLDivElement>('[id="modal-content"]')!;
-        this.sidebar = document.querySelector<HTMLUListElement>('[id="sidebar-content"]')!;
-        this.videoFolderBtn = document.querySelector<HTMLButtonElement>('[id="vid-folder-btn"]')!;
-        this.recordingsSize = document.querySelector<HTMLSpanElement>('[id="size-inner"]')!;
-        this.descriptionLeft = document.querySelector<HTMLDivElement>('[id="description-left"]')!;
-        this.descriptionCenter = document.querySelector<HTMLDivElement>('[id="description-center"]')!;
+        this.modal = document.querySelector<HTMLDivElement>('#modal')!;
+        this.modalContent = document.querySelector<HTMLDivElement>('#modal-content')!;
+        this.sidebar = document.querySelector<HTMLUListElement>('#sidebar-content')!;
+        this.videoFolderBtn = document.querySelector<HTMLButtonElement>('#vid-folder-btn')!;
+        this.recordingsSize = document.querySelector<HTMLSpanElement>('#size-inner')!;
+        this.descriptionLeft = document.querySelector<HTMLDivElement>('#description-left')!;
+        this.descriptionCenter = document.querySelector<HTMLDivElement>('#description-center')!;
+        this.descriptionRight = document.querySelector<HTMLDivElement>('#description-right')!;
 
-        this.checkboxKill = document.querySelector<HTMLInputElement>('[id="kill"]')!;
-        this.checkboxDeath = document.querySelector<HTMLInputElement>('[id="death"]')!;
-        this.checkboxAssist = document.querySelector<HTMLInputElement>('[id="assist"]')!;
-        this.checkboxTurret = document.querySelector<HTMLInputElement>('[id="turret"]')!;
-        this.checkboxInhibitor = document.querySelector<HTMLInputElement>('[id="inhibitor"]')!;
-        this.checkboxDragon = document.querySelector<HTMLInputElement>('[id="dragon"]')!;
-        this.checkboxHerald = document.querySelector<HTMLInputElement>('[id="herald"]')!;
-        this.checkboxBaron = document.querySelector<HTMLInputElement>('[id="baron"]')!;
+        this.checkboxKill = document.querySelector<HTMLInputElement>('#kill')!;
+        this.checkboxDeath = document.querySelector<HTMLInputElement>('#death')!;
+        this.checkboxAssist = document.querySelector<HTMLInputElement>('#assist')!;
+        this.checkboxTurret = document.querySelector<HTMLInputElement>('#turret')!;
+        this.checkboxInhibitor = document.querySelector<HTMLInputElement>('#inhibitor')!;
+        this.checkboxDragon = document.querySelector<HTMLInputElement>('#dragon')!;
+        this.checkboxHerald = document.querySelector<HTMLInputElement>('#herald')!;
+        this.checkboxBaron = document.querySelector<HTMLInputElement>('#baron')!;
+
+        this.showTimestampsButton = document.querySelector<HTMLButtonElement>('#copy-timestamps-btn')!;
     }
 
     public showWindow = () => {
         void appWindow.show();
-    }
-
-    public closeWindow = () => {
-        void appWindow.close();
     }
 
     public setFullscreen = (fullscreen: boolean) => {
@@ -72,6 +77,10 @@ export default class UI {
         this.checkboxDragon.onclick = handler;
         this.checkboxHerald.onclick = handler;
         this.checkboxBaron.onclick = handler;
+    }
+
+    public setShowTimestampsOnClickHandler = (handler: (e: MouseEvent) => void) => {
+        this.showTimestampsButton.onclick = handler;
     }
 
     public updateSideBar = (
@@ -280,6 +289,45 @@ export default class UI {
         this.showModal([prompt, dontAskMeAgain, buttons]);
     }
 
+    public showTimelineModal = (timelineEvents: Array<{ timestamp: number, text: string }>, setTime: (secs: number) => void) => {
+        const closeButton = this.vjs.dom.createEl(
+            'span',
+            { onclick: this.hideModal },
+            { class: 'timeline-event-close-button' },
+            '×'
+        );
+
+        const timelineList = this.vjs.dom.createEl(
+            'ul',
+            {},
+            { class: 'timeline-event-list' },
+            timelineEvents.map(({ timestamp, text }) => this.vjs.dom.createEl(
+                'li',
+                {
+                    onclick: () => {
+                        setTime(timestamp);
+                        this.hideModal();
+                    }
+                },
+                { class: 'timeline-event-list-item' },
+                text
+            ))
+        );
+
+        const copyToClipboardButton = this.vjs.dom.createEl(
+            'button',
+            { onclick: () => clipboard.writeText(timelineEvents.map(e => e.text).join('\n')) },
+            { class: 'btn' },
+            'Copy to Clipboard'
+        );
+
+        this.showModal([
+            closeButton,
+            timelineList,
+            copyToClipboardButton,
+        ]);
+    }
+
     public getActiveVideoId = (): string | null => {
         return this.sidebar.querySelector<HTMLLIElement>('li.active')?.id ?? null;
     }
@@ -340,7 +388,7 @@ export default class UI {
         }
     }
 
-    public setCheckboxes = (settings: MarkerFlags) => {
+    public setMarkerFlags = (settings: MarkerFlags) => {
         this.checkboxKill.checked = settings.kill;
         this.checkboxDeath.checked = settings.death;
         this.checkboxAssist.checked = settings.assist;
@@ -362,6 +410,10 @@ export default class UI {
             herald: this.checkboxHerald.checked,
             baron: this.checkboxBaron.checked,
         };
+    }
+
+    public showMarkerFlags = (show: boolean) => {
+        this.descriptionRight.style.visibility = show ? 'visible' : 'hidden';
     }
 
 }

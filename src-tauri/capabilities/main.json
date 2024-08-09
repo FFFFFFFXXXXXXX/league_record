@@ -12,6 +12,7 @@
     "core:window:allow-close",
     "core:window:allow-set-fullscreen",
     "updater:default",
-    "dialog:default"
+    "dialog:default",
+    "clipboard-manager:allow-write-text"
   ]
 }

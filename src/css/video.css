@@ -19,22 +19,25 @@ video {
     color: lightgray;
     font-size: 1.35rem;
     margin: 5px 0;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: space-around;
-    align-content: center;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 2fr 3fr 2fr;
 }
 
 #description-left {
     flex: 0.5 1 auto;
     text-align: center;
+    padding-top: 15px;
 }
 
 #description-center {
     flex: 1 1 auto;
     text-align: center;
+    padding-top: 15px;
+}
+
+#marker-lists {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
 }
 
 .summoner-name {
