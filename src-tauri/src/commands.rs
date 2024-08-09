@@ -127,3 +127,16 @@ pub fn toggle_favorite(video_id: String, state: State<'_, SettingsWrapper>) -> O
 
     Some(favorite)
 }
+
+#[cfg_attr(test, specta::specta)]
+#[tauri::command]
+pub fn confirm_delete(settings: State<'_, SettingsWrapper>) -> bool {
+    settings.confirm_delete()
+}
+
+#[cfg_attr(test, specta::specta)]
+#[tauri::command]
+pub fn disable_confirm_delete(settings: State<'_, SettingsWrapper>, settings_file: State<'_, SettingsFile>) {
+    settings.set_confirm_delete(false);
+    settings.write_to_file(settings_file.get());
+}

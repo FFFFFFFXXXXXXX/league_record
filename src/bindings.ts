@@ -34,6 +34,12 @@ async getMetadata(videoId: string) : Promise<MetadataFile | null> {
 },
 async toggleFavorite(videoId: string) : Promise<boolean | null> {
     return await TAURI_INVOKE("toggle_favorite", { videoId });
+},
+async confirmDelete() : Promise<boolean> {
+    return await TAURI_INVOKE("confirm_delete");
+},
+async disableConfirmDelete() : Promise<void> {
+    await TAURI_INVOKE("disable_confirm_delete");
 }
 }
 

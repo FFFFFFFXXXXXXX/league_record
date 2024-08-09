@@ -15,7 +15,9 @@ fn generate_bindings() -> anyhow::Result<()> {
             commands::delete_video,
             commands::rename_video,
             commands::get_metadata,
-            commands::toggle_favorite
+            commands::toggle_favorite,
+            commands::confirm_delete,
+            commands::disable_confirm_delete
         ])
         .events(collect_events![AppEvent])
         .export(

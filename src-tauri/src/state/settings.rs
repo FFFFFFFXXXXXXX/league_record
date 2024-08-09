@@ -190,6 +190,14 @@ impl SettingsWrapper {
         self.0.read().unwrap().debug_log || std::env::args().any(|e| e == "-d" || e == "--debug")
     }
 
+    pub fn confirm_delete(&self) -> bool {
+        self.0.read().unwrap().confirm_delete
+    }
+
+    pub fn set_confirm_delete(&self, confirm_delete: bool) {
+        self.0.write().unwrap().confirm_delete = confirm_delete;
+    }
+
     pub fn ensure_settings_exist(settings_file: &Path) -> bool {
         if !settings_file.is_file() {
             // get directory of settings file
@@ -228,6 +236,7 @@ pub struct Settings {
     autostart: bool,
     max_recording_age_days: Option<u64>,
     max_recordings_size_gb: Option<u64>,
+    confirm_delete: bool,
 }
 
 const DEFAULT_UPDATE_CHECK: bool = true;
@@ -238,6 +247,7 @@ const DEFAULT_ONLY_RECORD_RANKED: bool = false;
 const DEFAULT_AUTOSTART: bool = false;
 const DEFAULT_MAX_RECORDING_AGE_DAYS: Option<u64> = None;
 const DEFAULT_MAX_RECORDINGS_SIZE_GB: Option<u64> = None;
+const DEFAULT_CONFIRM_DELETE: bool = true;
 
 #[inline]
 fn default_recordings_folder() -> PathBuf {
@@ -267,9 +277,10 @@ impl Default for Settings {
             framerate: default_framerate(),
             record_audio: DEFAULT_RECORD_AUDIO,
             only_record_ranked: DEFAULT_ONLY_RECORD_RANKED,
-            autostart: false,
-            max_recording_age_days: None,
-            max_recordings_size_gb: None,
+            autostart: DEFAULT_AUTOSTART,
+            max_recording_age_days: DEFAULT_MAX_RECORDING_AGE_DAYS,
+            max_recordings_size_gb: DEFAULT_MAX_RECORDINGS_SIZE_GB,
+            confirm_delete: DEFAULT_CONFIRM_DELETE,
         }
     }
 }
@@ -337,6 +348,9 @@ impl<'de> Deserialize<'de> for Settings {
                         "maxRecordingsSizeGb" => {
                             settings.max_recordings_size_gb =
                                 map.next_value().unwrap_or(DEFAULT_MAX_RECORDINGS_SIZE_GB);
+                        }
+                        "confirmDelete" => {
+                            settings.confirm_delete = map.next_value().unwrap_or(DEFAULT_CONFIRM_DELETE);
                         }
                         _ => { /* ignored */ }
                     }

@@ -1,6 +1,6 @@
 import type videojs from 'video.js';
 import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
-import type { GameMetadata, MarkerFlags, MetadataFile, Recording } from './bindings';
+import { commands, type GameMetadata, type MarkerFlags, type MetadataFile, type Recording } from './bindings';
 import { toVideoId, toVideoName } from './util';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 const appWindow = getCurrentWebviewWindow()
@@ -253,18 +253,31 @@ export default class UI {
     public showDeleteModal = (videoId: string, deleteVideo: (videoId: string) => void) => {
         const videoName = toVideoName(videoId);
 
+        let confirmDelete = true;
+        const toggleDelete = () => { confirmDelete = !confirmDelete };
+
         const prompt = this.vjs.dom.createEl('p', {}, {}, ['Delete recording: ', this.vjs.dom.createEl('u', {}, {}, videoName), '?']);
+
+        const dontAskMeAgain = this.vjs.dom.createEl('p', {}, { style: 'font-size: 18px' }, [
+            this.vjs.dom.createEl('input', { onchange: toggleDelete }, { type: 'checkbox', id: 'dont-ask-again', style: 'vertical-align: middle; margin: 0;' }, []),
+            this.vjs.dom.createEl('label', {}, { for: 'dont-ask-again', style: 'vertical-align: middle' }, '  don\'t ask again')
+        ]);
+
+        const deleteFn = () => {
+            this.hideModal();
+            deleteVideo(videoId);
+
+            if (!confirmDelete) {
+                commands.disableConfirmDelete();
+            }
+        };
+
         const buttons = this.vjs.dom.createEl('p', {}, {}, [
-            this.vjs.dom.createEl('button', {
-                onclick: (_: MouseEvent) => {
-                    this.hideModal();
-                    deleteVideo(videoId);
-                }
-            }, { class: 'btn' }, 'Delete'),
+            this.vjs.dom.createEl('button', { onclick: deleteFn }, { class: 'btn' }, 'Delete'),
             this.vjs.dom.createEl('button', { onclick: this.hideModal }, { class: 'btn' }, 'Cancel'),
         ]);
 
-        this.showModal([prompt, buttons]);
+        this.showModal([prompt, dontAskMeAgain, buttons]);
     }
 
     public getActiveVideoId = (): string | null => {

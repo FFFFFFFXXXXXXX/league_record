@@ -23,5 +23,6 @@
   "onlyRecordRanked": false,
   "autostart": false,
   "maxRecordingAgeDays": null,
-  "maxRecordingsSizeGb": null
+  "maxRecordingsSizeGb": null,
+  "confirmDelete": true
 }

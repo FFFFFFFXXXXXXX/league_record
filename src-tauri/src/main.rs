@@ -44,7 +44,9 @@ fn main() {
             commands::delete_video,
             commands::rename_video,
             commands::get_metadata,
-            commands::toggle_favorite
+            commands::toggle_favorite,
+            commands::confirm_delete,
+            commands::disable_confirm_delete
         ])
         .setup(|app| app.app_handle().setup().map_err(anyhow::Error::into))
         .build(tauri::generate_context!());

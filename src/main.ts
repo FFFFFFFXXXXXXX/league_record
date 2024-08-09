@@ -13,7 +13,7 @@ import ListenerManager from './listeners';
 
 // sets the time a marker jumps to before the actual event happens
 // jumps to (eventTime - EVENT_DELAY) when a marker is clicked
-const EVENT_DELAY = 3;
+const EVENT_DELAY = 2;
 
 const ui = new UI(videojs);
 
@@ -49,9 +49,9 @@ async function main() {
             innerHtml: marker => marker.text ?? '',
         },
         markerStyle: {
-            minWidth: '4px',
-            maxWidth: '15px',
-            borderRadius: '30%'
+            minWidth: '6px',
+            maxWidth: '16px',
+            borderRadius: '0%'
         }
     });
 
@@ -267,7 +267,14 @@ async function renameVideo(videoId: string, newVideoId: string) {
 }
 
 function showDeleteModal(videoId: string) {
-    ui.showDeleteModal(videoId, deleteVideo);
+    commands.confirmDelete().then(confirmDelete => {
+        if (confirmDelete) {
+            ui.showDeleteModal(videoId, deleteVideo);
+        } else {
+            deleteVideo(videoId);
+        }
+    });
+
 }
 
 async function deleteVideo(videoId: string) {
