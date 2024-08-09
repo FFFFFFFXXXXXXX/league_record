@@ -68,7 +68,7 @@ impl RecordingTask {
 
             self.ctx.app_handle.cleanup_recordings();
             self.ctx.app_handle.state::<CurrentlyRecording>().set(None);
-            self.ctx.app_handle.set_tray_menu_recording_status(false);
+            self.ctx.app_handle.set_tray_menu_recording(false);
             if let Err(e) = self
                 .ctx
                 .app_handle
@@ -101,12 +101,12 @@ impl RecordingTask {
         ctx.app_handle
             .state::<CurrentlyRecording>()
             .set(Some(output_filepath.clone()));
-        ctx.app_handle.set_tray_menu_recording_status(true);
+        ctx.app_handle.set_tray_menu_recording(true);
 
         // if initial game_data is successful => start recording
         if let Err(e) = recorder.start_recording() {
             ctx.app_handle.state::<CurrentlyRecording>().set(None);
-            ctx.app_handle.set_tray_menu_recording_status(false);
+            ctx.app_handle.set_tray_menu_recording(false);
 
             // if recording start failed stop recording just in case and retry next 'recorder loop
             let stop_recording = recorder.stop_recording();

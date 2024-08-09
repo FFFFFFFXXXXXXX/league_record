@@ -8,11 +8,11 @@ use crate::recorder::LeagueRecorder;
 use crate::state::{SettingsWrapper, Shutdown, TrayState};
 
 pub trait SystemTrayManager {
-    // fn handle_system_tray_event(&self, event: TrayIconEvent);
+    fn init_tray_menu(&self);
 
-    fn set_system_tray(&self, update_button: bool);
+    fn set_tray_menu_update_available(&self, update_button: bool);
 
-    fn set_tray_menu_recording_status(&self, recording: bool);
+    fn set_tray_menu_recording(&self, recording: bool);
 }
 
 fn handle_system_tray_event(tray_icon: &TrayIcon, event: TrayIconEvent) {
@@ -53,10 +53,7 @@ fn handle_system_tray_menu_event(app_handle: &AppHandle, event: MenuEvent) {
 }
 
 impl SystemTrayManager for AppHandle {
-    fn set_system_tray(&self, update_available: bool) {
-        self.state::<TrayState>().set_update_available(update_available);
-
-        // .unwrap on everything because creating the tray-icon is always the same and should never fail
+    fn init_tray_menu(&self) {
         let tray_icon = self.tray_by_id(constants::TRAY_ID).unwrap();
         tray_icon.set_title(Some(constants::APP_NAME)).unwrap();
         tray_icon.set_tooltip(Some(constants::APP_NAME)).unwrap();
@@ -65,16 +62,23 @@ impl SystemTrayManager for AppHandle {
         tray_icon.on_menu_event(handle_system_tray_menu_event);
     }
 
-    fn set_tray_menu_recording_status(&self, recording: bool) {
-        self.state::<TrayState>().set_recording(recording);
+    fn set_tray_menu_update_available(&self, update_available: bool) {
+        self.state::<TrayState>().set_update_available(update_available);
 
-        if let Err(e) = self
-            .tray_by_id(constants::TRAY_ID)
+        // .unwrap on everything because creating the tray-icon is always the same and should never fail
+        self.tray_by_id(constants::TRAY_ID)
             .unwrap()
             .set_menu(Some(create_tray_menu(self)))
-        {
-            log::error!("failed to set recording checkmark in tray menu: {e}");
-        }
+            .unwrap();
+    }
+
+    fn set_tray_menu_recording(&self, recording: bool) {
+        self.state::<TrayState>().set_recording(recording);
+
+        self.tray_by_id(constants::TRAY_ID)
+            .unwrap()
+            .set_menu(Some(create_tray_menu(self)))
+            .unwrap();
     }
 }
 

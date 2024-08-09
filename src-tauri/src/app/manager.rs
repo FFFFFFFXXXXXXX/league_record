@@ -50,9 +50,9 @@ impl AppManager for AppHandle {
         log::info!("Settings: {}", settings.inner());
 
         // create system tray-icon
-        self.set_system_tray(false);
+        self.init_tray_menu();
         if settings.check_for_updates_enabled() {
-            self.check_for_update(|app_handle| app_handle.set_system_tray(true));
+            self.check_for_update(|app_handle| app_handle.set_tray_menu_update_available(true));
         }
 
         // check if app was updated
