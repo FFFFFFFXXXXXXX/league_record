@@ -54,7 +54,7 @@ Just closing the window doesn't completely stop LeagueRecord because it needs to
 In order to completely stop LeagueRecord you have to right-click the tray-icon at the bottom right of your screen and click the 'Quit' button.
 
 > [!NOTE]
-> A bunch of stuff can be customized in the [Settings](#settings). Video resolution, framerate, only record ranked games, record voice-comms or only game audio, autostart LeagueRecord when you turn on your PC, ...  
+> A bunch of stuff can be customized in the [Settings](#settings). Video resolution, framerate, only record ranked games, record voice-comms or only game audio, autostart LeagueRecord when you turn on your PC, ...
 
 > [!NOTE]
 > In case LeagueRecord only records a black screen instead of the game, try running the software as Admin. That should fix the Problem!
@@ -79,9 +79,9 @@ In order to completely stop LeagueRecord you have to right-click the tray-icon a
 ## Settings
 
 It is possible to adjust the settings via the settings button in the tray menu.
-It opens the settings file in the windows text editor.\
+It opens the settings file in the windows text editor.  
 Settings get applied as soon as you save and close the text editor.
-If you write an invalid setting or delete an entry it gets reset to the default value. 
+If you write an invalid setting or delete an entry it gets reset to the default value.
 
 |        Name         |                                               Value                                               |                 Default                 | Description                                                                                                                                                                                                                                                                                |
 |:-------------------:|:-------------------------------------------------------------------------------------------------:|:---------------------------------------:| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -120,7 +120,7 @@ This is just a rough estimate with the default settings so you can get a sense f
 There is a release for Windows-x64, but you can build the project on your own.
 
 In order to build the project you need to have the [nightly](https://rust-lang.github.io/rustup/concepts/channels.html#working-with-nightly-rust) Rust toolchain and [NPM](https://nodejs.org/en) installed.  
-From the root folder of the project run `npm install` and then `npx tauri dev` to run the project in debug mode or `npx tauri build` to build in release-mode and create the installer.  
+From the root folder of the project run `npm install` and then `npx tauri dev` to run the project in debug mode or `npx tauri build` to build in release-mode and create the installer.
 
 In order to package the compiled files into a standalone archive, run one of the following commands after a successful `npx tauri build`:
 

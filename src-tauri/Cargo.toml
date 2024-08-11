@@ -35,10 +35,9 @@ specta-typescript = "0.0.7"
 # --- APP ---
 
 [package]
-name = "app"
+name = "LeagueRecord"
 description = "Record and review LoL games"
 repository = "https://github.com/FFFFFFFXXXXXXX/league_record"
-default-run = "app"
 build = "build.rs"
 version = { workspace = true }
 edition = { workspace = true }
@@ -72,11 +71,17 @@ anyhow = { workspace = true }
 log = { workspace = true }
 chrono = { workspace = true }
 strum_macros = { workspace = true }
-notify = { version = "6.1.1", default-features = false, features = ["macos_kqueue"] }
+notify = { version = "6.1.1", default-features = false, features = [
+    "macos_kqueue",
+] }
 semver = "1.0.23"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows = { version = "0.58.0", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_HiDpi"] }
+windows = { version = "0.58.0", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_HiDpi",
+] }
 [target.'cfg(target_os = "macos")'.dependencies]
 
 [build-dependencies]
