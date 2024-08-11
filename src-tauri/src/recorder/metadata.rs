@@ -54,14 +54,29 @@ pub async fn process_data(ingame_time_rec_start_offset: f64, match_id: MatchId) 
         .find(|p| p.participant_id == participant_id)
         .context("player participant_id not found in game info")?;
 
-    let champion_name = lcu_rest_client
-        .get::<Champion>(format!(
-            "/lol-champions/v1/inventories/{}/champions/{}",
-            player.summoner_id.unwrap(),
-            participant.champion_id
-        ))
-        .await?
-        .name;
+    // manually fill data for swarm champions because the client somehow doesn't have info on them
+    // https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-summary.json
+    let champion_name = match participant.champion_id {
+        3147 => "Riven".into(),
+        3151 => "Jinx".into(),
+        3152 => "Leona".into(),
+        3153 => "Seraphine".into(),
+        3156 => "Briar".into(),
+        3157 => "Yasuo".into(),
+        3159 => "Aurora".into(),
+        3678 => "Illaoi".into(),
+        3947 => "Xayah".into(),
+        _ => {
+            lcu_rest_client
+                .get::<Champion>(format!(
+                    "/lol-champions/v1/inventories/{}/champions/{}",
+                    player.summoner_id.unwrap(),
+                    participant.champion_id
+                ))
+                .await?
+                .name
+        }
+    };
 
     let events: Vec<GameEvent> = timeline
         .frames
@@ -148,14 +163,29 @@ pub async fn process_data_with_retry(
         .find(|p| p.participant_id == participant_id)
         .context("player participant_id not found in game info")?;
 
-    let champion_name = lcu_rest_client
-        .get::<Champion>(format!(
-            "/lol-champions/v1/inventories/{}/champions/{}",
-            player.summoner_id.unwrap(),
-            participant.champion_id
-        ))
-        .await?
-        .name;
+    // manually fill data for swarm champions because the client somehow doesn't have info on them
+    // https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-summary.json
+    let champion_name = match participant.champion_id {
+        3147 => "Riven".into(),
+        3151 => "Jinx".into(),
+        3152 => "Leona".into(),
+        3153 => "Seraphine".into(),
+        3156 => "Briar".into(),
+        3157 => "Yasuo".into(),
+        3159 => "Aurora".into(),
+        3678 => "Illaoi".into(),
+        3947 => "Xayah".into(),
+        _ => {
+            lcu_rest_client
+                .get::<Champion>(format!(
+                    "/lol-champions/v1/inventories/{}/champions/{}",
+                    player.summoner_id.unwrap(),
+                    participant.champion_id
+                ))
+                .await?
+                .name
+        }
+    };
 
     let events: Vec<GameEvent> = timeline
         .frames
