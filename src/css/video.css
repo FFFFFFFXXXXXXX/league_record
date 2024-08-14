@@ -65,47 +65,56 @@ video {
 }
 
 /* EVENT MARKERS */
-.kill {
+.vjs-marker.kill {
     background-color: lawngreen !important;
+    z-index: 3;
 }
 
-.assist {
+.vjs-marker.assist {
     background-color: green !important;
+    z-index: 2;
 }
 
-.death {
+.vjs-marker.death {
     background-color: red !important;
+    z-index: 5;
 }
 
-.turret {
+.vjs-marker.turret {
     background-color: brown !important;
+    z-index: 4;
 }
 
-.inhibitor {
+.vjs-marker.inhibitor {
     background-color: mediumblue !important;
+    z-index: 4;
 }
 
-.infernal-dragon,
-.ocean-dragon,
-.mountain-dragon,
-.cloud-dragon,
-.hextech-dragon,
-.chemtech-dragon,
-.elder-dragon,
-.dragon {
+.vjs-marker.infernal-dragon,
+.vjs-marker.ocean-dragon,
+.vjs-marker.mountain-dragon,
+.vjs-marker.cloud-dragon,
+.vjs-marker.hextech-dragon,
+.vjs-marker.chemtech-dragon,
+.vjs-marker.elder-dragon,
+.vjs-marker.dragon {
     background-color: darkgoldenrod !important;
+    z-index: 5;
 }
 
-.voidgrub {
+.vjs-marker.voidgrub {
     background-color: deeppink !important;
+    z-index: 4;
 }
 
-.herald {
+.vjs-marker.herald {
     background-color: magenta !important;
+    z-index: 4;
 }
 
-.baron {
+.vjs-marker.baron {
     background-color: darkmagenta !important;
+    z-index: 6;
 }
 
 /* CHECKBOX LABELS */

@@ -1,4 +1,9 @@
 import 'video.js/dist/video-js.min.css';
+import "./css/container.css";
+import "./css/sidebar.css";
+import "./css/video.css";
+import "./css/modal.css";
+
 import videojs from 'video.js';
 import type Player from 'video.js/dist/types/player';
 import { type MarkerOptions, MarkersPlugin, type Settings } from '@fffffffxxxxxxx/videojs-markers';
@@ -180,7 +185,11 @@ function changeMarkers() {
 
     const markers = new Array<MarkerOptions>();
     for (const event of currentEvents.events) {
-        markers.push(createMarker(event.timestamp, recordingOffset, eventName(event, participantId, checkbox)!));
+        const name = eventName(event, participantId, checkbox);
+        if (name === null) {
+            continue;
+        }
+        markers.push(createMarker(event.timestamp, recordingOffset, name));
     }
 
     player.markers().add(markers);
@@ -294,21 +303,12 @@ function showTimestamps() {
 
     const timelineEvents = new Array<{ timestamp: number, text: string }>();
     for (const event of currentEvents.events) {
-        const name = eventName(event, currentEvents.participantId, null);
-        if (name === null) {
+        const text = formatTimestamp(event, currentEvents.participantId);
+        if (text === null) {
             continue;
         }
 
-        let secs = event.timestamp / 1000;
-
-        let minutes = Math.floor(secs / 60);
-        secs -= minutes * 60;
-
-        const hours = Math.floor(minutes / 60);
-        minutes -= hours * 60;
-
         const timestamp = event.timestamp;
-        const text = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${Math.floor(secs).toString().padStart(2, '0')} ${name}`;
         timelineEvents.push({ timestamp, text });
     }
 
