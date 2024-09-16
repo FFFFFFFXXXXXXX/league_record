@@ -126,14 +126,14 @@ In order to package the compiled files into a standalone archive, run one of the
 
 ```bash
 # outputs 'LeagueRecord.tar.gz' in the project root folder
-tar -czv -f LeagueRecord.tar.gz -C ./src-tauri/target/release/ LeagueRecord.exe libobs licenses
+tar -czv -f LeagueRecord.tar.gz LICENSE.txt licenses -C ./src-tauri/target/ libobs -C ./release/ LeagueRecord.exe
 ```
 
 or
 
 ```bash
 # outputs 'LeagueRecord.zip' in the project root folder
-cd src-tauri/target/release && 7z a -tzip ../../../LeagueRecord.zip LeagueRecord.exe libobs licenses && cd ../../..
+cd src-tauri/target/release && 7z a -tzip ../../../LeagueRecord.zip LeagueRecord.exe ../libobs licenses LICENSE.txt && cd ../../..
 ```
 
 ## License
