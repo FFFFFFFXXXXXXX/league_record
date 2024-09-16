@@ -1,8 +1,8 @@
 use std::{fmt::Display, path::PathBuf, time::Duration};
 
-use anyhow::{bail, Context, Result};
-use libobs_recorder::settings::{RateControl, Resolution, StdResolution, Window};
-use libobs_recorder::{Recorder, RecorderSettings};
+use anyhow::{bail, Result};
+use libobs_recorder::settings::{RateControl, RecorderSettings, Resolution, StdResolution, Window};
+use libobs_recorder::Recorder;
 use shaco::ingame::IngameClient;
 use tauri::async_runtime::{self, JoinHandle};
 use tauri::path::BaseDirectory;
@@ -150,18 +150,6 @@ impl RecordingTask {
 
         log::info!("Using resolution ({output_resolution:?}) for window ({window_size:?})");
 
-        let mut settings = RecorderSettings::new();
-        settings.set_window(Window::new(
-            WINDOW_TITLE,
-            Some(WINDOW_CLASS.into()),
-            Some(WINDOW_PROCESS.into()),
-        ));
-        settings.set_input_resolution(window_size);
-        settings.set_output_resolution(output_resolution);
-        settings.set_framerate(settings_state.get_framerate());
-        settings.set_rate_control(RateControl::CQP(settings_state.get_encoding_quality()));
-        settings.record_audio(settings_state.get_audio_source());
-
         let mut filename = settings_state.get_filename_format();
         if !filename.ends_with(".mp4") {
             filename.push_str(".mp4");
@@ -169,11 +157,18 @@ impl RecordingTask {
         let filename_path = settings_state
             .get_recordings_path()
             .join(format!("{}", chrono::Local::now().format(&filename)));
-        settings.set_output_path(
-            filename_path
-                .to_str()
-                .context("filename_path is not a valid UTF-8 string")?,
+
+        let mut settings = RecorderSettings::new(
+            Window::new(WINDOW_TITLE, Some(WINDOW_CLASS.into()), Some(WINDOW_PROCESS.into())),
+            window_size,
+            output_resolution,
+            &filename_path,
         );
+        settings.set_adapter_id(settings_state.get_gpu_id());
+        settings.set_framerate(settings_state.get_framerate());
+        settings.set_rate_control(RateControl::CQP(settings_state.get_encoding_quality()));
+        settings.set_audio_source(settings_state.get_audio_source());
+        settings.set_adapter_id(settings_state.get_gpu_id());
 
         let mut recorder = Recorder::new_with_paths(
             ctx.app_handle
@@ -185,10 +180,22 @@ impl RecordingTask {
             None,
         )?;
 
+        log::info!("recorder settings: {settings:?}");
         recorder.configure(&settings)?;
         log::info!("recorder configured");
-        log::info!("Available encoders: {:?}", recorder.available_encoders());
-        log::info!("Selected encoder: {:?}", recorder.selected_encoder());
+
+        if let Ok(selected_adapter) = recorder.selected_adapter() {
+            log::info!("Available adapters: {:?}", recorder.available_adapters());
+            log::info!("Selected adapter: {:?}", selected_adapter);
+
+            log::info!(
+                "Available encoders for adapter: {:?}",
+                recorder.available_encoders_for_adapter(selected_adapter.id())
+            );
+            log::info!("Selected encoder: {:?}", recorder.selected_encoder());
+        } else {
+            log::info!("unable to get selected encoder?");
+        }
 
         Ok((recorder, filename_path))
     }

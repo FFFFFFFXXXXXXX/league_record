@@ -4,17 +4,9 @@
   "app": {
     "security": {
       "assetProtocol": {
-        "scope": [
-          "**/*.json",
-          "**/*.mp4"
-        ],
+        "scope": ["**/*.json", "**/*.mp4"],
         "enable": true
       }
-    },
-    "trayIcon": {
-      "id": "mainTray",
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": true
     }
   },
   "build": {
@@ -26,9 +18,7 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "targets": [
-      "nsis"
-    ],
+    "targets": ["nsis"],
     "resources": {
       "./target/libobs/": "./libobs/",
       "../licenses/": "./licenses/",

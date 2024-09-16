@@ -1,5 +1,5 @@
 use tauri::menu::{Menu, MenuBuilder, MenuEvent, MenuItemBuilder};
-use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconEvent};
+use tauri::tray::{MouseButton, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{async_runtime, AppHandle, Manager, Wry};
 
 use super::{AppManager, AppWindow, WindowManager};
@@ -16,12 +16,7 @@ pub trait SystemTrayManager {
 }
 
 fn handle_system_tray_event(tray_icon: &TrayIcon, event: TrayIconEvent) {
-    if let TrayIconEvent::Click {
-        button: MouseButton::Left,
-        button_state: MouseButtonState::Up,
-        ..
-    } = event
-    {
+    if let TrayIconEvent::DoubleClick { button: MouseButton::Left, .. } = event {
         let app_handle = tray_icon.app_handle() as &AppHandle;
         app_handle.open_window(AppWindow::Main);
     }
@@ -54,12 +49,16 @@ fn handle_system_tray_menu_event(app_handle: &AppHandle, event: MenuEvent) {
 
 impl SystemTrayManager for AppHandle {
     fn init_tray_menu(&self) {
-        let tray_icon = self.tray_by_id(constants::TRAY_ID).unwrap();
-        tray_icon.set_title(Some(constants::APP_NAME)).unwrap();
-        tray_icon.set_tooltip(Some(constants::APP_NAME)).unwrap();
-        tray_icon.set_menu(Some(create_tray_menu(self))).unwrap();
-        tray_icon.on_tray_icon_event(handle_system_tray_event);
-        tray_icon.on_menu_event(handle_system_tray_menu_event);
+        TrayIconBuilder::with_id(constants::TRAY_ID)
+            .icon(self.default_window_icon().unwrap().clone())
+            .title(constants::APP_NAME)
+            .tooltip(constants::APP_NAME)
+            .on_tray_icon_event(handle_system_tray_event)
+            .menu(&create_tray_menu(self))
+            .on_menu_event(handle_system_tray_menu_event)
+            .menu_on_left_click(false)
+            .build(self)
+            .unwrap();
     }
 
     fn set_tray_menu_update_available(&self, update_available: bool) {

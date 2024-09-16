@@ -12,7 +12,7 @@ use crate::util::compare_time;
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn get_marker_flags(settings: State<'_, SettingsWrapper>) -> MarkerFlags {
+pub fn get_marker_flags(settings: State<SettingsWrapper>) -> MarkerFlags {
     settings.get_marker_flags()
 }
 
@@ -20,8 +20,8 @@ pub fn get_marker_flags(settings: State<'_, SettingsWrapper>) -> MarkerFlags {
 #[tauri::command]
 pub fn set_marker_flags(
     marker_flags: MarkerFlags,
-    settings: State<'_, SettingsWrapper>,
-    settings_file: State<'_, SettingsFile>,
+    settings: State<SettingsWrapper>,
+    settings_file: State<SettingsFile>,
 ) {
     settings.set_marker_flags(marker_flags);
     settings.write_to_file(settings_file.get());
@@ -29,7 +29,7 @@ pub fn set_marker_flags(
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn get_recordings_path(settings: State<'_, SettingsWrapper>) -> PathBuf {
+pub fn get_recordings_path(settings: State<SettingsWrapper>) -> PathBuf {
     settings.get_recordings_path().to_path_buf()
 }
 
@@ -74,7 +74,7 @@ pub fn get_recordings_list(app_handle: AppHandle) -> Vec<Recording> {
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn open_recordings_folder(state: State<'_, SettingsWrapper>) {
+pub fn open_recordings_folder(state: State<SettingsWrapper>) {
     if let Err(e) = state
         .get_recordings_path()
         .canonicalize()
@@ -86,7 +86,7 @@ pub fn open_recordings_folder(state: State<'_, SettingsWrapper>) {
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, SettingsWrapper>) -> bool {
+pub fn rename_video(video_id: String, new_video_id: String, state: State<SettingsWrapper>) -> bool {
     let recording = state.get_recordings_path().join(video_id);
     action::rename_recording(recording, new_video_id).unwrap_or_else(|e| {
         log::error!("failed to rename video: {e}");
@@ -96,7 +96,7 @@ pub fn rename_video(video_id: String, new_video_id: String, state: State<'_, Set
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn delete_video(video_id: String, state: State<'_, SettingsWrapper>) -> bool {
+pub fn delete_video(video_id: String, state: State<SettingsWrapper>) -> bool {
     let recording = state.get_recordings_path().join(video_id);
 
     match action::delete_recording(recording) {
@@ -110,14 +110,14 @@ pub fn delete_video(video_id: String, state: State<'_, SettingsWrapper>) -> bool
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn get_metadata(video_id: String, state: State<'_, SettingsWrapper>) -> Option<MetadataFile> {
+pub fn get_metadata(video_id: String, state: State<SettingsWrapper>) -> Option<MetadataFile> {
     let path = state.get_recordings_path().join(video_id);
     action::get_recording_metadata(&path, true).ok()
 }
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn toggle_favorite(video_id: String, state: State<'_, SettingsWrapper>) -> Option<bool> {
+pub fn toggle_favorite(video_id: String, state: State<SettingsWrapper>) -> Option<bool> {
     let path = state.get_recordings_path().join(video_id);
 
     let mut metadata = action::get_recording_metadata(&path, true).ok()?;
@@ -130,13 +130,13 @@ pub fn toggle_favorite(video_id: String, state: State<'_, SettingsWrapper>) -> O
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn confirm_delete(settings: State<'_, SettingsWrapper>) -> bool {
+pub fn confirm_delete(settings: State<SettingsWrapper>) -> bool {
     settings.confirm_delete()
 }
 
 #[cfg_attr(test, specta::specta)]
 #[tauri::command]
-pub fn disable_confirm_delete(settings: State<'_, SettingsWrapper>, settings_file: State<'_, SettingsFile>) {
+pub fn disable_confirm_delete(settings: State<SettingsWrapper>, settings_file: State<SettingsFile>) {
     settings.set_confirm_delete(false);
     settings.write_to_file(settings_file.get());
 }

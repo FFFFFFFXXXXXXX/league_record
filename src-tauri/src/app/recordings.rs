@@ -167,19 +167,20 @@ pub mod action {
     }
 
     pub fn get_recording_metadata(video_path: &Path, fetch: bool) -> Result<MetadataFile> {
-        let mut video_path = video_path.to_owned();
+        let video_path = video_path.to_owned();
         if !video_path.is_file() {
             bail!("no such video");
         }
 
-        video_path.set_extension("json");
+        let mut metadata_path = video_path;
+        metadata_path.set_extension("json");
 
-        let filedata = if video_path.exists() && fs::metadata(&video_path)?.is_file() {
-            let reader = BufReader::new(File::open(&video_path)?);
+        let filedata = if metadata_path.exists() && fs::metadata(&metadata_path)?.is_file() {
+            let reader = BufReader::new(File::open(&metadata_path)?);
             serde_json::from_reader::<_, MetadataFile>(reader)?
         } else {
             let metadata_file = MetadataFile::NoData(NoData { favorite: false });
-            save_recording_metadata(&video_path, &metadata_file)?;
+            save_recording_metadata(&metadata_path, &metadata_file)?;
             metadata_file
         };
 
@@ -197,7 +198,7 @@ pub mod action {
                     async_runtime::block_on(recorder::process_data(ingame_time_rec_start_offset, match_id))?;
                 metadata.favorite = favorite;
                 let metadata_file = MetadataFile::Metadata(metadata);
-                if let Err(e) = save_recording_metadata(&video_path, &metadata_file) {
+                if let Err(e) = save_recording_metadata(&metadata_path, &metadata_file) {
                     log::error!("failed to save re-processed game metadata: {e}");
                 }
                 Ok(metadata_file)

@@ -15,14 +15,12 @@
   "filenameFormat": "%Y-%m-%d_%H-%M.mp4",
   "encodingQuality": 30,
   "outputResolution": null,
-  "framerate": [
-    30,
-    1
-  ],
+  "framerate": [30, 1],
   "recordAudio": "APPLICATION",
   "onlyRecordRanked": false,
   "autostart": false,
   "maxRecordingAgeDays": null,
   "maxRecordingsSizeGb": null,
-  "confirmDelete": true
+  "confirmDelete": true,
+  "gpuId": 0
 }

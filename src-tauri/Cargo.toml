@@ -45,13 +45,13 @@ authors = { workspace = true }
 license = { workspace = true }
 
 [dependencies]
-tauri = { version = "2.0.0-rc.0", features = ["protocol-asset", "tray-icon"] }
-tauri-plugin-updater = "2.0.0-rc.0"
-tauri-plugin-autostart = "2.0.0-rc.0"
-tauri-plugin-single-instance = "2.0.0-rc.0"
-tauri-plugin-log = "2.0.0-rc.0"
-tauri-plugin-dialog = "2.0.0-rc.0"
-tauri-plugin-clipboard-manager = "2.1.0-beta.7"
+tauri = { version = "=2.0.0-rc.10", features = ["protocol-asset", "tray-icon"] }
+tauri-plugin-updater = "2.0.0-rc"
+tauri-plugin-autostart = "2.0.0-rc"
+tauri-plugin-single-instance = "2.0.0-rc"
+tauri-plugin-log = "2.0.0-rc"
+tauri-plugin-dialog = "2.0.0-rc"
+tauri-plugin-clipboard-manager = "2.0.0-rc"
 
 tokio = { workspace = true, features = ["macros"] }
 tokio-util = { workspace = true, features = ["io"] }
@@ -93,7 +93,7 @@ build-helper = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git" }
 riot_datatypes = { workspace = true, features = ["specta"] }
 specta = { workspace = true }
 specta-typescript = { workspace = true }
-tauri-specta = { version = "=2.0.0-rc.15", features = ["derive", "typescript"] }
+tauri-specta = { version = "=2.0.0-rc.19", features = ["derive", "typescript"] }
 
 [features]
 # by default Tauri runs in production mode
