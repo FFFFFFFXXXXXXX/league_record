@@ -277,6 +277,11 @@
           "const": "clipboard-manager:deny-write-text"
         },
         {
+          "description": "Default core plugins set which includes:\n- 'core:path:default'\n- 'core:event:default'\n- 'core:window:default'\n- 'core:webview:default'\n- 'core:app:default'\n- 'core:image:default'\n- 'core:resources:default'\n- 'core:menu:default'\n- 'core:tray:default'\n",
+          "type": "string",
+          "const": "core:default"
+        },
+        {
           "description": "Default permissions for the plugin.",
           "type": "string",
           "const": "core:app:default"
@@ -300,6 +305,11 @@
           "description": "Enables the name command without any pre-configured scope.",
           "type": "string",
           "const": "core:app:allow-name"
+        },
+        {
+          "description": "Enables the set_app_theme command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:app:allow-set-app-theme"
         },
         {
           "description": "Enables the tauri_version command without any pre-configured scope.",
@@ -330,6 +340,11 @@
           "description": "Denies the name command without any pre-configured scope.",
           "type": "string",
           "const": "core:app:deny-name"
+        },
+        {
+          "description": "Denies the set_app_theme command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:app:deny-set-app-theme"
         },
         {
           "description": "Denies the tauri_version command without any pre-configured scope.",
@@ -887,6 +902,11 @@
           "const": "core:webview:default"
         },
         {
+          "description": "Enables the clear_all_browsing_data command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:webview:allow-clear-all-browsing-data"
+        },
+        {
           "description": "Enables the create_webview command without any pre-configured scope.",
           "type": "string",
           "const": "core:webview:allow-create-webview"
@@ -942,14 +962,29 @@
           "const": "core:webview:allow-webview-close"
         },
         {
+          "description": "Enables the webview_hide command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:webview:allow-webview-hide"
+        },
+        {
           "description": "Enables the webview_position command without any pre-configured scope.",
           "type": "string",
           "const": "core:webview:allow-webview-position"
         },
         {
+          "description": "Enables the webview_show command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:webview:allow-webview-show"
+        },
+        {
           "description": "Enables the webview_size command without any pre-configured scope.",
           "type": "string",
           "const": "core:webview:allow-webview-size"
+        },
+        {
+          "description": "Denies the clear_all_browsing_data command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:webview:deny-clear-all-browsing-data"
         },
         {
           "description": "Denies the create_webview command without any pre-configured scope.",
@@ -1007,9 +1042,19 @@
           "const": "core:webview:deny-webview-close"
         },
         {
+          "description": "Denies the webview_hide command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:webview:deny-webview-hide"
+        },
+        {
           "description": "Denies the webview_position command without any pre-configured scope.",
           "type": "string",
           "const": "core:webview:deny-webview-position"
+        },
+        {
+          "description": "Denies the webview_show command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:webview:deny-webview-show"
         },
         {
           "description": "Denies the webview_size command without any pre-configured scope.",
@@ -1090,6 +1135,11 @@
           "description": "Enables the is_decorated command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:allow-is-decorated"
+        },
+        {
+          "description": "Enables the is_enabled command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:allow-is-enabled"
         },
         {
           "description": "Enables the is_focused command without any pre-configured scope.",
@@ -1222,6 +1272,11 @@
           "const": "core:window:allow-set-effects"
         },
         {
+          "description": "Enables the set_enabled command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:allow-set-enabled"
+        },
+        {
           "description": "Enables the set_focus command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:allow-set-focus"
@@ -1295,6 +1350,11 @@
           "description": "Enables the set_skip_taskbar command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:allow-set-skip-taskbar"
+        },
+        {
+          "description": "Enables the set_theme command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:allow-set-theme"
         },
         {
           "description": "Enables the set_title command without any pre-configured scope.",
@@ -1420,6 +1480,11 @@
           "description": "Denies the is_decorated command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:deny-is-decorated"
+        },
+        {
+          "description": "Denies the is_enabled command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:deny-is-enabled"
         },
         {
           "description": "Denies the is_focused command without any pre-configured scope.",
@@ -1552,6 +1617,11 @@
           "const": "core:window:deny-set-effects"
         },
         {
+          "description": "Denies the set_enabled command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:deny-set-enabled"
+        },
+        {
           "description": "Denies the set_focus command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:deny-set-focus"
@@ -1625,6 +1695,11 @@
           "description": "Denies the set_skip_taskbar command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:deny-set-skip-taskbar"
+        },
+        {
+          "description": "Denies the set_theme command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:deny-set-theme"
         },
         {
           "description": "Denies the set_title command without any pre-configured scope.",

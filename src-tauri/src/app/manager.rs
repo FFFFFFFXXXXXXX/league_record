@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use log::LevelFilter;
 use semver::Version;
 use tauri::{async_runtime, AppHandle, Manager};
-use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_updater::UpdaterExt;
 
@@ -152,9 +152,9 @@ impl AppManager for AppHandle {
                 &update_check.version,
                 update_check.body.as_deref().unwrap_or_default()
             ))
+            .kind(MessageDialogKind::Info)
             .title(format!("{APP_NAME} update available!"))
-            .ok_button_label("Yes")
-            .cancel_button_label("No")
+            .buttons(MessageDialogButtons::OkCancel)
             .blocking_show()
         {
             return;
