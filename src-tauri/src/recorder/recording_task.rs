@@ -164,11 +164,9 @@ impl RecordingTask {
             output_resolution,
             &filename_path,
         );
-        settings.set_adapter_id(settings_state.get_gpu_id());
         settings.set_framerate(settings_state.get_framerate());
         settings.set_rate_control(RateControl::CQP(settings_state.get_encoding_quality()));
         settings.set_audio_source(settings_state.get_audio_source());
-        settings.set_adapter_id(settings_state.get_gpu_id());
 
         let mut recorder = Recorder::new_with_paths(
             ctx.app_handle
@@ -184,18 +182,9 @@ impl RecordingTask {
         recorder.configure(&settings)?;
         log::info!("recorder configured");
 
-        if let Ok(selected_adapter) = recorder.selected_adapter() {
-            log::info!("Available adapters: {:?}", recorder.available_adapters());
-            log::info!("Selected adapter: {:?}", selected_adapter);
-
-            log::info!(
-                "Available encoders for adapter: {:?}",
-                recorder.available_encoders_for_adapter(selected_adapter.id())
-            );
-            log::info!("Selected encoder: {:?}", recorder.selected_encoder());
-        } else {
-            log::info!("unable to get selected encoder?");
-        }
+        log::info!("Selected adapter: {:?}", recorder.adapter_info());
+        log::info!("Available encoders for adapter: {:?}", recorder.available_encoders());
+        log::info!("Selected encoder: {:?}", recorder.selected_encoder());
 
         Ok((recorder, filename_path))
     }

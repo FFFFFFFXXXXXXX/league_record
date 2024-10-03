@@ -5,7 +5,7 @@ use std::sync::RwLock;
 use std::{fmt, fs};
 
 use anyhow::Result;
-use libobs_recorder::settings::{AdapterId, AudioSource, Framerate, StdResolution};
+use libobs_recorder::settings::{AudioSource, Framerate, StdResolution};
 use serde::de::{MapAccess, Visitor};
 use serde::{Deserialize, Serialize};
 use tauri::{async_runtime, AppHandle, Manager};
@@ -158,10 +158,6 @@ impl SettingsWrapper {
         self.0.read().unwrap().record_audio
     }
 
-    pub fn get_gpu_id(&self) -> AdapterId {
-        self.0.read().unwrap().gpu_id
-    }
-
     pub fn check_for_updates_enabled(&self) -> bool {
         self.0.read().unwrap().check_for_updates
     }
@@ -241,7 +237,6 @@ pub struct Settings {
     max_recording_age_days: Option<u64>,
     max_recordings_size_gb: Option<u64>,
     confirm_delete: bool,
-    gpu_id: AdapterId,
 }
 
 const DEFAULT_UPDATE_CHECK: bool = true;
@@ -286,7 +281,6 @@ impl Default for Settings {
             max_recording_age_days: DEFAULT_MAX_RECORDING_AGE_DAYS,
             max_recordings_size_gb: DEFAULT_MAX_RECORDINGS_SIZE_GB,
             confirm_delete: DEFAULT_CONFIRM_DELETE,
-            gpu_id: AdapterId::default(),
         }
     }
 }
@@ -357,9 +351,6 @@ impl<'de> Deserialize<'de> for Settings {
                         }
                         "confirmDelete" => {
                             settings.confirm_delete = map.next_value().unwrap_or(DEFAULT_CONFIRM_DELETE);
-                        }
-                        "gpuId" => {
-                            settings.gpu_id = map.next_value().unwrap_or_default();
                         }
                         _ => { /* ignored */ }
                     }

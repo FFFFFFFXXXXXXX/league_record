@@ -30,7 +30,7 @@ export type NoData = { favorite: boolean }
 export type Player = { gameName: string; tagLine: string; summonerId?: number | null }
 export type Position = { x: number; y: number }
 export type Queue = { id: number; name: string; isRanked: boolean }
-export type Settings = { markerFlags: MarkerFlags; checkForUpdates: boolean; debugLog: boolean; recordingsFolder: string; filenameFormat: string; encodingQuality: number; outputResolution: StdResolution | null; framerate: Framerate; recordAudio: AudioSource; onlyRecordRanked: boolean; autostart: boolean; maxRecordingAgeDays: number | null; maxRecordingsSizeGb: number | null; confirmDelete: boolean; gpuId: number }
+export type Settings = { markerFlags: MarkerFlags; checkForUpdates: boolean; debugLog: boolean; recordingsFolder: string; filenameFormat: string; encodingQuality: number; outputResolution: StdResolution | null; framerate: Framerate; recordAudio: AudioSource; onlyRecordRanked: boolean; autostart: boolean; maxRecordingAgeDays: number | null; maxRecordingsSizeGb: number | null; confirmDelete: boolean }
 export type Stats = { kills: number; deaths: number; assists: number; largestMultiKill: number; neutralMinionsKilled: number; neutralMinionsKilledEnemyJungle: number; neutralMinionsKilledTeamJungle: number; totalMinionsKilled: number; visionScore: number; visionWardsBoughtInGame: number; wardsPlaced: number; wardsKilled: number; 
 /**
  * remake

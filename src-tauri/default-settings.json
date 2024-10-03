@@ -21,6 +21,5 @@
   "autostart": false,
   "maxRecordingAgeDays": null,
   "maxRecordingsSizeGb": null,
-  "confirmDelete": true,
-  "gpuId": 0
+  "confirmDelete": true
 }
