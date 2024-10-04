@@ -1,11 +1,10 @@
-
 name: Build Release Artifacts
 
 on:
   push:
-    tags: ['*']
+    tags: ["*"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
   release:
@@ -15,7 +14,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -24,12 +23,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - run: mkdir ./dist
       - run: npx tauri build
-      - run: 7z a -tzip LeagueRecord_${{ github.ref_name }}_x64_en-US.zip ./licenses/ ./libobs/ ./LeagueRecord.exe
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - run: 7z a -tzip LeagueRecord_${{ github.ref_name }}_x64_en-US.zip LeagueRecord.exe ../libobs licenses LICENSE.txt
         working-directory: ./src-tauri/target/release/
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "./src-tauri/target/release/*.zip, ./src-tauri/target/release/bundle/msi/*.msi"
+          artifacts: "./src-tauri/target/release/*.zip, ./src-tauri/target/release/bundle/nsis/*"
           prerelease: true
           body: |
             Windows-x64 installer and portable version.
