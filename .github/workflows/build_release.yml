@@ -9,6 +9,7 @@ on:
 jobs:
   release:
     name: cargo release
+    environment: build release
     runs-on: windows-latest
     permissions:
       contents: write
