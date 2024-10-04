@@ -101,7 +101,7 @@ If you write an invalid setting or delete an entry it gets reset to the default 
 
 ## Resources and Performance
 
-LeagueRecord takes up ~70MB of your disk space with most of that coming from the libobs dependency.
+LeagueRecord takes up ~75MB of your disk space with most of that coming from the libobs dependency.
 
 On a system with a Ryzen 3600 CPU and RX5700 GPU these are the performance numbers measured with Windows Taskmanager.
 

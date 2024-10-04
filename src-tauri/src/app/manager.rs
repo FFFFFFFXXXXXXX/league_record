@@ -148,9 +148,13 @@ impl AppManager for AppHandle {
         if !self
             .dialog()
             .message(format!(
-                "Version {} available!\n\n{}\n\nDo you want to update now?",
+                "Version {} available!{}Do you want to update now?",
                 &update_check.version,
-                update_check.body.as_deref().unwrap_or_default()
+                update_check
+                    .body
+                    .as_deref()
+                    .map(|body| format!("\n\n{body}\n\n"))
+                    .unwrap_or("\n".to_string())
             ))
             .kind(MessageDialogKind::Info)
             .title(format!("{APP_NAME} update available!"))
@@ -159,6 +163,11 @@ impl AppManager for AppHandle {
         {
             return;
         }
+
+        self.dialog()
+            .message("LeagueRecord is updating in the background and will restart automatically\nYou will get a message when the update has completed")
+            .title("Update in progress")
+            .show(|_| {});
 
         if let Err(e) = async_runtime::block_on(update_check.download_and_install(|_, _| {}, || {})) {
             self.dialog()
