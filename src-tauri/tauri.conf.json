@@ -20,9 +20,9 @@
     "createUpdaterArtifacts": true,
     "targets": ["nsis"],
     "resources": {
-      "./target/libobs/": "./libobs/",
-      "../licenses/": "./licenses/",
-      "../LICENSE.txt": "./"
+      "target/libobs": "libobs",
+      "../licenses/*": "licenses/",
+      "../LICENSE.txt": "LICENSE.txt"
     },
     "shortDescription": "Record and review LoL games",
     "longDescription": "Record and review League of Legends games",
