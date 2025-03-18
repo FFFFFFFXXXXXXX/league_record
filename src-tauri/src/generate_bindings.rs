@@ -41,7 +41,7 @@ fn generate_type_bindings() -> anyhow::Result<()> {
     _ = fn_datatype!(_tmp)(&mut type_map);
 
     let exports = type_map
-        .iter()
+        .into_iter()
         .map(|(_sid, ndt)| {
             export_named_datatype(
                 &Typescript::default().bigint(BigIntExportBehavior::Number),

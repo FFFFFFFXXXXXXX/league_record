@@ -3,3 +3,6 @@ rustflags = ["--cfg", "tokio_unstable"]
 
 [unstable]
 bindeps = true
+
+[target.'cfg(target_os = "windows")']
+linker = "lld-link"
