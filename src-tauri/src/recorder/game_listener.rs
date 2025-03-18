@@ -10,13 +10,14 @@ use shaco::model::ws::{EventType, LcuSubscriptionType};
 use shaco::{rest::LcuRestClient, ws::LcuWebsocketClient};
 use tauri::async_runtime;
 use tauri::{AppHandle, Manager};
-use tokio::select;
 use tokio_util::sync::CancellationToken;
 
+use super::highlight_task::HighlightTask;
 use super::metadata;
 use super::recording_task::{GameCtx, Metadata, RecordingTask};
 use crate::app::{action, AppEvent, EventManager};
 use crate::cancellable;
+use crate::recorder::MetadataFile;
 use crate::state::SettingsWrapper;
 
 #[derive(Clone)]
@@ -44,7 +45,7 @@ impl ApiCtx {
 enum State {
     #[default]
     Idle,
-    Recording(RecordingTask),
+    Recording(RecordingTask, HighlightTask),
     EndOfGame(Metadata),
 }
 
@@ -52,7 +53,7 @@ impl Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             State::Idle => f.write_str("Idle"),
-            State::Recording(_) => f.write_str("Recording"),
+            State::Recording(_, _) => f.write_str("Recording"),
             State::EndOfGame(metadata) => f.write_fmt(format_args!("EndOfGame({metadata})")),
         }
     }
@@ -103,8 +104,9 @@ impl GameListener {
             }
         }
 
-        if let State::Recording(recording_task) = std::mem::take(&mut self.state) {
+        if let State::Recording(recording_task, highlight_task) = std::mem::take(&mut self.state) {
             _ = recording_task.stop().await;
+            _ = highlight_task.stop().await;
         }
 
         Ok(())
@@ -118,13 +120,16 @@ impl GameListener {
                     phase: GamePhase::GameStart | GamePhase::InProgress,
                     game_data: GameData { queue, game_id },
                 }) if queue.is_ranked || !self.ctx.app_handle.state::<SettingsWrapper>().only_record_ranked() => {
-                    State::Recording(RecordingTask::new(self.ctx.game_ctx(game_id)))
+                    State::Recording(
+                        RecordingTask::new(self.ctx.game_ctx(game_id)),
+                        HighlightTask::new(self.ctx.app_handle.clone()),
+                    )
                 }
                 _ => State::Idle,
             },
 
             // wait for game to end => stop recording
-            State::Recording(recording_task) => match sub_resp {
+            State::Recording(recording_task, highlight_task) => match sub_resp {
                 SubscriptionResponse::Session(SessionEventData {
                     phase:
                         phase @ (GamePhase::FailedToLaunch
@@ -136,15 +141,33 @@ impl GameListener {
                     log::info!("stopping recording due to session event phase: {phase:?}");
 
                     // make sure the task stops e.g. maybe IngameAPI didn't start => caught in waiting for game loop
+                    let highlight_data = highlight_task.stop().await;
                     match recording_task.stop().await {
-                        Ok(metadata) => State::EndOfGame(metadata),
+                        Ok(metadata) => {
+                            let mut metadata_filepath = metadata.output_filepath.clone();
+                            metadata_filepath.set_extension("json");
+
+                            if let Ok(MetadataFile::Deferred(mut deferred)) =
+                                action::get_recording_metadata(&metadata_filepath, false)
+                            {
+                                deferred.highlights = highlight_data;
+                                if let Err(e) = action::save_recording_metadata(
+                                    &metadata_filepath,
+                                    &MetadataFile::Deferred(deferred),
+                                ) {
+                                    log::warn!("failed to write highlight data to deferred metadata file: {e}");
+                                }
+                            }
+
+                            State::EndOfGame(metadata)
+                        }
                         Err(e) => {
                             log::error!("stopped recording task: {e}");
                             State::Idle
                         }
                     }
                 }
-                _ => State::Recording(recording_task),
+                _ => State::Recording(recording_task, highlight_task),
             },
 
             // wait for game-data to become available
@@ -179,7 +202,14 @@ impl GameListener {
                         )
                         .await
                         {
-                            Ok(game_metadata) => {
+                            Ok(mut game_metadata) => {
+                                if let Ok(MetadataFile::Deferred(deferred)) =
+                                    action::get_recording_metadata(&metadata_filepath, false)
+                                {
+                                    game_metadata.favorite = deferred.favorite;
+                                    game_metadata.highlights = deferred.highlights;
+                                }
+
                                 let result = action::save_recording_metadata(
                                     &metadata_filepath,
                                     &crate::recorder::MetadataFile::Metadata(game_metadata),

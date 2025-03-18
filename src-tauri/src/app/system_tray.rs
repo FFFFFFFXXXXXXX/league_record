@@ -56,7 +56,7 @@ impl SystemTrayManager for AppHandle {
             .on_tray_icon_event(handle_system_tray_event)
             .menu(&create_tray_menu(self))
             .on_menu_event(handle_system_tray_menu_event)
-            .menu_on_left_click(false)
+            .show_menu_on_left_click(false)
             .build(self)
             .unwrap();
     }

@@ -5,7 +5,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use log::LevelFilter;
 use semver::Version;
-use tauri::{async_runtime, AppHandle, Manager};
+use tauri::{async_runtime, AppHandle, Emitter, EventTarget, Manager};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_updater::UpdaterExt;
@@ -81,6 +81,19 @@ impl AppManager for AppHandle {
 
         // make sure the system autostart setting for the app matches what is set in the settings
         self.sync_autostart();
+
+        // todo: listen for keyboard shortcut from settings
+        std::thread::spawn({
+            let app_handle = self.clone();
+
+            || {
+                rdev::listen(move |event| {
+                    if event.event_type == rdev::EventType::KeyPress(rdev::Key::F1) {
+                        let _ = app_handle.emit_to(EventTarget::App, "shortcut-event", "");
+                    }
+                })
+            }
+        });
 
         // start watching recordings folder for changes
         let recordings_path = settings.get_recordings_path();

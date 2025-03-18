@@ -8,6 +8,13 @@ pub enum AppWindow {
     Main,
 }
 
+impl From<AppWindow> for String {
+    fn from(value: AppWindow) -> Self {
+        let str: &str = value.into();
+        str.to_string()
+    }
+}
+
 pub trait WindowManager {
     fn open_window(&self, window: AppWindow);
 

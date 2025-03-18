@@ -1,5 +1,6 @@
 mod data;
 mod game_listener;
+mod highlight_task;
 mod league_recorder;
 mod metadata;
 mod recording_task;

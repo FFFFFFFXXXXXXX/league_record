@@ -75,6 +75,7 @@ notify = { version = "6.1.1", default-features = false, features = [
     "macos_kqueue",
 ] }
 semver = "1.0.23"
+rdev = "0.5.3"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.58.0", features = [

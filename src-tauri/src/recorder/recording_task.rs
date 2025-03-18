@@ -7,7 +7,6 @@ use shaco::ingame::IngameClient;
 use tauri::async_runtime::{self, JoinHandle};
 use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
-use tokio::select;
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 
@@ -123,9 +122,10 @@ impl RecordingTask {
             .unwrap_or_default();
 
         let metadata_file = MetadataFile::Deferred(Deferred {
+            favorite: false,
             match_id: ctx.match_id.clone(),
             ingame_time_rec_start_offset,
-            favorite: false,
+            highlights: vec![],
         });
         if let Err(e) = action::save_recording_metadata(&output_filepath, &metadata_file) {
             log::info!("failed to save MetadataFile: {e}")

@@ -5,7 +5,7 @@ use riot_datatypes::lcu::{Game, Player};
 use riot_datatypes::{Champion, MatchId, Queue, Timeline};
 use riot_local_auth::Credentials;
 use shaco::rest::LcuRestClient;
-use tokio::{select, time::sleep, try_join};
+use tokio::{time::sleep, try_join};
 use tokio_util::sync::CancellationToken;
 
 use super::{GameEvent, GameMetadata};
@@ -85,15 +85,16 @@ pub async fn process_data(ingame_time_rec_start_offset: f64, match_id: MatchId) 
         .collect();
 
     Ok(GameMetadata {
+        favorite: false,
         match_id,
         ingame_time_rec_start_offset,
+        highlights: vec![],
         queue,
         player,
         champion_name,
         stats: participant.stats,
         participant_id,
         events,
-        favorite: false,
     })
 }
 
@@ -194,14 +195,15 @@ pub async fn process_data_with_retry(
         .collect();
 
     Ok(GameMetadata {
+        favorite: false,
         match_id,
         ingame_time_rec_start_offset,
+        highlights: vec![],
         queue,
         player,
         champion_name,
         stats: participant.stats,
         participant_id,
         events,
-        favorite: false,
     })
 }

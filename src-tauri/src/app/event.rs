@@ -16,13 +16,20 @@ pub trait EventManager {
 
 impl EventManager for tauri::AppHandle {
     fn send_event(&self, event: AppEvent) -> anyhow::Result<()> {
-        use tauri::Emitter;
+        use crate::app::AppWindow;
+        use tauri::{Emitter, EventTarget};
         use AppEvent::*;
 
         match &event {
-            RecordingsChanged { payload } => self.emit((&event).into(), payload)?,
-            MetadataChanged { payload } => self.emit((&event).into(), payload)?,
-            MarkerflagsChanged { payload } => self.emit((&event).into(), payload)?,
+            RecordingsChanged { payload } => {
+                self.emit_to(EventTarget::webview_window(AppWindow::Main), (&event).into(), payload)?
+            }
+            MetadataChanged { payload } => {
+                self.emit_to(EventTarget::webview_window(AppWindow::Main), (&event).into(), payload)?
+            }
+            MarkerflagsChanged { payload } => {
+                self.emit_to(EventTarget::webview_window(AppWindow::Main), (&event).into(), payload)?
+            }
         };
 
         Ok(())

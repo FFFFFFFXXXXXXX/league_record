@@ -3,7 +3,6 @@ use std::time::Duration;
 use shaco::rest::LcuRestClient;
 use tauri::async_runtime::{self, JoinHandle, Mutex};
 use tauri::AppHandle;
-use tokio::select;
 use tokio::time::{sleep, timeout};
 use tokio_util::sync::CancellationToken;
 

@@ -189,14 +189,12 @@ pub mod action {
                 match_id,
                 ingame_time_rec_start_offset,
                 favorite,
-            }) => {
-                if !fetch {
-                    bail!("deferred, no metadata");
-                }
-
+                highlights,
+            }) if fetch => {
                 let mut metadata =
                     async_runtime::block_on(recorder::process_data(ingame_time_rec_start_offset, match_id))?;
                 metadata.favorite = favorite;
+                metadata.highlights = highlights;
                 let metadata_file = MetadataFile::Metadata(metadata);
                 if let Err(e) = save_recording_metadata(&metadata_path, &metadata_file) {
                     log::error!("failed to save re-processed game metadata: {e}");

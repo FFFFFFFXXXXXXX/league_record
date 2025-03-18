@@ -33,24 +33,26 @@ impl MetadataFile {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameMetadata {
+    pub favorite: bool,
     pub match_id: MatchId,
     pub ingame_time_rec_start_offset: f64,
+    pub highlights: Vec<f64>,
     pub queue: Queue,
     pub player: lcu::Player,
     pub champion_name: String,
     pub stats: lcu::Stats,
     pub participant_id: ParticipantId,
     pub events: Vec<GameEvent>,
-    pub favorite: bool,
 }
 
 #[cfg_attr(test, derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Deferred {
+    pub favorite: bool,
     pub match_id: MatchId,
     pub ingame_time_rec_start_offset: f64,
-    pub favorite: bool,
+    pub highlights: Vec<f64>,
 }
 
 #[cfg_attr(test, derive(specta::Type))]
