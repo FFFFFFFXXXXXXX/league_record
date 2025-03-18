@@ -6,19 +6,19 @@ use anyhow::Result;
 #[macro_export]
 macro_rules! cancellable {
     ($function:expr, $cancel_token:expr, Option) => {
-        select! {
+        tokio::select! {
             option = $function => option,
             _ = $cancel_token.cancelled() => None
         }
     };
     ($function:expr, $cancel_token:expr, Result) => {
-        select! {
+        tokio::select! {
             result = $function => result.map_err(|e| anyhow::anyhow!("{e}")),
             _ = $cancel_token.cancelled() => Err(anyhow::anyhow!("cancelled"))
         }
     };
     ($function:expr, $cancel_token:expr, ()) => {
-        select! {
+        tokio::select! {
             _ = $function => false,
             _ = $cancel_token.cancelled() => true
         }
