@@ -22,11 +22,11 @@
     "@tauri-apps/plugin-clipboard-manager": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.0.0",
     "@tauri-apps/plugin-updater": "^2.0.0",
-    "video.js": "^8.10.0"
+    "video.js": "^8.22.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.0"
+    "typescript": "^5.8.2",
+    "vite": "^6.2.2"
   }
 }

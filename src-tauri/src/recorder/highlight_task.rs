@@ -33,7 +33,9 @@ impl HighlightTask {
                 loop {
                     match cancellable!(rx.recv(), cancel_token, Option) {
                         Some(()) => {
-                            if let Ok(timestamp) = ingame_client.game_stats().await.map(|stats| stats.game_time) {
+                            if let Ok(timestamp) =
+                                ingame_client.game_stats().await.map(|stats| stats.game_time * 1000.0)
+                            {
                                 highlight_timestamps.push(timestamp);
                             }
                         }

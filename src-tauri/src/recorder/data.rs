@@ -36,6 +36,7 @@ pub struct GameMetadata {
     pub favorite: bool,
     pub match_id: MatchId,
     pub ingame_time_rec_start_offset: f64,
+    #[serde(default)]
     pub highlights: Vec<f64>,
     pub queue: Queue,
     pub player: lcu::Player,
@@ -52,6 +53,7 @@ pub struct Deferred {
     pub favorite: bool,
     pub match_id: MatchId,
     pub ingame_time_rec_start_offset: f64,
+    #[serde(default)]
     pub highlights: Vec<f64>,
 }
 

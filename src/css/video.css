@@ -117,6 +117,11 @@ video {
     z-index: 6;
 }
 
+.vjs-marker.highlight {
+    background-color: mediumturquoise !important;
+    z-index: 7;
+}
+
 /* CHECKBOX LABELS */
 #kill {
     accent-color: lawngreen;
