@@ -23,10 +23,5 @@
     "@tauri-apps/plugin-dialog": "^2.0.0",
     "@tauri-apps/plugin-updater": "^2.0.0",
     "video.js": "^8.22.0"
-  },
-  "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0",
-    "typescript": "^5.8.2",
-    "vite": "^6.2.2"
   }
 }

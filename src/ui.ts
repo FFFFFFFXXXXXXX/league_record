@@ -3,8 +3,8 @@ import type { ContentDescriptor } from 'video.js/dist/types/utils/dom';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import * as clipboard from '@tauri-apps/plugin-clipboard-manager';
 
-import { commands, type GameMetadata, type MarkerFlags, type MetadataFile, type Recording } from './bindings';
-import { toVideoId, toVideoName } from './util';
+import { commands, type GameMetadata, type MarkerFlags, type MetadataFile, type Recording } from './bindings.ts';
+import { toVideoId, toVideoName } from './util.ts';
 
 const appWindow = getCurrentWebviewWindow()
 
@@ -30,9 +30,9 @@ export default class UI {
 
     private readonly showTimestampsButton;
 
-    private readonly vjs: typeof videojs;
+    private readonly vjs: typeof videojs.default;
 
-    constructor(vjs: typeof videojs) {
+    constructor(vjs: typeof videojs.default) {
         this.vjs = vjs;
 
         this.modal = document.querySelector<HTMLDivElement>('#modal')!;

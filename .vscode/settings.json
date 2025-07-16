@@ -3,5 +3,7 @@
     "rust-analyzer.cargo.buildScripts.enable": true,
     "rust-analyzer.linkedProjects": [
         "src-tauri/Cargo.toml"
-    ]
+    ],
+    "deno.enable": true,
+    "deno.path": "C:/Users/Felix/AppData/Local/Microsoft/WinGet/Packages/DenoLand.Deno_Microsoft.Winget.Source_8wekyb3d8bbwe/deno.exe"
 }

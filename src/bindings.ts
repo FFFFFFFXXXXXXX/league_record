@@ -5,51 +5,51 @@
 
 
 export const commands = {
-async getMarkerFlags() : Promise<MarkerFlags> {
-    return await TAURI_INVOKE("get_marker_flags");
-},
-async setMarkerFlags(markerFlags: MarkerFlags) : Promise<void> {
-    await TAURI_INVOKE("set_marker_flags", { markerFlags });
-},
-async getRecordingsPath() : Promise<string> {
-    return await TAURI_INVOKE("get_recordings_path");
-},
-async getRecordingsSize() : Promise<number> {
-    return await TAURI_INVOKE("get_recordings_size");
-},
-async getRecordingsList() : Promise<Recording[]> {
-    return await TAURI_INVOKE("get_recordings_list");
-},
-async openRecordingsFolder() : Promise<void> {
-    await TAURI_INVOKE("open_recordings_folder");
-},
-async deleteVideo(videoId: string) : Promise<boolean> {
-    return await TAURI_INVOKE("delete_video", { videoId });
-},
-async renameVideo(videoId: string, newVideoId: string) : Promise<boolean> {
-    return await TAURI_INVOKE("rename_video", { videoId, newVideoId });
-},
-async getMetadata(videoId: string) : Promise<MetadataFile | null> {
-    return await TAURI_INVOKE("get_metadata", { videoId });
-},
-async toggleFavorite(videoId: string) : Promise<boolean | null> {
-    return await TAURI_INVOKE("toggle_favorite", { videoId });
-},
-async confirmDelete() : Promise<boolean> {
-    return await TAURI_INVOKE("confirm_delete");
-},
-async disableConfirmDelete() : Promise<void> {
-    await TAURI_INVOKE("disable_confirm_delete");
-}
+	async getMarkerFlags(): Promise<MarkerFlags> {
+		return await TAURI_INVOKE("get_marker_flags");
+	},
+	async setMarkerFlags(markerFlags: MarkerFlags): Promise<void> {
+		await TAURI_INVOKE("set_marker_flags", { markerFlags });
+	},
+	async getRecordingsPath(): Promise<string> {
+		return await TAURI_INVOKE("get_recordings_path");
+	},
+	async getRecordingsSize(): Promise<number> {
+		return await TAURI_INVOKE("get_recordings_size");
+	},
+	async getRecordingsList(): Promise<Recording[]> {
+		return await TAURI_INVOKE("get_recordings_list");
+	},
+	async openRecordingsFolder(): Promise<void> {
+		await TAURI_INVOKE("open_recordings_folder");
+	},
+	async deleteVideo(videoId: string): Promise<boolean> {
+		return await TAURI_INVOKE("delete_video", { videoId });
+	},
+	async renameVideo(videoId: string, newVideoId: string): Promise<boolean> {
+		return await TAURI_INVOKE("rename_video", { videoId, newVideoId });
+	},
+	async getMetadata(videoId: string): Promise<MetadataFile | null> {
+		return await TAURI_INVOKE("get_metadata", { videoId });
+	},
+	async toggleFavorite(videoId: string): Promise<boolean | null> {
+		return await TAURI_INVOKE("toggle_favorite", { videoId });
+	},
+	async confirmDelete(): Promise<boolean> {
+		return await TAURI_INVOKE("confirm_delete");
+	},
+	async disableConfirmDelete(): Promise<void> {
+		await TAURI_INVOKE("disable_confirm_delete");
+	}
 }
 
 /** user-defined events **/
 
 
 export const events = __makeEvents__<{
-appEvent: AppEvent
+	appEvent: AppEvent
 }>({
-appEvent: "app-event"
+	appEvent: "app-event"
 })
 
 /** user-defined constants **/
@@ -74,13 +74,15 @@ export type Player = { gameName: string; tagLine: string; summonerId?: number | 
 export type Position = { x: number; y: number }
 export type Queue = { id: number; name: string; isRanked: boolean }
 export type Recording = { videoId: string; metadata: MetadataFile | null }
-export type Stats = { kills: number; deaths: number; assists: number; largestMultiKill: number; neutralMinionsKilled: number; neutralMinionsKilledEnemyJungle: number; neutralMinionsKilledTeamJungle: number; totalMinionsKilled: number; visionScore: number; visionWardsBoughtInGame: number; wardsPlaced: number; wardsKilled: number; 
-/**
- * remake
- * if this field is true `win` has to be ignored because the team that had to remake counts as the loser of the game
- * surrenders pre minute 20 count as a normal surrender (field `game_ended_in_surrender`)
- */
-gameEndedInEarlySurrender: boolean; gameEndedInSurrender: boolean; win: boolean }
+export type Stats = {
+	kills: number; deaths: number; assists: number; largestMultiKill: number; neutralMinionsKilled: number; neutralMinionsKilledEnemyJungle: number; neutralMinionsKilledTeamJungle: number; totalMinionsKilled: number; visionScore: number; visionWardsBoughtInGame: number; wardsPlaced: number; wardsKilled: number;
+	/**
+	 * remake
+	 * if this field is true `win` has to be ignored because the team that had to remake counts as the loser of the game
+	 * surrenders pre minute 20 count as a normal surrender (field `game_ended_in_surrender`)
+	 */
+	gameEndedInEarlySurrender: boolean; gameEndedInSurrender: boolean; win: boolean
+}
 export type Team = "BLUE" | "RED"
 export type TowerType = "OUTER_TURRET" | "INNER_TURRET" | "BASE_TURRET" | "NEXUS_TURRET"
 
@@ -101,8 +103,8 @@ type __EventObj__<T> = {
 		cb: TAURI_API_EVENT.EventCallback<T>,
 	) => ReturnType<typeof TAURI_API_EVENT.once<T>>;
 	emit: null extends T
-		? (payload?: T) => ReturnType<typeof TAURI_API_EVENT.emit>
-		: (payload: T) => ReturnType<typeof TAURI_API_EVENT.emit>;
+	? (payload?: T) => ReturnType<typeof TAURI_API_EVENT.emit>
+	: (payload: T) => ReturnType<typeof TAURI_API_EVENT.emit>;
 };
 
 export type Result<T, E> =
@@ -122,7 +124,7 @@ function __makeEvents__<T extends Record<string, any>>(
 			get: (_, event) => {
 				const name = mappings[event as keyof T];
 
-				return new Proxy((() => {}) as any, {
+				return new Proxy((() => { }) as any, {
 					apply: (_, __, [window]: [__WebviewWindow__]) => ({
 						listen: (arg: any) => window.listen(name, arg),
 						once: (arg: any) => window.once(name, arg),

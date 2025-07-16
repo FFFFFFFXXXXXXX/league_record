@@ -11,16 +11,16 @@ import { type MarkerOptions, MarkersPlugin, type Settings } from "@fffffffxxxxxx
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { join, sep } from "@tauri-apps/api/path";
 
-import { commands, type GameEvent, type MarkerFlags } from "./bindings";
-import ListenerManager from "./listeners";
-import UI from "./ui";
-import { splitRight, UnreachableError } from "./util";
+import { commands, type GameEvent, type MarkerFlags } from "./bindings.ts";
+import ListenerManager from "./listeners.ts";
+import UI from "./ui.ts";
+import { splitRight, UnreachableError } from "./util.ts";
 
 // sets the time a marker jumps to before the actual event happens
 // jumps to (eventTime - EVENT_DELAY) when a marker is clicked
 const EVENT_DELAY = 2;
 
-const ui = new UI(videojs);
+const ui = new UI(videojs.default);
 
 type RecordingEvents = {
     participantId: number;
@@ -46,7 +46,7 @@ const VIDEO_JS_OPTIONS = {
     notSupportedMessage: " ",
 };
 
-const player = videojs("video_player", VIDEO_JS_OPTIONS) as Player & {
+const player = videojs.default("video_player", VIDEO_JS_OPTIONS) as Player.default & {
     markers: (settings?: Settings) => MarkersPlugin;
 };
 
