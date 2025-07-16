@@ -370,10 +370,10 @@ pub struct MarkerFlags {
     kill: bool,
     death: bool,
     assist: bool,
-    turret: bool,
-    inhibitor: bool,
+    structure: bool,
     dragon: bool,
     herald: bool,
+    atakhan: bool,
     baron: bool,
 }
 
@@ -409,17 +409,17 @@ impl<'de> Deserialize<'de> for MarkerFlags {
                         "assist" => {
                             marker_flags.assist = map.next_value().unwrap_or(true);
                         }
-                        "turret" => {
-                            marker_flags.turret = map.next_value().unwrap_or(true);
-                        }
-                        "inhibitor" => {
-                            marker_flags.inhibitor = map.next_value().unwrap_or(true);
+                        "structure" => {
+                            marker_flags.structure = map.next_value().unwrap_or(true);
                         }
                         "dragon" => {
                             marker_flags.dragon = map.next_value().unwrap_or(true);
                         }
                         "herald" => {
                             marker_flags.herald = map.next_value().unwrap_or(true);
+                        }
+                        "atakhan" => {
+                            marker_flags.atakhan = map.next_value().unwrap_or(true);
                         }
                         "baron" => {
                             marker_flags.baron = map.next_value().unwrap_or(true);
@@ -442,8 +442,8 @@ impl Default for MarkerFlags {
             kill: true,
             death: true,
             assist: true,
-            turret: true,
-            inhibitor: true,
+            structure: true,
+            atakhan: true,
             dragon: true,
             herald: true,
             baron: true,

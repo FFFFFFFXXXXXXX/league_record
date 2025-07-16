@@ -136,6 +136,7 @@ pub enum TowerType {
 pub enum MonsterType {
     Horde,
     Riftherald,
+    Atakhan,
     BaronNashor,
     Dragon {
         #[serde(rename = "monsterSubType")]
