@@ -20,7 +20,7 @@ pub trait AppManager {
 
     fn setup(&self) -> Result<()>;
 
-    fn initialize_settings(&self, config_folder: &Path) -> Result<tauri::State<SettingsWrapper>>;
+    fn initialize_settings(&self, config_folder: &Path) -> Result<tauri::State<'_, SettingsWrapper>>;
 
     fn check_for_update(&self, callback: impl FnOnce(AppHandle) + Send + 'static);
     fn update(&self);
@@ -113,7 +113,7 @@ impl AppManager for AppHandle {
         Ok(())
     }
 
-    fn initialize_settings(&self, config_folder: &Path) -> Result<tauri::State<SettingsWrapper>> {
+    fn initialize_settings(&self, config_folder: &Path) -> Result<tauri::State<'_, SettingsWrapper>> {
         let settings_file = config_folder.join(Self::SETTINGS_FILE);
         // create settings.json file if missing
         SettingsWrapper::ensure_settings_exist(&settings_file);
