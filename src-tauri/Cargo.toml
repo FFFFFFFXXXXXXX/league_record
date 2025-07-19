@@ -16,18 +16,18 @@ libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git
 riot_local_auth = { git = "https://github.com/FFFFFFFXXXXXXX/riot_local_auth" }
 shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
 
-tokio = { version = "1.36.0", default-features = false }
-tokio-util = { version = "0.7.10", default-features = false }
-futures-util = { version = "0.3.30", default-features = false }
+tokio = { version = "1.46.1", default-features = false }
+tokio-util = { version = "0.7.15", default-features = false }
+futures-util = { version = "0.3.31", default-features = false }
 
-serde = "1.0.196"
-serde_repr = "0.1.18"
-serde_json = "1.0.113"
+serde = "1.0.219"
+serde_repr = "0.1.20"
+serde_json = "1.0.141"
 
-anyhow = "1.0.79"
-log = "0.4.20"
-chrono = "0.4.33"
-strum_macros = "0.26.2"
+anyhow = "1.0.98"
+log = "0.4.27"
+chrono = "0.4.41"
+strum_macros = "0.27.1"
 
 specta = "=2.0.0-rc.22"
 specta-typescript = "0.0.9"
@@ -45,13 +45,13 @@ authors = { workspace = true }
 license = { workspace = true }
 
 [dependencies]
-tauri = { version = "2.0.0", features = ["protocol-asset", "tray-icon"] }
-tauri-plugin-updater = "2.0.0"
-tauri-plugin-autostart = "2.0.0"
-tauri-plugin-single-instance = "2.0.0"
-tauri-plugin-log = "2.0.0"
-tauri-plugin-dialog = "2.0.0"
-tauri-plugin-clipboard-manager = "2.0.0"
+tauri = { version = "2.6.2", features = ["protocol-asset", "tray-icon"] }
+tauri-plugin-updater = "2.9.0"
+tauri-plugin-autostart = "2.5.0"
+tauri-plugin-single-instance = "2.3.0"
+tauri-plugin-log = "2.6.0"
+tauri-plugin-dialog = "2.3.0"
+tauri-plugin-clipboard-manager = "2.1.11"
 
 tokio = { workspace = true, features = ["macros"] }
 tokio-util = { workspace = true, features = ["io"] }
@@ -78,14 +78,14 @@ semver = "1.0.23"
 rdev = "0.5.3"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows = { version = "0.58.0", features = [
+windows = { version = "0.61.3", features = [
     "Win32_Foundation",
     "Win32_UI_WindowsAndMessaging",
 ] }
 [target.'cfg(target_os = "macos")'.dependencies]
 
 [build-dependencies]
-tauri-build = { version = "2.0.0-rc" }
+tauri-build = { version = "2.3.0" }
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git", artifact = "bin:extprocess_recorder" }
 build-helper = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git" }
 
