@@ -97,7 +97,7 @@ impl AppManager for AppHandle {
 
         // start watching recordings folder for changes
         let recordings_path = settings.get_recordings_path();
-        log::info!("recordings folder: {:?}", recordings_path);
+        log::info!("recordings folder: {recordings_path:?}");
         filewatcher::replace(self, &recordings_path);
 
         // start checking for LoL games to record

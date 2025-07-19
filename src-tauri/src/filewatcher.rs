@@ -46,7 +46,7 @@ pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
                     }
 
                     if !json_paths.is_empty() {
-                        log::info!("filewatcher event json paths: {:?}", json_paths);
+                        log::info!("filewatcher event json paths: {json_paths:?}");
                         if let Err(e) = app_handle.send_event(AppEvent::MetadataChanged { payload: json_paths }) {
                             log::warn!("filewatcher failed to send event: {e:?}");
                         }
@@ -61,7 +61,7 @@ pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
                     }
 
                     if !json_paths.is_empty() {
-                        log::info!("filewatcher event json paths: {:?}", json_paths);
+                        log::info!("filewatcher event json paths: {json_paths:?}");
                         if let Err(e) = app_handle.send_event(AppEvent::MetadataChanged { payload: json_paths }) {
                             log::warn!("filewatcher failed to send event: {e:?}");
                         }
@@ -78,7 +78,7 @@ pub fn replace(app_handle: &AppHandle, recordings_path: &Path) {
                     }
 
                     if !json_paths.is_empty() {
-                        log::info!("filewatcher event json paths: {:?}", json_paths);
+                        log::info!("filewatcher event json paths: {json_paths:?}");
                         if let Err(e) = app_handle.send_event(AppEvent::MetadataChanged { payload: json_paths }) {
                             log::warn!("filewatcher failed to send event: {e:?}");
                         }
