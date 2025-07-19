@@ -234,6 +234,7 @@ type EventType =
     | "Inhibitor"
     | "Voidgrub"
     | "Herald"
+    | "Atakhan"
     | "Baron"
     | "Infernal-Dragon"
     | "Ocean-Dragon"
@@ -257,9 +258,9 @@ function eventName(gameEvent: GameEvent, participantId: number, checkbox: Marker
             return "Death";
         }
     } else if ("BuildingKill" in gameEvent) {
-        if ((checkbox?.turret ?? true) && "TOWER_BUILDING" in gameEvent.BuildingKill.building_type) {
+        if ((checkbox?.structure ?? true) && "TOWER_BUILDING" in gameEvent.BuildingKill.building_type) {
             return "Turret";
-        } else if ((checkbox?.inhibitor ?? true) && "INHIBITOR_BUILDING" in gameEvent.BuildingKill.building_type) {
+        } else if ((checkbox?.structure ?? true) && "INHIBITOR_BUILDING" in gameEvent.BuildingKill.building_type) {
             return "Inhibitor";
         }
     } else if ("EliteMonsterKill" in gameEvent) {
@@ -269,6 +270,8 @@ function eventName(gameEvent: GameEvent, participantId: number, checkbox: Marker
             return "Voidgrub";
         } else if ((checkbox?.herald ?? true) && monsterType.monsterType === "RIFTHERALD") {
             return "Herald";
+        } else if ((checkbox?.atakhan ?? true) && monsterType.monsterType === "ATAKHAN") {
+            return "Atakhan";
         } else if ((checkbox?.baron ?? true) && monsterType.monsterType === "BARON_NASHOR") {
             return "Baron";
         } else if ((checkbox?.dragon ?? true) && monsterType.monsterType === "DRAGON") {

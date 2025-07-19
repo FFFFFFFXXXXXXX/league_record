@@ -112,6 +112,11 @@ video {
     z-index: 4;
 }
 
+.vjs-marker.atakhan {
+    background-color: darkred !important;
+    z-index: 6;
+}
+
 .vjs-marker.baron {
     background-color: darkmagenta !important;
     z-index: 6;
@@ -149,6 +154,10 @@ video {
 
 #herald {
     accent-color: magenta;
+}
+
+#atakhan {
+    accent-color: darkred;
 }
 
 #baron {

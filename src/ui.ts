@@ -22,10 +22,10 @@ export default class UI {
     private readonly checkboxKill;
     private readonly checkboxDeath;
     private readonly checkboxAssist;
-    private readonly checkboxTurret;
-    private readonly checkboxInhibitor;
+    private readonly checkboxStructure;
     private readonly checkboxDragon;
     private readonly checkboxHerald;
+    private readonly checkboxAtakhan;
     private readonly checkboxBaron;
 
     private readonly showTimestampsButton;
@@ -47,10 +47,10 @@ export default class UI {
         this.checkboxKill = document.querySelector<HTMLInputElement>('#kill')!;
         this.checkboxDeath = document.querySelector<HTMLInputElement>('#death')!;
         this.checkboxAssist = document.querySelector<HTMLInputElement>('#assist')!;
-        this.checkboxTurret = document.querySelector<HTMLInputElement>('#turret')!;
-        this.checkboxInhibitor = document.querySelector<HTMLInputElement>('#inhibitor')!;
+        this.checkboxStructure = document.querySelector<HTMLInputElement>('#strcture')!;
         this.checkboxDragon = document.querySelector<HTMLInputElement>('#dragon')!;
         this.checkboxHerald = document.querySelector<HTMLInputElement>('#herald')!;
+        this.checkboxAtakhan = document.querySelector<HTMLInputElement>('#atakhan')!;
         this.checkboxBaron = document.querySelector<HTMLInputElement>('#baron')!;
 
         this.showTimestampsButton = document.querySelector<HTMLButtonElement>('#copy-timestamps-btn')!;
@@ -72,10 +72,10 @@ export default class UI {
         this.checkboxKill.onclick = handler;
         this.checkboxDeath.onclick = handler;
         this.checkboxAssist.onclick = handler;
-        this.checkboxTurret.onclick = handler;
-        this.checkboxInhibitor.onclick = handler;
+        this.checkboxStructure.onclick = handler;
         this.checkboxDragon.onclick = handler;
         this.checkboxHerald.onclick = handler;
+        this.checkboxAtakhan.onclick = handler;
         this.checkboxBaron.onclick = handler;
     }
 
@@ -392,10 +392,10 @@ export default class UI {
         this.checkboxKill.checked = settings.kill;
         this.checkboxDeath.checked = settings.death;
         this.checkboxAssist.checked = settings.assist;
-        this.checkboxTurret.checked = settings.turret;
-        this.checkboxInhibitor.checked = settings.inhibitor;
+        this.checkboxStructure.checked = settings.structure;
         this.checkboxDragon.checked = settings.dragon;
         this.checkboxHerald.checked = settings.herald;
+        this.checkboxAtakhan.checked = settings.atakhan;
         this.checkboxBaron.checked = settings.baron;
     }
 
@@ -404,10 +404,10 @@ export default class UI {
             kill: this.checkboxKill.checked,
             death: this.checkboxDeath.checked,
             assist: this.checkboxAssist.checked,
-            turret: this.checkboxTurret.checked,
-            inhibitor: this.checkboxInhibitor.checked,
+            structure: this.checkboxStructure.checked,
             dragon: this.checkboxDragon.checked,
             herald: this.checkboxHerald.checked,
+            atakhan: this.checkboxAtakhan.checked,
             baron: this.checkboxBaron.checked,
         };
     }
