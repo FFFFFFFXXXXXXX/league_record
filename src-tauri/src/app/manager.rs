@@ -244,24 +244,27 @@ impl AppManager for AppHandle {
         use std::time::Duration;
         use tauri::{Emitter, EventTarget};
 
-        if let Some(hotkey) = self.state::<SettingsWrapper>().hightlight_hotkey() {
-            let keylistener = self.state::<windows_key_listener::KeyListener>();
-            keylistener.unlisten();
-
-            if let Err(e) = keylistener.listen(
-                &hotkey.clone(),
-                Duration::from_millis(200),
-                Arc::new({
-                    let app_handle = self.clone();
-                    move || {
-                        log::info!("hotkey triggered: {hotkey}");
-                        let _ = app_handle.emit_to(EventTarget::App, "shortcut-event", "");
-                        true
+        _ = self.run_on_main_thread({
+            let app_handle = self.clone();
+            move || {
+                let keylistener = app_handle.state::<windows_key_listener::KeyListener>();
+                keylistener.unlisten();
+                if let Some(hotkey) = app_handle.state::<SettingsWrapper>().hightlight_hotkey() {
+                    if let Err(e) = keylistener.listen(
+                        &hotkey,
+                        Duration::from_millis(200),
+                        Arc::new({
+                            let app_handle = app_handle.clone();
+                            move || {
+                                let _ = app_handle.emit_to(EventTarget::App, "shortcut-event", "");
+                                true
+                            }
+                        }),
+                    ) {
+                        log::error!("failed to register key-listener: {e}");
                     }
-                }),
-            ) {
-                log::error!("failed to register key-listener: {e}");
+                }
             }
-        }
+        });
     }
 }
