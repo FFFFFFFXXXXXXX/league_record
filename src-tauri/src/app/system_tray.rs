@@ -35,6 +35,7 @@ fn handle_system_tray_menu_event(app_handle: &AppHandle, event: MenuEvent) {
             async_runtime::spawn({
                 let app_handle = app_handle.clone();
                 async move {
+                    app_handle.state::<windows_key_listener::KeyListener>().unlisten();
                     app_handle.state::<LeagueRecorder>().stop().await;
 
                     app_handle.state::<Shutdown>().set();

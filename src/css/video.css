@@ -80,11 +80,7 @@ video {
     z-index: 5;
 }
 
-.vjs-marker.turret {
-    background-color: brown !important;
-    z-index: 4;
-}
-
+.vjs-marker.turret,
 .vjs-marker.inhibitor {
     background-color: mediumblue !important;
     z-index: 4;
@@ -140,11 +136,7 @@ video {
     accent-color: red;
 }
 
-#turret {
-    accent-color: brown;
-}
-
-#inhibitor {
+#structure {
     accent-color: mediumblue;
 }
 

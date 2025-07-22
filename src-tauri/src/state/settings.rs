@@ -83,9 +83,10 @@ impl SettingsWrapper {
 
             if SettingsWrapper::ensure_settings_exist(settings_file) {
                 let settings = app_handle.state::<SettingsWrapper>();
-                let old_marker_flags = settings.get_marker_flags();
                 let old_recordings_path = settings.get_recordings_path();
+                let old_marker_flags = settings.get_marker_flags();
                 let old_log = settings.debug_log();
+                let old_hightlight_hotkey = settings.hightlight_hotkey();
 
                 // hardcode 'notepad' since league_record currently only works on windows anyways
                 if let Err(e) = Command::new("notepad").arg(settings_file).status() {
@@ -127,6 +128,11 @@ impl SettingsWrapper {
                     if let Err(e) = app_handle.send_event(AppEvent::MarkerflagsChanged { payload: () }) {
                         log::error!("failed to emit 'markerflags_changed' event: {e}");
                     }
+                }
+
+                let hightlight_hotkey = settings.hightlight_hotkey();
+                if hightlight_hotkey != old_hightlight_hotkey {
+                    app_handle.update_hightlight_hotkey();
                 }
 
                 app_handle.cleanup_recordings();
@@ -198,6 +204,10 @@ impl SettingsWrapper {
         self.0.write().unwrap().confirm_delete = confirm_delete;
     }
 
+    pub fn hightlight_hotkey(&self) -> Option<String> {
+        self.0.read().unwrap().hightlight_hotkey.clone()
+    }
+
     pub fn ensure_settings_exist(settings_file: &Path) -> bool {
         if !settings_file.is_file() {
             // get directory of settings file
@@ -237,6 +247,7 @@ pub struct Settings {
     max_recording_age_days: Option<u64>,
     max_recordings_size_gb: Option<u64>,
     confirm_delete: bool,
+    hightlight_hotkey: Option<String>,
 }
 
 const DEFAULT_UPDATE_CHECK: bool = true;
@@ -281,6 +292,7 @@ impl Default for Settings {
             max_recording_age_days: DEFAULT_MAX_RECORDING_AGE_DAYS,
             max_recordings_size_gb: DEFAULT_MAX_RECORDINGS_SIZE_GB,
             confirm_delete: DEFAULT_CONFIRM_DELETE,
+            hightlight_hotkey: None,
         }
     }
 }
@@ -311,9 +323,7 @@ impl<'de> Deserialize<'de> for Settings {
                             settings.check_for_updates = map.next_value().unwrap_or(DEFAULT_UPDATE_CHECK);
                         }
                         "markerFlags" => {
-                            settings.marker_flags = map
-                                .next_value()
-                                .expect("MarkerFlags deserialization should be Infallible");
+                            settings.marker_flags = map.next_value().unwrap_or_default();
                         }
                         "debugLog" => settings.debug_log = map.next_value().unwrap_or(DEFAULT_DEBUG_LOG),
                         "recordingsFolder" => {
@@ -351,6 +361,9 @@ impl<'de> Deserialize<'de> for Settings {
                         }
                         "confirmDelete" => {
                             settings.confirm_delete = map.next_value().unwrap_or(DEFAULT_CONFIRM_DELETE);
+                        }
+                        "hightlightHotkey" => {
+                            settings.hightlight_hotkey = map.next_value().ok();
                         }
                         _ => { /* ignored */ }
                     }

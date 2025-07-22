@@ -60,10 +60,10 @@ appEvent: "app-event"
 
 export type AppEvent = { type: "RecordingsChanged"; payload: null } | { type: "MetadataChanged"; payload: string[] } | { type: "MarkerflagsChanged"; payload: null }
 export type BuildingType = { buildingType: "INHIBITOR_BUILDING"; lane_type: LaneType } | { buildingType: "TOWER_BUILDING"; lane_type: LaneType; tower_type: TowerType }
-export type Deferred = { favorite: boolean; matchId: MatchId; ingameTimeRecStartOffset: number; highlights: number[] }
+export type Deferred = { favorite: boolean; matchId: MatchId; ingameTimeRecStartOffset: number; highlights?: number[] }
 export type DragonType = "FIRE_DRAGON" | "EARTH_DRAGON" | "WATER_DRAGON" | "AIR_DRAGON" | "HEXTECH_DRAGON" | "CHEMTECH_DRAGON" | "ELDER_DRAGON"
 export type GameEvent = ({ ChampionKill: { victim_id: number; killer_id: number; assisting_participant_ids: number[]; position: Position } } | { BuildingKill: { team_id: Team; killer_id: number; building_type: BuildingType; assisting_participant_ids: number[] } } | { EliteMonsterKill: { killer_id: number; monster_type: MonsterType; assisting_participant_ids: number[] } }) & { timestamp: number }
-export type GameMetadata = { favorite: boolean; matchId: MatchId; ingameTimeRecStartOffset: number; highlights: number[]; queue: Queue; player: Player; championName: string; stats: Stats; participantId: number; events: GameEvent[] }
+export type GameMetadata = { favorite: boolean; matchId: MatchId; ingameTimeRecStartOffset: number; highlights?: number[]; queue: Queue; player: Player; championName: string; stats: Stats; participantId: number; events: GameEvent[] }
 export type LaneType = "TOP_LANE" | "MID_LANE" | "BOT_LANE"
 export type MarkerFlags = { kill: boolean; death: boolean; assist: boolean; structure: boolean; dragon: boolean; herald: boolean; atakhan: boolean; baron: boolean }
 export type MatchId = { gameId: number; platformId: string }

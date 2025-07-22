@@ -5,7 +5,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use log::LevelFilter;
 use semver::Version;
-use tauri::{async_runtime, AppHandle, Emitter, EventTarget, Manager};
+use tauri::{async_runtime, AppHandle, Manager};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_updater::UpdaterExt;
@@ -29,6 +29,8 @@ pub trait AppManager {
     fn remove_log_plugin(&self);
 
     fn sync_autostart(&self);
+
+    fn update_hightlight_hotkey(&self);
 }
 
 impl AppManager for AppHandle {
@@ -82,18 +84,7 @@ impl AppManager for AppHandle {
         // make sure the system autostart setting for the app matches what is set in the settings
         self.sync_autostart();
 
-        // todo: listen for keyboard shortcut from settings
-        std::thread::spawn({
-            let app_handle = self.clone();
-
-            || {
-                rdev::listen(move |event| {
-                    if event.event_type == rdev::EventType::KeyPress(rdev::Key::F1) {
-                        let _ = app_handle.emit_to(EventTarget::App, "shortcut-event", "");
-                    }
-                })
-            }
-        });
+        self.update_hightlight_hotkey();
 
         // start watching recordings folder for changes
         let recordings_path = settings.get_recordings_path();
@@ -244,6 +235,32 @@ impl AppManager for AppHandle {
             }
             Err(error) => {
                 log::warn!("unable to get current autostart state: {error:?}");
+            }
+        }
+    }
+
+    fn update_hightlight_hotkey(&self) {
+        use std::sync::Arc;
+        use std::time::Duration;
+        use tauri::{Emitter, EventTarget};
+
+        if let Some(hotkey) = self.state::<SettingsWrapper>().hightlight_hotkey() {
+            let keylistener = self.state::<windows_key_listener::KeyListener>();
+            keylistener.unlisten();
+
+            if let Err(e) = keylistener.listen(
+                &hotkey.clone(),
+                Duration::from_millis(200),
+                Arc::new({
+                    let app_handle = self.clone();
+                    move || {
+                        log::info!("hotkey triggered: {hotkey}");
+                        let _ = app_handle.emit_to(EventTarget::App, "shortcut-event", "");
+                        true
+                    }
+                }),
+            ) {
+                log::error!("failed to register key-listener: {e}");
             }
         }
     }

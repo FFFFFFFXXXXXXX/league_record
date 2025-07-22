@@ -47,7 +47,7 @@ export default class UI {
         this.checkboxKill = document.querySelector<HTMLInputElement>('#kill')!;
         this.checkboxDeath = document.querySelector<HTMLInputElement>('#death')!;
         this.checkboxAssist = document.querySelector<HTMLInputElement>('#assist')!;
-        this.checkboxStructure = document.querySelector<HTMLInputElement>('#strcture')!;
+        this.checkboxStructure = document.querySelector<HTMLInputElement>('#structure')!;
         this.checkboxDragon = document.querySelector<HTMLInputElement>('#dragon')!;
         this.checkboxHerald = document.querySelector<HTMLInputElement>('#herald')!;
         this.checkboxAtakhan = document.querySelector<HTMLInputElement>('#atakhan')!;

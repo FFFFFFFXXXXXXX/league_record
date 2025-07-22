@@ -34,6 +34,7 @@ fn main() {
         .manage(WindowState::default())
         .manage(CurrentlyRecording::default())
         .manage(TrayState::default())
+        .manage(windows_key_listener::KeyListener::new())
         .manage(Shutdown::default())
         .invoke_handler(tauri::generate_handler![
             commands::get_marker_flags,
