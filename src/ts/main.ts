@@ -1,9 +1,3 @@
-import "video.js/dist/video-js.min.css";
-import "./css/container.css";
-import "./css/sidebar.css";
-import "./css/video.css";
-import "./css/modal.css";
-
 import videojs from "video.js";
 import type Player from "video.js/dist/types/player";
 import { type MarkerOptions, MarkersPlugin, type Settings } from "@fffffffxxxxxxx/videojs-markers";
@@ -49,6 +43,8 @@ const VIDEO_JS_OPTIONS = {
 const player = videojs("video_player", VIDEO_JS_OPTIONS) as Player & {
     markers: (settings?: Settings) => MarkersPlugin;
 };
+
+console.log(MarkersPlugin);
 
 void main();
 async function main() {
@@ -249,32 +245,35 @@ function eventName(gameEvent: GameEvent, participantId: number, checkbox: Marker
     if ("ChampionKill" in gameEvent) {
         if ((checkbox?.kill ?? true) && gameEvent.ChampionKill.killer_id === participantId) {
             return "Kill";
-        } else if (
-            (checkbox?.assist ?? true) &&
-            gameEvent.ChampionKill.assisting_participant_ids.includes(participantId)
-        ) {
+        }
+        if ((checkbox?.assist ?? true) && gameEvent.ChampionKill.assisting_participant_ids.includes(participantId)) {
             return "Assist";
-        } else if ((checkbox?.death ?? true) && gameEvent.ChampionKill.victim_id === participantId) {
+        }
+        if ((checkbox?.death ?? true) && gameEvent.ChampionKill.victim_id === participantId) {
             return "Death";
         }
     } else if ("BuildingKill" in gameEvent) {
         if ((checkbox?.structure ?? true) && "TOWER_BUILDING" in gameEvent.BuildingKill.building_type) {
             return "Turret";
-        } else if ((checkbox?.structure ?? true) && "INHIBITOR_BUILDING" in gameEvent.BuildingKill.building_type) {
+        }
+        if ((checkbox?.structure ?? true) && "INHIBITOR_BUILDING" in gameEvent.BuildingKill.building_type) {
             return "Inhibitor";
         }
     } else if ("EliteMonsterKill" in gameEvent) {
         const monsterType = gameEvent.EliteMonsterKill.monster_type;
-
         if ((checkbox?.herald ?? true) && monsterType.monsterType === "HORDE") {
             return "Voidgrub";
-        } else if ((checkbox?.herald ?? true) && monsterType.monsterType === "RIFTHERALD") {
+        }
+        if ((checkbox?.herald ?? true) && monsterType.monsterType === "RIFTHERALD") {
             return "Herald";
-        } else if ((checkbox?.atakhan ?? true) && monsterType.monsterType === "ATAKHAN") {
+        }
+        if ((checkbox?.atakhan ?? true) && monsterType.monsterType === "ATAKHAN") {
             return "Atakhan";
-        } else if ((checkbox?.baron ?? true) && monsterType.monsterType === "BARON_NASHOR") {
+        }
+        if ((checkbox?.baron ?? true) && monsterType.monsterType === "BARON_NASHOR") {
             return "Baron";
-        } else if ((checkbox?.dragon ?? true) && monsterType.monsterType === "DRAGON") {
+        }
+        if ((checkbox?.dragon ?? true) && monsterType.monsterType === "DRAGON") {
             switch (monsterType.monsterSubType) {
                 case "FIRE_DRAGON":
                     return "Infernal-Dragon";

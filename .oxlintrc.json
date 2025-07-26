@@ -1,0 +1,26 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["oxc", "import", "typescript", "unicorn", "promise"],
+    "env": {
+        "browser": true
+    },
+    "categories": {
+        "correctness": "error",
+        "perf": "warn",
+        "suspicious": "warn",
+        "pedantic": "warn"
+    },
+    "rules": {
+        "eslint/max-lines": "off",
+        "eslint/max-lines-per-function": "off",
+        "max-dependencies": "off"
+    },
+    "overrides": [
+        {
+            "files": ["**/bindings.ts"],
+            "rules": {
+                "eslint/no-unused-vars": "off"
+            }
+        }
+    ]
+}

@@ -10,10 +10,9 @@
   ],
   "scripts": {
     "predev": "cd src-tauri && cargo test",
-    "dev": "vite",
-    "prebuild": "cd src-tauri && cargo test --release",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "dev": "bun install --linker=isolated && bun run --watch --port 1420 src/index.html",
+    "build": "rm -rf dist && bun install --linker=isolated && bun run --bun oxlint && bun build --minify --target browser --outdir dist src/index.html",
+    "preview": "bun dist/index.html"
   },
   "dependencies": {
     "@fffffffxxxxxxx/league_record_types": "file:league_record_types/",
@@ -25,8 +24,7 @@
     "video.js": "^8.22.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0",
-    "typescript": "^5.8.2",
-    "vite": "^6.2.2"
+    "@tauri-apps/cli": "^2.7.1",
+    "oxlint": "^1.8.0"
   }
 }
