@@ -10,8 +10,8 @@
   ],
   "scripts": {
     "predev": "cd src-tauri && cargo test",
-    "dev": "bun install --linker=isolated && bun run --watch --port 1420 src/index.html",
-    "build": "rm -rf dist && bun install --linker=isolated && bun run --bun oxlint && bun build --minify --target browser --outdir dist src/index.html",
+    "dev": "bun run --watch --port 1420 src/index.html",
+    "build": "rm -rf dist && bun run --bun oxlint && bun build --minify --target browser --outdir dist src/index.html",
     "preview": "bun dist/index.html"
   },
   "dependencies": {

@@ -121,10 +121,10 @@ This is just a rough estimate with the default settings so you can get a sense f
 
 There is a release for Windows-x64, but you can build the project on your own.
 
-In order to build the project you need to have the [nightly](https://rust-lang.github.io/rustup/concepts/channels.html#working-with-nightly-rust) Rust toolchain and [NPM](https://nodejs.org/en) installed.  
-From the root folder of the project run `npm install` and then `npx tauri dev` to run the project in debug mode or `npx tauri build` to build in release-mode and create the installer.
+In order to build the project you need to have the [nightly](https://rust-lang.github.io/rustup/concepts/channels.html#working-with-nightly-rust) Rust toolchain and [Bun](https://bun.com) installed.  
+From the root folder of the project run `bun install` and then `bun x tauri dev` to run the project in debug mode or `bun x tauri build` to build in release-mode and create the installer.
 
-In order to package the compiled files into a standalone archive, run one of the following commands after a successful `npx tauri build`:
+In order to package the compiled files into a standalone archive, run one of the following commands after a successful `bun x tauri build`:
 
 ```bash
 # outputs 'LeagueRecord.tar.gz' in the project root folder
