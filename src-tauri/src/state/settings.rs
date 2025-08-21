@@ -231,11 +231,9 @@ impl SettingsWrapper {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
-    // only used in the tauri application
     marker_flags: MarkerFlags,
     check_for_updates: bool,
     debug_log: bool,
-    // these get passed to libobs-recorder
     recordings_folder: PathBuf,
     filename_format: String,
     encoding_quality: u32,

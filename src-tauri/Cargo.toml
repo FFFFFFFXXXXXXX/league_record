@@ -16,7 +16,7 @@ libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git
 riot_local_auth = { git = "https://github.com/FFFFFFFXXXXXXX/riot_local_auth" }
 shaco = { git = "https://github.com/FFFFFFFXXXXXXX/Shaco" }
 
-tokio = { version = "1.46.1", default-features = false }
+tokio = { version = "1.47.1", default-features = false }
 tokio-util = { version = "0.7.15", default-features = false }
 futures-util = { version = "0.3.31", default-features = false }
 

@@ -16,15 +16,15 @@
   },
   "dependencies": {
     "@fffffffxxxxxxx/league_record_types": "file:league_record_types/",
-    "@fffffffxxxxxxx/videojs-markers": "^1.1.8",
-    "@tauri-apps/api": "^2.0.0",
-    "@tauri-apps/plugin-clipboard-manager": "^2.0.0",
-    "@tauri-apps/plugin-dialog": "^2.0.0",
-    "@tauri-apps/plugin-updater": "^2.0.0",
-    "video.js": "^8.22.0"
+    "@fffffffxxxxxxx/videojs-markers": "^1.2.0",
+    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.0",
+    "@tauri-apps/plugin-dialog": "^2.3.3",
+    "@tauri-apps/plugin-updater": "^2.9.0",
+    "video.js": "^8.23.4"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.7.1",
-    "oxlint": "^1.8.0"
+    "@tauri-apps/cli": "^2.8.1",
+    "oxlint": "^1.12.0"
   }
 }
