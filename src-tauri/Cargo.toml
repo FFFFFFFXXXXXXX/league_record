@@ -4,7 +4,7 @@
 members = ["riot_datatypes"]
 
 [workspace.package]
-version = "2.1.2"
+version = "2.1.3"
 edition = "2021"
 authors = ["FX"]
 license = "GPL-3.0-or-later"
