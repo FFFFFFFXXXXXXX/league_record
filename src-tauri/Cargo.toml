@@ -85,7 +85,7 @@ windows = { version = "0.62.2", features = [
 [target.'cfg(target_os = "macos")'.dependencies]
 
 [build-dependencies]
-tauri-build = { version = "2.3.0" }
+tauri-build = { version = "2.3.0", features = [] }
 libobs-recorder = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git", artifact = "bin:extprocess_recorder" }
 build-helper = { git = "https://github.com/FFFFFFFXXXXXXX/libobs-recorder.git" }
 
